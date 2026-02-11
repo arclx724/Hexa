@@ -659,14 +659,6 @@ async def update_restart(_, ctx: Message, strings):
     os.execvp(sys.executable, [sys.executable, "-m", "misskaty"])
 
 
-@app.on_error(errors=(FloodWait, RPCError, SlowmodeWait))
-async def error_handlers(_: "Client", __: "Update", error: "Exception") -> None:
-    if isinstance(error, (FloodWait, SlowmodeWait)):
-        await asyncio.sleep(error.value)
-    else:
-        LOGGER.error(repr(error))
-
-
 @app.on_raw_update(group=-99)
 async def updtebot(client, update, users, _):
     if isinstance(update, UpdateBotStopped):
@@ -711,4 +703,5 @@ if AUTO_RESTART:
     scheduler = AsyncIOScheduler(timezone="Asia/Jakarta")
     scheduler.add_job(auto_restart, trigger="interval", days=3)
     scheduler.start()
+
 
