@@ -441,7 +441,6 @@ async def unban_globally(_, ctx: Message):
 @app.on_edited_message(
     filters.command(["shell", "sh", "term"], COMMAND_HANDLER)
     & filters.user(OWNER_ID)
-    & ~filters.react
 )
 @user.on_message(filters.command(["shell", "sh", "term"], ".") & filters.me)
 @use_chat_lang()
@@ -511,7 +510,6 @@ async def shell_cmd(self: Client, ctx: Message, strings):
         | filters.regex(r"app.run\(\)$")
     )
     & filters.user(OWNER_ID)
-    & ~filters.react
 )
 @user.on_message(filters.command(["ev", "run", "meval"], ".") & filters.me)
 @use_chat_lang()
@@ -713,3 +711,4 @@ if AUTO_RESTART:
     scheduler = AsyncIOScheduler(timezone="Asia/Jakarta")
     scheduler.add_job(auto_restart, trigger="interval", days=3)
     scheduler.start()
+
