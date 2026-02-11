@@ -16,6 +16,7 @@ from pymongo import MongoClient
 from pyrogram import Client
 from web.webserver import api
 
+from misskaty.core.storage import MongoStorage
 from misskaty.vars import (
     API_HASH,
     API_ID,
@@ -54,6 +55,7 @@ uvloop.install()
 faulthandler_enable()
 from misskaty.core import misskaty_patch
 
+storage_session = MongoStorage(name=BOT_TOKEN.split(":")[0], remove_peers=False)
 # Pyrogram Bot Client
 app = Client(
     "MissKatyBot",
@@ -61,6 +63,7 @@ app = Client(
     api_hash=API_HASH,
     bot_token=BOT_TOKEN,
     sleep_threshold=180,
+    storage_engine=storage_session,
     app_version="MissKatyPyro Stable",
     workers=50,
     max_concurrent_transmissions=4,
