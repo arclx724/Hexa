@@ -1,6 +1,6 @@
 emoji
 git+https://github.com/KurimuzonAkuma/pyrogram
-tgcrypto
+pyrofork-tgcrypto
 beanie
 pymongo
 python-dotenv
@@ -36,6 +36,4 @@ lxml_html_clean
 fastapi
 uvicorn
 python-multipart
-
-
 yt-dlp[default]
