@@ -287,7 +287,7 @@ async def server_stats(_, ctx: Message) -> "Message":
 
     fastfetch_cmd = (
         "if command -v fastfetch >/dev/null 2>&1; then "
-        "fastfetch --logo none --pipe true --color never --disable localip --disable publicip; "
+        "fastfetch --logo none --pipe true --disable localip --disable publicip; "
         "elif command -v neofetch >/dev/null 2>&1; then "
         "neofetch --stdout | sed '/Local IP/d;/Public IP/d'; "
         "else echo 'System fetch tool is not available.'; fi"
