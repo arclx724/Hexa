@@ -5,11 +5,16 @@
 * Copyright @YasirPedia All rights reserved
 """
 
+import os
+import socket
+from logging import getLogger
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from async_pymongo import AsyncClient
 
 from misskaty.vars import DATABASE_NAME, DATABASE_URI
+
+LOGGER = getLogger("MissKaty")
 
 
 class Database:
@@ -24,14 +29,55 @@ class Database:
         self.db = self.client[self.database_name]
 
     @staticmethod
-    def _normalize_uri(uri: str) -> str:
+    def _is_resolvable(hostname: str) -> bool:
+        try:
+            socket.getaddrinfo(hostname, None)
+            return True
+        except OSError:
+            return False
+
+    @classmethod
+    def _normalize_uri(cls, uri: str) -> str:
         parsed = urlparse(uri)
-        if parsed.scheme != "mongodb" or parsed.hostname not in {"localhost", "127.0.0.1"}:
+        if parsed.scheme not in {"mongodb", "mongodb+srv"} or not parsed.hostname:
             return uri
 
         query = dict(parse_qsl(parsed.query, keep_blank_values=True))
-        query.setdefault("directConnection", "true")
-        return urlunparse(parsed._replace(query=urlencode(query)))
+
+        # Help local single-node MongoDB and localhost DNS edge cases.
+        if parsed.scheme == "mongodb" and parsed.hostname in {"localhost", "127.0.0.1"}:
+            query.setdefault("directConnection", "true")
+            return urlunparse(parsed._replace(query=urlencode(query)))
+
+        # Optional fallback when local development accidentally uses non-resolvable docker hostnames.
+        use_fallback = os.environ.get("DATABASE_LOCAL_FALLBACK", "true").lower() in {
+            "1",
+            "true",
+            "yes",
+        }
+        if use_fallback and not cls._is_resolvable(parsed.hostname):
+            netloc = parsed.netloc
+            if "@" in netloc:
+                auth, hostpart = netloc.rsplit("@", 1)
+            else:
+                auth, hostpart = "", netloc
+
+            if ":" in hostpart:
+                _, port = hostpart.rsplit(":", 1)
+                hostpart = f"127.0.0.1:{port}"
+            else:
+                hostpart = "127.0.0.1"
+
+            query.setdefault("directConnection", "true")
+            fallback_netloc = f"{auth + '@' if auth else ''}{hostpart}"
+            fallback_uri = urlunparse(parsed._replace(netloc=fallback_netloc, query=urlencode(query)))
+            LOGGER.warning(
+                f"DATABASE_URI host '{parsed.hostname}' tidak bisa di-resolve. "
+                f"Fallback ke local URI: {fallback_uri}"
+            )
+            return fallback_uri
+
+        return uri
 
     async def ping(self):
         return await self.client.admin.command("ping")
