@@ -196,7 +196,7 @@ async def memify(_, message):
 @use_chat_lang()
 async def dice(c, m, strings):
     dices = await c.send_dice(m.chat.id, reply_to_message_id=m.id)
-    await dices.reply_msg(strings("result").format(number=dices.dice.value), quote=True)
+    await dices.reply_msg(strings("result").format(number=dices.dice.value))
 
 
 @app.on_message(filters.command(["beri"], COMMAND_HANDLER))

@@ -27,7 +27,7 @@ from utils import get_file_id
 @use_chat_lang()
 async def mediainfo(_, ctx: Message, strings):
     if ctx.reply_to_message and ctx.reply_to_message.media:
-        process = await ctx.reply_msg(strings("processing_text"), quote=True)
+        process = await ctx.reply_msg(strings("processing_text"))
         file_info = get_file_id(ctx.reply_to_message)
         if file_info is None:
             return await process.edit_msg(strings("media_invalid"))

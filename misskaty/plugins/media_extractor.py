@@ -77,11 +77,11 @@ def get_subname(lang, url, ext):
 async def ceksub(self, ctx: Message, strings):
     if len(ctx.command) == 1:
         return await ctx.reply_msg(
-            strings("sub_extr_help").format(cmd=ctx.command[0]), quote=True, del_in=5
+            strings("sub_extr_help").format(cmd=ctx.command[0]), del_in=5
         )
     link = ctx.command[1]
     start_time = time()
-    pesan = await ctx.reply_msg(strings("progress_str"), quote=True)
+    pesan = await ctx.reply_msg(strings("progress_str"))
     try:
         res = (
             await shell_exec(
@@ -138,7 +138,7 @@ async def convertsrt(self: Client, ctx: Message, strings):
         return await ctx.reply_msg(
             strings("conv_sub_help").format(cmd=ctx.command[0]), del_in=6
         )
-    msg = await ctx.reply_msg(strings("convert_str"), quote=True)
+    msg = await ctx.reply_msg(strings("convert_str"))
     if not os.path.exists("downloads"):
         os.makedirs("downloads")
     dl = await reply.download(file_name="downloads/")

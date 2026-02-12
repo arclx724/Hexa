@@ -115,8 +115,7 @@ async def blacklist_filters_re(self, message):
                 )
             except ChatAdminRequired:
                 return await message.reply(
-                    "Please give me admin permissions to blacklist user", quote=False
-                )
+                    "Please give me admin permissions to blacklist user")
             except Exception as err:
                 self.log.info(f"ERROR Blacklist Chat: ID = {chat_id}, ERR = {err}")
                 return

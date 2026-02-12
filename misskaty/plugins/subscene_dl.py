@@ -119,8 +119,7 @@ async def subscene_cmd(_, ctx: Message):
             f"ℹ️ Please add query after CMD!\nEx: <code>/{ctx.command[0]} Jurassic World</code>"
         )
     pesan = await ctx.reply_msg(
-        "⏳ Please wait, getting data from subscene..", quote=True
-    )
+        "⏳ Please wait, getting data from subscene..")
     CurrentPage = 1
     subres, PageLen, btn1, btn2 = await getTitleSub(
         pesan, ctx.input, CurrentPage, ctx.from_user.id

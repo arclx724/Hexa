@@ -78,8 +78,7 @@ async def ytsearch(_, ctx: Message, strings):
     caption = out
     markup = btn
     await ctx.reply_photo(
-        img, caption=caption, reply_markup=markup, parse_mode=ParseMode.HTML, quote=True
-    )
+        img, caption=caption, reply_markup=markup, parse_mode=ParseMode.HTML)
 
 
 @app.on_message(
@@ -117,7 +116,6 @@ async def ytdownv2(self, ctx: Message, strings):
                     caption=caption,
                     reply_markup=markup,
                     parse_mode=ParseMode.HTML,
-                    quote=True,
                 )
             except WebpageMediaEmpty:
                 await ctx.reply_photo(
@@ -125,7 +123,6 @@ async def ytdownv2(self, ctx: Message, strings):
                     caption=caption,
                     reply_markup=markup,
                     parse_mode=ParseMode.HTML,
-                    quote=True,
                 )
         except Exception as err:
             try:

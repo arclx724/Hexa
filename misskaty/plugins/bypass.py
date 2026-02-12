@@ -101,7 +101,7 @@ async def bypass(_, ctx: Message):
             f"Gunakan perintah /{ctx.command[0]} untuk bypass url", del_in=6
         )
     url = ctx.command[1]
-    msg = await ctx.reply_msg("Bypassing URL..", quote=True)
+    msg = await ctx.reply_msg("Bypassing URL..")
     mention = f"**Bypasser:** {ctx.from_user.mention} ({ctx.from_user.id})"
     if re.match(r"https?://(store.kde.org|www.pling.com)\/p\/(\d+)", url):
         data = await pling_bypass(url)

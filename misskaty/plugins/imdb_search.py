@@ -255,7 +255,6 @@ async def imdb_choose(_, ctx: Message):
     await ctx.reply_msg(
         f"Hi {ctx.from_user.mention}, Please select the language you want to use on IMDB Search. If you want use default lang for every user, click third button. So no need click select lang if use CMD.\n\nTimeout: 10s",
         reply_markup=buttons,
-        quote=True,
     )
 
 
@@ -570,7 +569,6 @@ async def imdb_search_id(kueri, message):
     BTN = []
     k = await message.reply_msg(
         f"🔎 Menelusuri <code>{kueri}</code> di database IMDb ...",
-        quote=True,
     )
     msg = ""
     buttons = InlineKeyboard(row_width=4)
@@ -633,7 +631,6 @@ async def imdb_search_en(kueri, message):
     BTN = []
     k = await message.reply_msg(
         f"🔎 Searching <code>{kueri}</code> in IMDb Database...",
-        quote=True,
     )
     msg = ""
     buttons = InlineKeyboard(row_width=4)

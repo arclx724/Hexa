@@ -32,9 +32,8 @@ async def ocr(_, ctx: Message, strings):
         and (not reply.document or not reply.document.mime_type.startswith("image"))
     ):
         return await ctx.reply_msg(
-            strings("no_photo").format(cmd=ctx.command[0]), quote=True
-        )
-    msg = await ctx.reply_msg(strings("read_ocr"), quote=True)
+            strings("no_photo").format(cmd=ctx.command[0]))
+    msg = await ctx.reply_msg(strings("read_ocr"))
     try:
         file_path = await reply.download()
         if reply.sticker:

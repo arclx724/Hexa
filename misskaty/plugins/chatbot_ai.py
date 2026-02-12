@@ -94,12 +94,12 @@ async def get_openai_stream_response(is_stream, key, base_url, model, messages, 
 async def gemini_chatbot(_, ctx: Message, strings):
     if len(ctx.command) == 1:
         return await ctx.reply_msg(
-            strings("no_question").format(cmd=ctx.command[0]), quote=True, del_in=5
+            strings("no_question").format(cmd=ctx.command[0]), del_in=5
         )
     if not GOOGLEAI_KEY:
         return await ctx.reply_msg("GOOGLEAI_KEY env is missing!!!")
     uid = ctx.from_user.id if ctx.from_user else ctx.sender_chat.id
-    msg = await ctx.reply_msg(strings("find_answers_str"), quote=True)
+    msg = await ctx.reply_msg(strings("find_answers_str"))
     if uid not in gemini_conversations:
         gemini_conversations[uid] = [{"role": "system", "content": "Kamu adalah AI dengan karakter mirip kucing bernama MissKaty AI yang diciptakan oleh Yasir untuk membantu manusia mencari informasi dan gunakan bahasa sesuai yang saya katakan."}, {"role": "user", "content": ctx.input}]
     else:
@@ -120,7 +120,7 @@ async def gemini_chatbot(_, ctx: Message, strings):
 async def openai_chatbot(self, ctx: Message, strings):
     if len(ctx.command) == 1:
         return await ctx.reply_msg(
-            strings("no_question").format(cmd=ctx.command[0]), quote=True, del_in=5
+            strings("no_question").format(cmd=ctx.command[0]), del_in=5
         )
     if not OPENAI_KEY:
         return await ctx.reply_msg("OPENAI_KEY env is missing!!!")
@@ -129,7 +129,7 @@ async def openai_chatbot(self, ctx: Message, strings):
     if is_in_gap and (uid != OWNER_ID or uid not in SUDO):
         return await ctx.reply_msg(strings("dont_spam"), del_in=5)
     pertanyaan = ctx.input
-    msg = await ctx.reply_msg(strings("find_answers_str"), quote=True)
+    msg = await ctx.reply_msg(strings("find_answers_str"))
     if uid not in gptai_conversations:
         gptai_conversations[uid] = [{"role": "system", "content": "Kamu adalah AI dengan karakter mirip kucing bernama MissKaty AI yang diciptakan oleh Yasir untuk membantu manusia mencari informasi dan gunakan bahasa sesuai yang saya katakan."}, {"role": "user", "content": pertanyaan}]
     else:

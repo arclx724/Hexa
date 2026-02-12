@@ -40,7 +40,7 @@ __HELP__ = """"
 async def genss(self: Client, ctx: Message, strings):
     replied = ctx.reply_to_message
     if len(ctx.command) == 2 and is_url(ctx.command[1]):
-        pesan = await ctx.reply_msg(strings("wait_dl"), quote=True)
+        pesan = await ctx.reply_msg(strings("wait_dl"))
         start_t = datetime.now()
         the_url_parts = " ".join(ctx.command[1:])
         url = the_url_parts.strip()
@@ -139,8 +139,8 @@ async def genss(self: Client, ctx: Message, strings):
         vid = [replied.video, replied.document]
         media = next((v for v in vid if v is not None), None)
         if media is None:
-            return await ctx.reply_msg(strings("no_reply"), quote=True)
-        process = await ctx.reply_msg(strings("wait_dl"), quote=True)
+            return await ctx.reply_msg(strings("no_reply"))
+        process = await ctx.reply_msg(strings("wait_dl"))
         if media.file_size > 2097152000:
             return await process.edit_msg(strings("limit_dl"))
         c_time = time.time()

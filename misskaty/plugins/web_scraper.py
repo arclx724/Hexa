@@ -961,7 +961,7 @@ async def getSame(msg, query, current_page, strings):
 @use_chat_lang()
 async def same_search(_, msg, strings):
     query = msg.text.split(maxsplit=1)[1] if len(msg.command) > 1 else None
-    bmsg = await msg.reply_msg(strings("get_data"), quote=True)
+    bmsg = await msg.reply_msg(strings("get_data"))
     sameres, PageLen = await getSame(bmsg, query, 1, strings)
     if not sameres:
         return
@@ -980,7 +980,7 @@ async def terbit21_s(_, message, strings):
     kueri = " ".join(message.command[1:])
     if not kueri:
         kueri = None
-    pesan = await message.reply_msg(strings("get_data"), quote=True)
+    pesan = await message.reply_msg(strings("get_data"))
     CurrentPage = 1
     terbitres, PageLen = await getDataTerbit21(pesan, kueri, CurrentPage, strings)
     if not terbitres:
@@ -1004,7 +1004,7 @@ async def lk21_s(_, message, strings):
     kueri = " ".join(message.command[1:])
     if not kueri:
         kueri = None
-    pesan = await message.reply_msg(strings("get_data"), quote=True)
+    pesan = await message.reply_msg(strings("get_data"))
     CurrentPage = 1
     lkres, PageLen = await getDatalk21(pesan, kueri, CurrentPage, strings)
     if not lkres:
@@ -1026,7 +1026,7 @@ async def pahe_s(_, message, strings):
     kueri = " ".join(message.command[1:])
     if not kueri:
         kueri = ""
-    pesan = await message.reply_msg(strings("get_data"), quote=True)
+    pesan = await message.reply_msg(strings("get_data"))
     CurrentPage = 1
     paheres, PageLen = await getDataPahe(pesan, kueri, CurrentPage, strings)
     if not paheres:
@@ -1048,7 +1048,7 @@ async def gomov_s(self, message, strings):
     kueri = " ".join(message.command[1:])
     if not kueri:
         kueri = ""
-    pesan = await message.reply_msg(strings("get_data"), quote=True)
+    pesan = await message.reply_msg(strings("get_data"))
     CurrentPage = 1
     gomovres, PageLen, btn = await getDataGomov(
         pesan, kueri, CurrentPage, message.from_user.id, strings
@@ -1074,7 +1074,7 @@ async def melong_s(self, message, strings):
     kueri = " ".join(message.command[1:])
     if not kueri:
         kueri = ""
-    pesan = await message.reply_msg(strings("get_data"), quote=True)
+    pesan = await message.reply_msg(strings("get_data"))
     CurrentPage = 1
     melongres, PageLen, btn = await getDataMelong(
         pesan, kueri, CurrentPage, message.from_user.id, strings
@@ -1107,7 +1107,7 @@ async def nunadrama_s(self, message, strings):
     kueri = " ".join(message.command[1:])
     if not kueri:
         kueri = ""
-    pesan = await message.reply_msg(strings("get_data"), quote=True)
+    pesan = await message.reply_msg(strings("get_data"))
     CurrentPage = 1
     nunares, PageLen, btn = await getDataNunaDrama(
         pesan, kueri, CurrentPage, message.from_user.id, strings
@@ -1135,7 +1135,7 @@ async def pusatfilm_s(self, message, strings):
     kueri = " ".join(message.command[1:])
     if not kueri:
         kueri = ""
-    pesan = await message.reply_msg(strings("get_data"), quote=True)
+    pesan = await message.reply_msg(strings("get_data"))
     CurrentPage = 1
     pfres, PageLen, btn = await getDataPusatFilm(
         pesan, kueri, CurrentPage, message.from_user.id, strings
@@ -1163,7 +1163,7 @@ async def dutamovie_s(self, message, strings):
     kueri = " ".join(message.command[1:])
     if not kueri:
         kueri = ""
-    pesan = await message.reply_msg(strings("get_data"), quote=True)
+    pesan = await message.reply_msg(strings("get_data"))
     CurrentPage = 1
     dutares, PageLen, btn = await getDataDutaMovie(
         pesan, kueri, CurrentPage, message.from_user.id, strings
@@ -1191,7 +1191,7 @@ async def savefilm_s(self, message, strings):
     kueri = " ".join(message.command[1:])
     if not kueri:
         kueri = ""
-    pesan = await message.reply_msg(strings("get_data"), quote=True)
+    pesan = await message.reply_msg(strings("get_data"))
     CurrentPage = 1
     savefilmres, PageLen, btn = await getDataSavefilm21(
         pesan, kueri, CurrentPage, message.from_user.id, strings
@@ -1219,7 +1219,7 @@ async def nodrakor_s(self, message, strings):
     kueri = " ".join(message.command[1:])
     if not kueri:
         kueri = ""
-    pesan = await message.reply_msg(strings("get_data"), quote=True)
+    pesan = await message.reply_msg(strings("get_data"))
     CurrentPage = 1
     nodrakorres, PageLen, btn = await getDataNodrakor(
         pesan, kueri, CurrentPage, message.from_user.id, strings
@@ -1247,7 +1247,7 @@ async def kusonime_s(self, message, strings):
     kueri = " ".join(message.command[1:])
     if not kueri:
         kueri = ""
-    pesan = await message.reply_msg(strings("get_data"), quote=True)
+    pesan = await message.reply_msg(strings("get_data"))
     CurrentPage = 1
     kusores, PageLen, btn1, btn2 = await getDataKuso(
         pesan, kueri, CurrentPage, message.from_user.id, strings
@@ -1275,7 +1275,7 @@ async def lendrive_s(self, ctx: Message, strings):
     kueri = ctx.input
     if not kueri:
         kueri = ""
-    pesan = await ctx.reply_msg(strings("get_data"), quote=True)
+    pesan = await ctx.reply_msg(strings("get_data"))
     CurrentPage = 1
     lendres, PageLen, btn = await getDataLendrive(
         pesan, kueri, CurrentPage, ctx.from_user.id, strings
@@ -1301,7 +1301,7 @@ async def movieku_s(self, ctx: Message, strings):
     kueri = ctx.input
     if not kueri:
         kueri = ""
-    pesan = await ctx.reply_msg(strings("get_data"), quote=True)
+    pesan = await ctx.reply_msg(strings("get_data"))
     CurrentPage = 1
     moviekures, PageLen, btn = await getDataMovieku(pesan, kueri, CurrentPage, ctx.from_user.id, strings)
     if not moviekures:

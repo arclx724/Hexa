@@ -86,7 +86,7 @@ async def upload(bot, message):
 @capture_err
 @new_task
 async def download(client, message):
-    pesan = await message.reply_text("Processing...", quote=True)
+    pesan = await message.reply_text("Processing...")
     if message.reply_to_message is not None:
         start_t = datetime.now()
         c_time = time.time()

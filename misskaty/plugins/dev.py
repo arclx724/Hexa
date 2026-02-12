@@ -148,7 +148,7 @@ async def refund_star_payment(client: Client, message: Message):
 @use_chat_lang()
 async def log_file(_, ctx: Message, strings):
     """Send log file"""
-    msg = await ctx.reply_msg("<b>Reading bot logs ...</b>", quote=True)
+    msg = await ctx.reply_msg("<b>Reading bot logs ...</b>")
     if len(ctx.command) == 1:
         try:
             with open("MissKatyLogs.txt", "r") as file:
@@ -220,9 +220,9 @@ async def payment(client: Client, message: Message):
     capt = f"𝗠𝗲𝗻𝘂𝗻𝗴𝗴𝘂 𝗽𝗲𝗺𝗯𝗮𝘆𝗮𝗿𝗮𝗻\nKode: {res['data']['unique_code']}\nNote: {res['data']['note']}\nHarga: {res['data']['amount']}\nFee: {res['data']['fee']}\nExpired: {res['data']['expired']}\n\n"
     payment_guide = f"<b>{res['payment_guide'][0]['title']}:</b>\n" + "\n".join(f"{i+1}. {step}" for i, step in enumerate(res["payment_guide"][0]['content']))
     if message.chat.type.value != "private":
-        msg = await message.reply_photo(qr_photo, caption=capt+payment_guide, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text="Payment Web", url=res["data"]["checkout_url_v2"])]]), quote=True)
+        msg = await message.reply_photo(qr_photo, caption=capt+payment_guide, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text="Payment Web", url=res["data"]["checkout_url_v2"])]]))
     else:
-        msg = await message.reply_photo(qr_photo, caption=capt+payment_guide, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text="Payment Web", web_app=WebAppInfo(url=res["data"]["checkout_url_v2"]))]]), quote=True)
+        msg = await message.reply_photo(qr_photo, caption=capt+payment_guide, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text="Payment Web", web_app=WebAppInfo(url=res["data"]["checkout_url_v2"]))]]))
     await autopay_update(msg.id, res["data"]["note"], id_, res['data']['amount'], res['data']['status'], res['data']['unique_code'], res['data']['created_at'])
 
 @app.on_message(filters.command(["donate"], COMMAND_HANDLER))
@@ -288,13 +288,12 @@ async def server_stats(_, ctx: Message) -> "Message":
     caption = f"<b>{BOT_NAME} {misskaty_version} is Up and Running successfully.</b>\n\n<code>{neofetch}</code>\n\n**OS Uptime:** <code>{osuptime}</code>\n<b>Bot Uptime:</b> <code>{currentTime}</code>\n**Bot Usage:** <code>{botusage}</code>\n\n**Total Space:** <code>{disk_total}</code>\n**Free Space:** <code>{disk_free}</code>\n\n**Download:** <code>{download}</code>\n**Upload:** <code>{upload}</code>\n\n<b>PyroFork Version</b>: <code>{pyrover}</code>\n<b>Python Version</b>: <code>{sys.version_info[0]}.{sys.version_info[1]}.{sys.version_info[2]} {sys.version_info[3].title()}</code>"
 
     if "oracle" in platform.uname().release:
-        return await ctx.reply_msg(caption, quote=True)
+        return await ctx.reply_msg(caption)
 
     start = datetime.now()
     msg = await ctx.reply_photo(
         photo="https://te.legra.ph/file/30a82c22854971d0232c7.jpg",
         caption=caption,
-        quote=True,
     )
     end = datetime.now()
 
@@ -450,7 +449,7 @@ async def shell_cmd(self: Client, ctx: Message, strings):
     msg = (
         await ctx.edit_msg(strings("run_exec"))
         if not self.me.is_bot
-        else await ctx.reply_msg(strings("run_exec"), quote=True)
+        else await ctx.reply_msg(strings("run_exec"))
     )
     shell = (await shell_exec(ctx.input))[0]
     if len(shell) > 3000:
@@ -470,7 +469,6 @@ async def shell_cmd(self: Client, ctx: Message, strings):
                         ]
                     ]
                 ),
-                quote=True,
             )
             await msg.delete_msg()
     elif len(shell) != 0:
@@ -489,7 +487,6 @@ async def shell_cmd(self: Client, ctx: Message, strings):
                     ]
                 ]
             ),
-            quote=True,
         )
         if self.me.is_bot:
             await msg.delete_msg()
@@ -519,7 +516,7 @@ async def cmd_eval(self: Client, ctx: Message, strings) -> Optional[str]:
     status_message = (
         await ctx.edit_msg(strings("run_eval"))
         if not self.me.is_bot
-        else await ctx.reply_msg(strings("run_eval"), quote=True)
+        else await ctx.reply_msg(strings("run_eval"))
     )
     code = (
         ctx.text.split(maxsplit=1)[1]
@@ -623,7 +620,6 @@ async def cmd_eval(self: Client, ctx: Message, strings) -> Optional[str]:
                         ]
                     ]
                 ),
-                quote=True,
             )
             await status_message.delete_msg()
     else:
@@ -642,7 +638,6 @@ async def cmd_eval(self: Client, ctx: Message, strings) -> Optional[str]:
                     ]
                 ]
             ),
-            quote=True,
         )
         if self.me.is_bot:
             await status_message.delete_msg()

@@ -54,7 +54,6 @@ async def is_batal(msg):
     if msg.text == "/cancel":
         await msg.reply(
             "**» Cancelled the ongoing string session generation process !**",
-            quote=True,
             reply_markup=InlineKeyboardMarkup(gen_button),
         )
         return True
@@ -63,7 +62,6 @@ async def is_batal(msg):
     elif msg.text.startswith("/"):  # Bot Commands
         await msg.reply(
             "**» Cancelled the ongoing string session generation process !**",
-            quote=True,
         )
         return True
     else:
@@ -137,7 +135,6 @@ async def generate_session(bot, msg, telethon=False, is_bot: bool = False):
         except ValueError:
             return await api_id_msg.reply(
                 "**API_ID** must be integer, start generating your session again.",
-                quote=True,
                 reply_markup=InlineKeyboardMarkup(gen_button),
             )
         api_hash_msg = await msg.chat.ask(
@@ -248,7 +245,6 @@ async def generate_session(bot, msg, telethon=False, is_bot: bool = False):
             except (PasswordHashInvalid, PasswordHashInvalidError):
                 return await two_step_msg.reply(
                     "» The password you've sent is wrong.\n\nPlease start generating session again.",
-                    quote=True,
                     reply_markup=InlineKeyboardMarkup(gen_button),
                 )
     elif telethon:

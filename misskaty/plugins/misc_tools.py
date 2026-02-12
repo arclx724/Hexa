@@ -127,7 +127,6 @@ async def calculate_handler(self, ctx):
         text=f"Made by @{self.me.username}",
         reply_markup=calc_btn(ctx.from_user.id),
         disable_web_page_preview=True,
-        quote=True,
     )
 
 
@@ -265,7 +264,6 @@ async def readqr(c, m):
         return await m.reply_msg(res)
     await m.reply_msg(
         f"<b>QR Code Reader by @{c.me.username}:</b> <code>{r.json()[0]['symbol'][0]['data']}</code>",
-        quote=True,
     )
 
 
@@ -281,8 +279,7 @@ async def makeqr(c, m):
         )
     url = f"https://api.qrserver.com/v1/create-qr-code/?data={quote(teks)}&size=300x300"
     await m.reply_photo(
-        url, caption=f"<b>QR Code Maker by @{c.me.username}</b>", quote=True
-    )
+        url, caption=f"<b>QR Code Maker by @{c.me.username}</b>")
 
 
 @app.on_message(filters.command(["sof"], COMMAND_HANDLER))
@@ -457,7 +454,6 @@ async def showid(_, message):
         dc_id = message.from_user.dc_id or ""
         await message.reply_text(
             f"<b>➲ First Name:</b> {first}\n<b>➲ Last Name:</b> {last}\n<b>➲ Username:</b> {username}\n<b>➲ Telegram ID:</b> <code>{user_id}</code>\n<b>➲ Data Centre:</b> <code>{dc_id}</code>",
-            quote=True,
         )
 
     elif chat_type in ["group", "supergroup"]:
@@ -482,7 +478,7 @@ async def showid(_, message):
                 f"<b>{file_info.message_type}</b>: "
                 f"<code>{file_info.file_id}</code>\n"
             )
-        await message.reply_text(_id, quote=True)
+        await message.reply_text(_id)
 
 
 @app.on_message(filters.command(["info"], COMMAND_HANDLER))
@@ -536,7 +532,6 @@ async def who_is(client, message):
         reply_markup = InlineKeyboardMarkup(buttons)
         await message.reply_photo(
             photo=local_user_photo,
-            quote=True,
             reply_markup=reply_markup,
             caption=message_out_str,
             disable_notification=True,
@@ -554,7 +549,6 @@ async def who_is(client, message):
         await message.reply_text(
             text=message_out_str,
             reply_markup=reply_markup,
-            quote=True,
             disable_notification=True,
         )
     await status_message.delete_msg()
