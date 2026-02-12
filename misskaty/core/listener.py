@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import asyncio
+import inspect
 from contextlib import suppress
+from logging import getLogger
 from typing import MutableMapping, Optional, Tuple, Union
 
-from pyrogram import Client, StopPropagation, filters as pyro_filters
+from pyrogram import Client, filters as pyro_filters
 from pyrogram import types as pyro_types
 from pyrogram.handlers import CallbackQueryHandler, MessageHandler
 from pyrogram.types import Chat, Message
@@ -17,6 +19,7 @@ from misskaty.core.listener_errors import (
 )
 
 _UNALLOWED_CLICK_TEXT = "You're not expected to click this button."
+LOGGER = getLogger("MissKaty")
 
 
 class ConversationDispatcher:
@@ -34,7 +37,7 @@ class ConversationDispatcher:
             return None
 
         conversation_handler = MessageHandler(
-            self.conversation_handler, pyro_filters.incoming & pyro_filters.all
+            self.conversation_handler, pyro_filters.all
         )
         self.client.add_handler(conversation_handler, group=-1)
         self._conversation_handler = conversation_handler
@@ -54,6 +57,8 @@ class ConversationDispatcher:
     async def conversation_handler(self, client: Client, message: Message):
         if not message.from_user:
             return
+        if getattr(message, "outgoing", False):
+            return
 
         key = (message.chat.id, message.from_user.id)
         if key not in self._listeners:
@@ -62,13 +67,14 @@ class ConversationDispatcher:
         future, message_filter = self._listeners[key]
         active_filter = message_filter if message_filter else pyro_filters.all
 
-        if not await active_filter.__call__(client, message):
+        passed = active_filter.__call__(client, message)
+        if inspect.isawaitable(passed):
+            passed = await passed
+        if not passed:
             return
 
         if not future.done():
             future.set_result(message)
-
-        raise StopPropagation()
 
     async def listen(
         self,
@@ -158,6 +164,7 @@ async def client_ask(
     from_user_id: int = None,
     **kwargs,
 ):
+    LOGGER.debug("ask() registered listener chat_id=%s from_user_id=%s timeout=%s", chat_id, from_user_id, timeout)
     listener_task = asyncio.create_task(
         self.listen(
             chat_id=chat_id,
@@ -177,6 +184,7 @@ async def client_ask(
     )
 
     response = await listener_task
+    LOGGER.debug("ask() captured response chat_id=%s user_id=%s msg_id=%s", response.chat.id if response.chat else None, response.from_user.id if response.from_user else None, response.id)
     response.reply_to_message = sent
     return response
 
