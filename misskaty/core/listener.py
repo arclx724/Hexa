@@ -183,7 +183,11 @@ async def wait_for_click(
     future = asyncio.get_running_loop().create_future()
 
     async def _on_callback(_, query):
-        if query.message.chat.id != self.chat.id or query.message.id != self.id:
+        query_message = query.message
+        if not query_message:
+            return
+
+        if query_message.chat.id != self.chat.id or query_message.id != self.id:
             return
 
         if (
@@ -194,6 +198,9 @@ async def wait_for_click(
             with suppress(Exception):
                 await query.answer(_UNALLOWED_CLICK_TEXT, show_alert=True)
             return
+
+        with suppress(Exception):
+            await query.answer()
 
         if not future.done():
             future.set_result(query)
