@@ -152,7 +152,7 @@ def _imdb_settings_keyboard(uid: int):
                 ),
                 InlineKeyboardButton("🚩 Language", callback_data=f"imdbsetlang#{uid}"),
             ],
-            [InlineKeyboardButton("❌ Close", callback_data=f"close#{uid}")],
+            [InlineKeyboardButton("❌ Close", callback_data=f"close#{uid}", icon_custom_emoji_id=6037254263187443802, style=enums.ButtonStyle.DANGER)],
         ]
     )
 
