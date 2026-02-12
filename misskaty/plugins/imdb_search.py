@@ -826,7 +826,7 @@ async def imdb_id_callback(self: Client, query: CallbackQuery):
         return await query.answer("⚠️ Akses Ditolak!", True)
     with contextlib.redirect_stdout(sys.stderr):
         try:
-            await query.message.edit("⏳ Permintaan kamu sedang diproses.. ")
+            await query.message.edit("<emoji id=5319190934510904031>⏳</emoji> Permintaan kamu sedang diproses.. ")
             imdb_url = f"https://m.imdb.com/title/tt{movie}/"
             resp = await fetch.get(imdb_url)
             resp.raise_for_status()
@@ -886,7 +886,7 @@ async def imdb_id_callback(self: Client, query: CallbackQuery):
             if rating := r_json.get("aggregateRating"):
                 rating_value = rating.get("ratingValue", "-")
                 rating_count = rating.get("ratingCount", "-")
-                res_str += f"<b>Peringkat:</b> <code>{rating_value}⭐️ dari {rating_count} pengguna</code>\n"
+                res_str += f"<b>Peringkat:</b> <code>{rating_value}<emoji id=5958376256788502078>⭐</emoji>dari {rating_count} pengguna</code>\n"
             if release := sop.select('li[data-testid="title-details-releasedate"]'):
                 rilis = (
                     release[0]
@@ -944,7 +944,7 @@ async def imdb_id_callback(self: Client, query: CallbackQuery):
                 language_text = "-"
             else:
                 language_text = language_text[:-2]
-            res_str += "\n<b>🙎 Info Cast:</b>\n"
+            res_str += "\n<b><emoji id=5879770735999717115>🙎</emoji> Info Cast:</b>\n"
             cast_lines = []
             director_names = []
             if directors := r_json.get("director"):
@@ -981,7 +981,7 @@ async def imdb_id_callback(self: Client, query: CallbackQuery):
             if deskripsi := r_json.get("description"):
                 summary = (await gtranslate(deskripsi, "auto", "id")).text
                 storyline_text = summary or "-"
-                res_str += f"<b>📜 Plot:</b>\n<blockquote expandable><code>{summary}</code></blockquote>\n\n"
+                res_str += f"<b><emoji id=5956561916573782596>📜</emoji> Plot:</b>\n<blockquote expandable><code>{summary}</code></blockquote>\n\n"
             keywords_list = []
             if keywd := r_json.get("keywords"):
                 keywords_list = [kw.strip() for kw in keywd.split(",")]
@@ -990,7 +990,7 @@ async def imdb_id_callback(self: Client, query: CallbackQuery):
                     for i in keywords_list
                 )
                 res_str += (
-                    f"<b>🔥 Kata Kunci:</b>\n<blockquote expandable>{keyword_text[:-2]}</blockquote>\n"
+                    f"<b><emoji id=6008118472066732010>🔥</emoji> Kata Kunci:</b>\n<blockquote expandable>{keyword_text[:-2]}</blockquote>\n"
                 )
             if keyword_text != "-":
                 keyword_text = keyword_text[:-2]
@@ -1001,7 +1001,7 @@ async def imdb_id_callback(self: Client, query: CallbackQuery):
                     .text
                 )
                 awards_text = (await gtranslate(awards, "auto", "id")).text or "-"
-                res_str += f"<b>🏆 Penghargaan:</b>\n<blockquote expandable><code>{awards_text}</code></blockquote>\n"
+                res_str += f"<b><emoji id=5316979941181496594>🏆</emoji> Penghargaan:</b>\n<blockquote expandable><code>{awards_text}</code></blockquote>\n"
             else:
                 res_str += "\n"
             if ott != "":
@@ -1009,7 +1009,7 @@ async def imdb_id_callback(self: Client, query: CallbackQuery):
             ott_text = ott
             if not ott_text:
                 ott_text = "-"
-            res_str += f"<b>©️ IMDb by</b> {imdb_by}"
+            res_str += f"<b><emoji id=5886440807325504167>©️</emoji> IMDb by</b> {imdb_by}"
             if template:
                 imdb_code = f"tt{movie}"
                 title = r_json.get("name") or "-"
@@ -1023,7 +1023,7 @@ async def imdb_id_callback(self: Client, query: CallbackQuery):
                 if rating := r_json.get("aggregateRating"):
                     rating_value = rating.get("ratingValue", "-")
                     rating_count = rating.get("ratingCount", "-")
-                    rating_text = f"{rating_value}⭐️ dari {rating_count} pengguna"
+                    rating_text = f"{rating_value}<emoji id=5958376256788502078>⭐</emoji> dari {rating_count} pengguna"
                 release_url = (
                     f"https://www.imdb.com{rilis_url}" if rilis_url else "-"
                 )
@@ -1122,29 +1122,29 @@ async def imdb_id_callback(self: Client, query: CallbackQuery):
                 if "language" in hidden_fields:
                     res_str = res_str.replace(f"<b>Bahasa:</b> {language_text}\n", "")
                 if "cast" in hidden_fields:
-                    res_str = res_str.replace("\n<b>🙎 Info Cast:</b>\n", "")
+                    res_str = res_str.replace("\n<b><emoji id=5879770735999717115>🙎</emoji> Info Cast:</b>\n", "")
                     res_str = res_str.replace(f"<b>Sutradara:</b> {director_text}\n", "")
                     res_str = res_str.replace(f"<b>Penulis:</b> {writer_text}\n", "")
                     res_str = res_str.replace(f"<b>Pemeran:</b> {cast_text}\n\n", "")
                 if "storyline" in hidden_fields:
                     res_str = res_str.replace(
-                        f"<b>📜 Plot:</b>\n<blockquote expandable><code>{summary}</code></blockquote>\n\n",
+                        f"<b><emoji id=5956561916573782596>📜</emoji> Plot:</b>\n<blockquote expandable><code>{summary}</code></blockquote>\n\n",
                         "",
                     )
                 if "keyword" in hidden_fields:
                     res_str = res_str.replace(
-                        f"<b>🔥 Kata Kunci:</b>\n<blockquote expandable>{keyword_text}</blockquote>\n",
+                        f"<b><emoji id=6008118472066732010>🔥</emoji>  Kata Kunci:</b>\n<blockquote expandable>{keyword_text}</blockquote>\n",
                         "",
                     )
                 if "awards" in hidden_fields:
                     res_str = res_str.replace(
-                        f"<b>🏆 Penghargaan:</b>\n<blockquote expandable><code>{awards_text}</code></blockquote>\n",
+                        f"<b><emoji id=5316979941181496594>🏆</emoji> Penghargaan:</b>\n<blockquote expandable><code>{awards_text}</code></blockquote>\n",
                         "",
                     )
                 if "ott" in hidden_fields:
                     res_str = res_str.replace(f"Tersedia di:\n{ott}\n", "")
                 if "imdb_by" in hidden_fields:
-                    res_str = res_str.replace(f"<b>©️ IMDb by</b> {imdb_by}", "")
+                    res_str = res_str.replace(f"<b><emoji id=5886440807325504167>©️</emoji> IMDb by</b> {imdb_by}", "")
             if template:
                 markup = template_markup
             else:
@@ -1241,7 +1241,7 @@ async def imdb_en_callback(self: Client, query: CallbackQuery):
         return await query.answer("⚠️ Access Denied!", True)
     with contextlib.redirect_stdout(sys.stderr):
         try:
-            await query.message.edit("<i>⏳ Getting IMDb source..</i>")
+            await query.message.edit("<i><emoji id=5319190934510904031>⏳</emoji> Getting IMDb source..</i>")
             imdb_url = f"https://m.imdb.com/title/tt{movie}/"
             resp = await fetch.get(imdb_url)
             resp.raise_for_status()
@@ -1299,7 +1299,7 @@ async def imdb_en_callback(self: Client, query: CallbackQuery):
             if rating := r_json.get("aggregateRating"):
                 rating_value = rating.get("ratingValue", "-")
                 rating_count = rating.get("ratingCount", "-")
-                res_str += f"<b>Rating:</b> <code>{rating_value}⭐️ from {rating_count} users</code>\n"
+                res_str += f"<b>Rating:</b> <code>{rating_value}<emoji id=5958376256788502078>⭐</emoji> from {rating_count} users</code>\n"
             if release := sop.select('li[data-testid="title-details-releasedate"]'):
                 rilis = (
                     release[0]
@@ -1357,7 +1357,7 @@ async def imdb_en_callback(self: Client, query: CallbackQuery):
                 language_text = "-"
             else:
                 language_text = language_text[:-2]
-            res_str += "\n<b>🙎 Cast Info:</b>\n"
+            res_str += "\n<b><emoji id=5879770735999717115>🙎</emoji> Cast Info:</b>\n"
             cast_lines = []
             director_names = []
             if r_json.get("director"):
@@ -1395,7 +1395,7 @@ async def imdb_en_callback(self: Client, query: CallbackQuery):
             if description := r_json.get("description"):
                 storyline_text = description or "-"
                 summary = description
-                res_str += f"<b>📜 Summary:</b>\n<blockquote expandable><code>{description}</code></blockquote>\n\n"
+                res_str += f"<b><b><emoji id=5956561916573782596>📜</emoji> Summary:</b>\n<blockquote expandable><code>{description}</code></blockquote>\n\n"
             keywords_list = []
             if r_json.get("keywords"):
                 keywords_list = [kw.strip() for kw in r_json["keywords"].split(",")]
@@ -1404,7 +1404,7 @@ async def imdb_en_callback(self: Client, query: CallbackQuery):
                     for i in keywords_list
                 )
                 res_str += (
-                    f"<b>🔥 Keywords:</b>\n<blockquote expandable>{keyword_text[:-2]}</blockquote>\n"
+                    f"<b><emoji id=6008118472066732010>🔥</emoji> Keywords:</b>\n<blockquote expandable>{keyword_text[:-2]}</blockquote>\n"
                 )
             if keyword_text != "-":
                 keyword_text = keyword_text[:-2]
@@ -1415,14 +1415,14 @@ async def imdb_en_callback(self: Client, query: CallbackQuery):
                     .text
                 )
                 awards_text = awards or "-"
-                res_str += f"<b>🏆 Awards:</b>\n<blockquote expandable><code>{awards}</code></blockquote>\n"
+                res_str += f"<b><emoji id=5316979941181496594>🏆</emoji> Awards:</b>\n<blockquote expandable><code>{awards}</code></blockquote>\n"
             else:
                 res_str += "\n"
             if ott != "":
                 res_str += f"Available On:\n{ott}\n"
             if not ott:
                 ott = "-"
-            res_str += f"<b>©️ IMDb by</b> {imdb_by}"
+            res_str += f"<b><emoji id=5886440807325504167>©️</emoji> IMDb by</b> {imdb_by}"
             if template:
                 imdb_code = f"tt{movie}"
                 title = r_json.get("name") or "-"
@@ -1436,7 +1436,7 @@ async def imdb_en_callback(self: Client, query: CallbackQuery):
                 if rating := r_json.get("aggregateRating"):
                     rating_value = rating.get("ratingValue", "-")
                     rating_count = rating.get("ratingCount", "-")
-                    rating_text = f"{rating_value}⭐️ from {rating_count} users"
+                    rating_text = f"{rating_value}<emoji id=5958376256788502078>⭐</emoji> from {rating_count} users"
                 release_url = (
                     f"https://www.imdb.com{rilis_url}" if rilis_url else "-"
                 )
@@ -1520,7 +1520,7 @@ async def imdb_en_callback(self: Client, query: CallbackQuery):
                     )
                 if "rating" in hidden_fields:
                     res_str = res_str.replace(
-                        f"<b>Rating:</b> <code>{rating_value}⭐️ from {rating_count} users</code>\n",
+                        f"<b>Rating:</b> <code>{rating_value}<emoji id=5958376256788502078>⭐</emoji> from {rating_count} users</code>\n",
                         "",
                     )
                 if "release_date" in hidden_fields:
@@ -1535,29 +1535,29 @@ async def imdb_en_callback(self: Client, query: CallbackQuery):
                 if "language" in hidden_fields:
                     res_str = res_str.replace(f"<b>Language:</b> {language_text}\n", "")
                 if "cast" in hidden_fields:
-                    res_str = res_str.replace("\n<b>🙎 Cast Info:</b>\n", "")
+                    res_str = res_str.replace("\n<b><emoji id=5879770735999717115>🙎</emoji> Cast Info:</b>\n", "")
                     res_str = res_str.replace(f"<b>Director:</b> {director_text}\n", "")
                     res_str = res_str.replace(f"<b>Writer:</b> {writer_text}\n", "")
                     res_str = res_str.replace(f"<b>Stars:</b> {cast_text}\n\n", "")
                 if "storyline" in hidden_fields:
                     res_str = res_str.replace(
-                        f"<b>📜 Summary:</b>\n<blockquote expandable><code>{summary}</code></blockquote>\n\n",
+                        f"<b><emoji id=5956561916573782596>📜</emoji> Summary:</b>\n<blockquote expandable><code>{summary}</code></blockquote>\n\n",
                         "",
                     )
                 if "keyword" in hidden_fields:
                     res_str = res_str.replace(
-                        f"<b>🔥 Keywords:</b>\n<blockquote expandable>{keyword_text}</blockquote>\n",
+                        f"<b><emoji id=6008118472066732010>🔥</emoji> Keywords:</b>\n<blockquote expandable>{keyword_text}</blockquote>\n",
                         "",
                     )
                 if "awards" in hidden_fields:
                     res_str = res_str.replace(
-                        f"<b>🏆 Awards:</b>\n<blockquote expandable><code>{awards_text}</code></blockquote>\n",
+                        f"<b><emoji id=5316979941181496594>🏆</emoji> Awards:</b>\n<blockquote expandable><code>{awards_text}</code></blockquote>\n",
                         "",
                     )
                 if "ott" in hidden_fields:
                     res_str = res_str.replace(f"Available On:\n{ott}\n", "")
                 if "imdb_by" in hidden_fields:
-                    res_str = res_str.replace(f"<b>©️ IMDb by</b> {imdb_by}", "")
+                    res_str = res_str.replace(f"<b><emoji id=5886440807325504167>©️</emoji> IMDb by</b> {imdb_by}", "")
             if template:
                 markup = template_markup
             else:
