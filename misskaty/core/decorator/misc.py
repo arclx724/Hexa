@@ -16,13 +16,13 @@ def asyncify(func):
 
 def new_task(func):
     @wraps(func)
-    def wrapper(*args, **kwargs):
+    async def wrapper(*args, **kwargs):
         try:
-            loop = asyncio.get_running_loop()
-            return loop.create_task(func(*args, **kwargs))
+            return asyncio.create_task(func(*args, **kwargs))
         except Exception as e:
             LOGGER.error(
                 f"Failed to create task for {func.__name__} : {e}"
             )  # skipcq: PYL-E0602
+            return await func(*args, **kwargs)
 
     return wrapper

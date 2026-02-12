@@ -17,6 +17,7 @@ from pyrogram.types import (
     Message,
 )
 
+from database.users_chats_db import db
 from misskaty import BOT_NAME, BOT_USERNAME, HELPABLE, app
 from misskaty.helper import bot_sys_stats, paginate_modules
 from misskaty.helper.localization import use_chat_lang
@@ -97,6 +98,9 @@ async def start(self, ctx: Message, strings):
             )
         except (ChatSendPhotosForbidden, ChatWriteForbidden):
             return await ctx.chat.leave()
+    if ctx.from_user and not await db.is_user_exist(ctx.from_user.id):
+        await db.add_user(ctx.from_user.id, ctx.from_user.first_name)
+
     if len(ctx.text.split()) > 1:
         name = (ctx.text.split(None, 1)[1]).lower()
         if "_" in name:
