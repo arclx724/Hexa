@@ -1,21 +1,108 @@
+from __future__ import annotations
+
 import asyncio
 from contextlib import suppress
-from typing import Optional
+from typing import MutableMapping, Optional, Tuple, Union
 
-from pyrogram import Client, filters as pyro_filters
+from pyrogram import Client, StopPropagation, filters as pyro_filters
 from pyrogram.handlers import CallbackQueryHandler, MessageHandler
 from pyrogram.types import Chat, Message
 
-from misskaty.core.listener_errors import ListenerTimeout, patch_pyrogram_errors
+from misskaty.core.listener_errors import (
+    ConversationExist,
+    ConversationTimeout,
+    ListenerTimeout,
+    patch_pyrogram_errors,
+)
 
 _UNALLOWED_CLICK_TEXT = "You're not expected to click this button."
 
 
-async def _wait_for_future(future: asyncio.Future, timeout: Optional[float]):
-    try:
-        return await asyncio.wait_for(future, timeout)
-    except asyncio.TimeoutError as exc:
-        raise ListenerTimeout from exc
+class ConversationDispatcher:
+    _listeners: MutableMapping[
+        Tuple[int, int], Tuple[asyncio.Future, Optional[pyro_filters.Filter]]
+    ]
+
+    def __init__(self, client: Client):
+        self.client = client
+        self._listeners = {}
+        self._conversation_handler: Optional[MessageHandler] = None
+
+    def register_conversation(self) -> Optional[bool]:
+        if self._conversation_handler:
+            return None
+
+        conversation_handler = MessageHandler(
+            self.conversation_handler, pyro_filters.incoming & pyro_filters.all
+        )
+        self.client.add_handler(conversation_handler, group=-1)
+        self._conversation_handler = conversation_handler
+        return True
+
+    def unregister_conversation(self):
+        if handler := self._conversation_handler:
+            self.client.remove_handler(handler, group=-1)
+            self._conversation_handler = None
+
+        for future, _ in self._listeners.values():
+            if not future.done():
+                future.cancel()
+
+        self._listeners.clear()
+
+    async def conversation_handler(self, client: Client, message: Message):
+        if not message.from_user:
+            return
+
+        key = (message.chat.id, message.from_user.id)
+        if key not in self._listeners:
+            return
+
+        future, message_filter = self._listeners[key]
+        active_filter = message_filter if message_filter else pyro_filters.all
+
+        if not await active_filter.__call__(client, message):
+            return
+
+        if not future.done():
+            future.set_result(message)
+
+        raise StopPropagation()
+
+    async def listen(
+        self,
+        chat_id: Union[int, str],
+        user_id: Union[int, str],
+        filters: Optional[pyro_filters.Filter] = None,
+        timeout: Optional[int] = 30,
+    ) -> Message:
+        key = (int(chat_id), int(user_id))
+        if key in self._listeners:
+            raise ConversationExist("Conversations with users have taken place.")
+
+        future = asyncio.get_running_loop().create_future()
+        self._listeners[key] = (future, filters)
+
+        try:
+            return await asyncio.wait_for(future, timeout=timeout)
+        except asyncio.TimeoutError as exc:
+            raise ConversationTimeout(
+                f"Conversation with user {user_id} in chat {chat_id} timeout."
+            ) from exc
+        finally:
+            self._listeners.pop(key, None)
+
+
+def _get_dispatcher(client: Client) -> ConversationDispatcher:
+    dispatcher: Optional[ConversationDispatcher] = getattr(
+        client, "conversation_dispatcher", None
+    )
+    if dispatcher is None:
+        dispatcher = ConversationDispatcher(client)
+        client.conversation_dispatcher = dispatcher
+
+    dispatcher.register_conversation()
+    return dispatcher
 
 
 async def listen(
@@ -25,27 +112,37 @@ async def listen(
     timeout: Optional[float] = None,
     from_user_id: int = None,
 ):
-    future = asyncio.get_running_loop().create_future()
-    handler_filter = pyro_filters.incoming & filters
+    if from_user_id is None:
+        # fallback for legacy calls (listen any user in chat)
+        future = asyncio.get_running_loop().create_future()
+        handler_filter = pyro_filters.incoming & filters & pyro_filters.chat(chat_id)
 
-    if chat_id is not None:
-        handler_filter = pyro_filters.chat(chat_id) & handler_filter
-    if from_user_id is not None:
-        handler_filter = pyro_filters.user(from_user_id) & handler_filter
+        async def _on_message(_, message: Message):
+            if not future.done():
+                future.set_result(message)
 
-    async def _on_message(_, message: Message):
-        if not future.done():
-            future.set_result(message)
+        handler = MessageHandler(_on_message, handler_filter)
+        group = -987654
+        self.add_handler(handler, group)
 
-    handler = MessageHandler(_on_message, handler_filter)
-    group = -987654
-    self.add_handler(handler, group)
+        try:
+            return await asyncio.wait_for(future, timeout)
+        except asyncio.TimeoutError as exc:
+            raise ListenerTimeout from exc
+        finally:
+            with suppress(Exception):
+                self.remove_handler(handler, group)
 
+    dispatcher = _get_dispatcher(self)
     try:
-        return await _wait_for_future(future, timeout)
-    finally:
-        with suppress(Exception):
-            self.remove_handler(handler, group)
+        return await dispatcher.listen(
+            chat_id=chat_id,
+            user_id=from_user_id,
+            filters=filters,
+            timeout=int(timeout) if timeout else None,
+        )
+    except ConversationTimeout as exc:
+        raise ListenerTimeout from exc
 
 
 async def client_ask(
@@ -77,6 +174,7 @@ async def client_ask(
         reply_markup=reply_markup,
         **kwargs,
     )
+
     response = await listener_task
     response.reply_to_message = sent
     return response
@@ -89,11 +187,14 @@ async def chat_ask(
     timeout: Optional[float] = None,
     **kwargs,
 ):
+    from_user_id = kwargs.pop("from_user_id", None)
+
     return await self._client.ask(
         chat_id=self.id,
         text=text,
         filters=filters,
         timeout=timeout,
+        from_user_id=from_user_id,
         **kwargs,
     )
 
@@ -121,7 +222,10 @@ async def message_ask(
 
 
 async def wait_for_click(
-    self: Message, from_user_id: int = None, timeout: Optional[float] = None
+    self: Message,
+    from_user_id: int = None,
+    timeout: Optional[float] = None,
+    expired_message: Optional[str] = "⚠️ Task expired.",
 ):
     future = asyncio.get_running_loop().create_future()
 
@@ -146,7 +250,12 @@ async def wait_for_click(
     self._client.add_handler(handler, group)
 
     try:
-        return await _wait_for_future(future, timeout)
+        return await asyncio.wait_for(future, timeout)
+    except asyncio.TimeoutError as exc:
+        if expired_message:
+            with suppress(Exception):
+                await self.edit_text(expired_message)
+        raise ListenerTimeout from exc
     finally:
         with suppress(Exception):
             self._client.remove_handler(handler, group)
@@ -158,7 +267,7 @@ async def client_wait_for_click(
     return await message.wait_for_click(from_user_id=from_user_id, timeout=timeout)
 
 
-def setup_listener_patch():
+def setup_listener_patch(client: Optional[Client] = None):
     patch_pyrogram_errors()
     Client.listen = listen
     Client.ask = client_ask
@@ -167,8 +276,12 @@ def setup_listener_patch():
     Message.ask = message_ask
     Message.wait_for_click = wait_for_click
 
+    if client is not None:
+        _get_dispatcher(client)
+
 
 __all__ = [
+    "ConversationDispatcher",
     "setup_listener_patch",
     "listen",
     "client_ask",

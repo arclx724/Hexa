@@ -75,6 +75,7 @@ app = MissKatyClient(
     database=app_db,
 )
 app.log = getLogger("MissKaty")
+misskaty_patch.init_patch(app)
 
 # Pyrogram UserBot Client
 user = Client(
