@@ -67,7 +67,7 @@ def build_ydl_opts(extra: dict | None = None) -> dict:
 
 
 def resolve_downloaded_file(output_dir: str, job_id: str, expected_ext: str | None = None) -> str | None:
-    candidates = sorted(Path(output_dir).glob(f"{job_id}.*"), key=lambda x: x.stat().st_mtime, reverse=True)
+    candidates = sorted(Path(output_dir).glob("*" if not job_id else f"{job_id}.*"), key=lambda x: x.stat().st_mtime, reverse=True)
     if expected_ext:
         for file in candidates:
             if file.suffix.lower() == f".{expected_ext.lower()}":
@@ -75,8 +75,17 @@ def resolve_downloaded_file(output_dir: str, job_id: str, expected_ext: str | No
     return str(candidates[0]) if candidates else None
 
 
+
+
+def estimate_audio_size(duration: int, bitrate_kbps: int) -> int:
+    if duration <= 0 or bitrate_kbps <= 0:
+        return 0
+    return int((duration * bitrate_kbps * 1000) / 8)
+
+
 def parse_quality_tree(info: dict) -> dict:
     formats = info.get("formats") or []
+    duration = int(info.get("duration") or 0)
     resolutions = {}
 
     for target_height in (1080, 720, 480, 360, 240):
@@ -92,6 +101,7 @@ def parse_quality_tree(info: dict) -> dict:
             selector = format_id
             if fmt.get("acodec") in (None, "none"):
                 selector = f"{format_id}+bestaudio/best"
+            size_bytes = int(fmt.get("filesize") or fmt.get("filesize_approx") or 0)
             candidates.append(
                 {
                     "label": f"{tbr}kbps" if tbr else "Auto bitrate",
@@ -99,6 +109,7 @@ def parse_quality_tree(info: dict) -> dict:
                     "bitrate": tbr,
                     "kind": "video",
                     "ext": "mp4",
+                    "size": size_bytes,
                 }
             )
         if candidates:
@@ -109,14 +120,19 @@ def parse_quality_tree(info: dict) -> dict:
                     unique[key] = c
             resolutions[str(target_height)] = sorted(unique.values(), key=lambda x: x["bitrate"], reverse=True)[:5]
 
-    audio = [
-        {"label": "320kbps", "format": "bestaudio/best", "kind": "audio", "ext": "mp3", "bitrate": "320"},
-        {"label": "192kbps", "format": "bestaudio/best", "kind": "audio", "ext": "mp3", "bitrate": "192"},
-        {"label": "128kbps", "format": "bestaudio/best", "kind": "audio", "ext": "mp3", "bitrate": "128"},
-    ]
+    audio = []
+    for bitrate in (320, 192, 128):
+        audio.append(
+            {
+                "label": f"{bitrate}kbps",
+                "format": "bestaudio/best",
+                "kind": "audio",
+                "ext": "mp3",
+                "bitrate": str(bitrate),
+                "size": estimate_audio_size(duration, bitrate),
+            }
+        )
     return {"resolutions": resolutions, "audio": audio}
-
-
 
 
 async def animate_processing(message: Message, title: str, stop_event: asyncio.Event):
@@ -163,8 +179,12 @@ async def download_thumb_file(url: str | None, job_id: str, output_dir: str) -> 
 
 def quality_markup(cache_key: str, tree: dict) -> InlineKeyboardMarkup:
     rows = []
-    for res in tree["resolutions"].keys():
-        rows.append([InlineKeyboardButton(f"🎬 {res}p", callback_data=f"yt_res|{cache_key}|{res}")])
+    for res, items in tree["resolutions"].items():
+        size_hint = next((x.get("size", 0) for x in items if x.get("size", 0) > 0), 0)
+        label = f"🎬 {res}p"
+        if size_hint:
+            label += f" ({humanbytes(size_hint)})"
+        rows.append([InlineKeyboardButton(label, callback_data=f"yt_res|{cache_key}|{res}")])
     rows.append([InlineKeyboardButton("🎧 Audio MP3", callback_data=f"yt_audio|{cache_key}")])
     return InlineKeyboardMarkup(rows)
 
@@ -268,17 +288,21 @@ async def ytdl_pick_step(_, cq: CallbackQuery, strings):
         options = data["quality_tree"]["resolutions"].get(res, [])
         if not options:
             return await cq.answer("No bitrate option for this resolution", show_alert=True)
-        rows = [
-            [InlineKeyboardButton(f"{opt['label']}", callback_data=f"yt_dl|{cache_key}|v|{res}|{idx}")]
-            for idx, opt in enumerate(options)
-        ]
+        rows = []
+        for idx, opt in enumerate(options):
+            label = opt["label"]
+            if opt.get("size"):
+                label += f" • {humanbytes(opt['size'])}"
+            rows.append([InlineKeyboardButton(label, callback_data=f"yt_dl|{cache_key}|v|{res}|{idx}")])
         rows.append([InlineKeyboardButton("⬅️ Back", callback_data=f"yt_back|{cache_key}")])
         return await cq.edit_message_reply_markup(reply_markup=InlineKeyboardMarkup(rows))
 
-    rows = [
-        [InlineKeyboardButton(f"🎧 {opt['label']}", callback_data=f"yt_dl|{cache_key}|a|{opt['bitrate']}")]
-        for opt in data["quality_tree"]["audio"]
-    ]
+    rows = []
+    for opt in data["quality_tree"]["audio"]:
+        label = f"🎧 {opt['label']}"
+        if opt.get("size"):
+            label += f" • {humanbytes(opt['size'])}"
+        rows.append([InlineKeyboardButton(label, callback_data=f"yt_dl|{cache_key}|a|{opt['bitrate']}")])
     rows.append([InlineKeyboardButton("⬅️ Back", callback_data=f"yt_back|{cache_key}")])
     await cq.edit_message_reply_markup(reply_markup=InlineKeyboardMarkup(rows))
 
@@ -328,7 +352,7 @@ async def ytdl_download_callback(self: Client, cq: CallbackQuery, strings):
 
     output_dir = "downloads"
     os.makedirs(output_dir, exist_ok=True)
-    file_path = os.path.join(output_dir, f"{job_id}.%(ext)s")
+    file_path = os.path.join(output_dir, "%(title).200B [%(id)s].%(ext)s")
 
     def progress_hook(status):
         state = ACTIVE_DOWNLOADS.get(job_id)
@@ -354,6 +378,9 @@ async def ytdl_download_callback(self: Client, cq: CallbackQuery, strings):
             ydl_opts["postprocessors"] = [{"key": "FFmpegExtractAudio", "preferredcodec": "mp3", "preferredquality": option.get("bitrate", "192")}]
         with YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(data["url"], download=True)
+            requested = info.get("requested_downloads") or []
+            if requested and requested[0].get("filepath"):
+                return requested[0]["filepath"]
             return ydl.prepare_filename(info)
 
     download_task = asyncio.create_task(asyncio.to_thread(do_download))
@@ -391,7 +418,7 @@ async def ytdl_download_callback(self: Client, cq: CallbackQuery, strings):
         return await cq.edit_message_caption(f"❌ Download error: <code>{err}</code>", parse_mode=ParseMode.HTML)
 
     if "%" in downloaded_file or not os.path.exists(downloaded_file):
-        downloaded_file = resolve_downloaded_file(output_dir, job_id, option.get("ext"))
+        downloaded_file = resolve_downloaded_file(output_dir, "", option.get("ext"))
     if not downloaded_file or not os.path.exists(downloaded_file):
         ACTIVE_DOWNLOADS.pop(job_id, None)
         return await cq.edit_message_caption("❌ Downloaded file not found.")
