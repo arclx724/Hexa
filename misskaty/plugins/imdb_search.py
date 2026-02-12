@@ -16,6 +16,7 @@ from bs4 import BeautifulSoup
 from pykeyboard import InlineButton, InlineKeyboard
 from pyrogram import Client, enums
 from pyrogram.errors import (
+    ListenerTimeout,
     MediaCaptionTooLong,
     MediaEmpty,
     MessageIdInvalid,
@@ -25,7 +26,6 @@ from pyrogram.errors import (
     WebpageCurlFailed,
     WebpageMediaEmpty,
 )
-from misskaty.core.listener_errors import ListenerTimeout
 from pyrogram.types import (
     CallbackQuery,
     InlineKeyboardButton,

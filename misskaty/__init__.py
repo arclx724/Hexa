@@ -12,7 +12,7 @@ import uvloop, uvicorn
 from beanie import init_beanie
 from apscheduler.jobstores.mongodb import MongoDBJobStore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from motor.motor_asyncio import AsyncIOMotorClient
+from async_pymongo import AsyncClient
 from pymongo import MongoClient
 from pyrogram import Client
 from web.webserver import api
@@ -56,10 +56,6 @@ misskaty_version = "v2.16.1"
 uvloop.install()
 faulthandler_enable()
 from misskaty.core import misskaty_patch
-from misskaty.core.listener import setup_listener_patch
-
-setup_listener_patch()
-
 storage_session = MongoStorage(name=BOT_TOKEN.split(":")[0], remove_peers=False)
 # Pyrogram Bot Client
 app = Client(
@@ -73,7 +69,7 @@ app = Client(
     workers=50,
     max_concurrent_transmissions=4,
 )
-app.db = AsyncIOMotorClient(DATABASE_URI)
+app.db = AsyncClient(DATABASE_URI)
 app.log = getLogger("MissKaty")
 
 # Pyrogram UserBot Client

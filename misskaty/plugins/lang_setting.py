@@ -3,7 +3,7 @@ from typing import Union
 
 from pyrogram import filters
 from pyrogram.enums import ChatType
-from misskaty.core.listener_errors import ListenerTimeout
+from pyrogram.errors import ListenerTimeout
 from pyrogram.types import (
     CallbackQuery,
     InlineKeyboardButton,

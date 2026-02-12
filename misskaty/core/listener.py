@@ -6,7 +6,7 @@ from pyrogram import Client, filters as pyro_filters
 from pyrogram.handlers import CallbackQueryHandler, MessageHandler
 from pyrogram.types import Chat, Message
 
-from misskaty.core.listener_errors import ListenerTimeout
+from misskaty.core.listener_errors import ListenerTimeout, patch_pyrogram_errors
 
 _UNALLOWED_CLICK_TEXT = "You're not expected to click this button."
 
@@ -18,7 +18,13 @@ async def _wait_for_future(future: asyncio.Future, timeout: Optional[float]):
         raise ListenerTimeout from exc
 
 
-async def listen(self: Client, chat_id: int, filters=pyro_filters.all, timeout=None, from_user_id=None):
+async def listen(
+    self: Client,
+    chat_id: int,
+    filters=pyro_filters.all,
+    timeout: Optional[float] = None,
+    from_user_id: int = None,
+):
     future = asyncio.get_running_loop().create_future()
     handler_filter = filters
 
@@ -42,8 +48,9 @@ async def listen(self: Client, chat_id: int, filters=pyro_filters.all, timeout=N
             self.remove_handler(handler, group)
 
 
-async def ask(
-    self: Chat,
+async def client_ask(
+    self: Client,
+    chat_id: int,
     text: str,
     filters=pyro_filters.text,
     timeout: Optional[float] = None,
@@ -51,11 +58,11 @@ async def ask(
     reply_to_message_id=None,
     reply_markup=None,
     quote=None,
+    from_user_id: int = None,
     **kwargs,
 ):
-    listener_user_id = kwargs.pop("from_user_id", None)
-    sent = await self._client.send_message(
-        chat_id=self.id,
+    sent = await self.send_message(
+        chat_id=chat_id,
         text=text,
         disable_web_page_preview=disable_web_page_preview,
         reply_to_message_id=reply_to_message_id,
@@ -63,24 +70,46 @@ async def ask(
         quote=quote,
         **kwargs,
     )
-    response = await self._client.listen(
-        chat_id=self.id,
+    response = await self.listen(
+        chat_id=chat_id,
         filters=filters,
         timeout=timeout,
-        from_user_id=listener_user_id,
+        from_user_id=from_user_id,
     )
     response.reply_to_message = sent
     return response
 
 
-async def wait_for_click(self: Message, from_user_id: int = None, timeout: Optional[float] = None):
+async def chat_ask(
+    self: Chat,
+    text: str,
+    filters=pyro_filters.text,
+    timeout: Optional[float] = None,
+    **kwargs,
+):
+    return await self._client.ask(
+        chat_id=self.id,
+        text=text,
+        filters=filters,
+        timeout=timeout,
+        **kwargs,
+    )
+
+
+async def wait_for_click(
+    self: Message, from_user_id: int = None, timeout: Optional[float] = None
+):
     future = asyncio.get_running_loop().create_future()
 
     async def _on_callback(_, query):
         if query.message.chat.id != self.chat.id or query.message.id != self.id:
             return
 
-        if from_user_id is not None and query.from_user and query.from_user.id != from_user_id:
+        if (
+            from_user_id is not None
+            and query.from_user
+            and query.from_user.id != from_user_id
+        ):
             with suppress(Exception):
                 await query.answer(_UNALLOWED_CLICK_TEXT, show_alert=True)
             return
@@ -99,10 +128,26 @@ async def wait_for_click(self: Message, from_user_id: int = None, timeout: Optio
             self._client.remove_handler(handler, group)
 
 
+async def client_wait_for_click(
+    self: Client, message: Message, from_user_id: int = None, timeout: Optional[float] = None
+):
+    return await message.wait_for_click(from_user_id=from_user_id, timeout=timeout)
+
+
 def setup_listener_patch():
+    patch_pyrogram_errors()
     Client.listen = listen
-    Chat.ask = ask
+    Client.ask = client_ask
+    Client.wait_for_click = client_wait_for_click
+    Chat.ask = chat_ask
     Message.wait_for_click = wait_for_click
 
 
-__all__ = ["setup_listener_patch", "listen", "ask", "wait_for_click"]
+__all__ = [
+    "setup_listener_patch",
+    "listen",
+    "client_ask",
+    "chat_ask",
+    "wait_for_click",
+    "client_wait_for_click",
+]
