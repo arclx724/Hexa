@@ -1,7 +1,7 @@
 {
     "no_result": "Sorry, i couldn't find any results!",
     "no_result_w_query": "Sorry, i could not find query: {kueri}",
-    "get_data": "⏳ Please wait, getting data from web..",
+    "get_data": "<emoji id=5319190934510904031>⏳</emoji> Please wait, getting data from web..",
     "cl_btn": "❌ Close",
     "back_btn": "↩️ Back",
     "dl_text": "⬇️ Download",
