@@ -11,10 +11,14 @@ FROM yasirarism/misskaty-docker:free
 
 # Set Hostname
 ENV HOSTNAME=yasir-server
+
 # Copy Files
 COPY . .
+
 # Instal pip package if you use free depedencies
-RUN pip3 install --no-cache-dir -r requirements.txt
+RUN pip3 install -r requirements.txt
+
+# Install deno for YT
 RUN apt-get update && apt-get install -y unzip && rm -rf /var/lib/apt/lists/*
 RUN curl -fsSL https://deno.land/install.sh | sh ; /root/.deno/bin/deno --version
 # Set CMD Bot
