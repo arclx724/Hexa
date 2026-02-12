@@ -38,13 +38,6 @@ async def reply_text(
             Text of the message to be sent.
         del_in (``int``):
             Time in Seconds for delete that message.
-        quote (``bool``, *optional*):
-            If ``True``, the message will be sent as
-            a reply to this message.
-            If *reply_to_message_id* is passed,
-            this parameter will be ignored.
-            Defaults to ``True`` in group chats
-            and ``False`` in private chats.
         parse_mode (:obj:`enums.ParseMode`, *optional*):
             By default, texts are parsed using both
             Markdown and HTML styles.
@@ -214,13 +207,6 @@ async def reply_or_send_as_file(
             Text of the message to be sent.
         del_in (``int``):
             Time in Seconds for delete that message.
-        quote (``bool``, *optional*):
-            If ``True``, the message will be sent
-            as a reply to this message.
-            If *reply_to_message_id* is passed,
-            this parameter will be ignored.
-            Defaults to ``True`` in group chats
-            and ``False`` in private chats.
         parse_mode (:obj:`enums.ParseMode`, *optional*):
             By default, texts are parsed using
             both Markdown and HTML styles.

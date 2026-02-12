@@ -57,7 +57,6 @@ async def client_ask(
     disable_web_page_preview=None,
     reply_to_message_id=None,
     reply_markup=None,
-    quote=None,
     from_user_id: int = None,
     **kwargs,
 ):
@@ -67,7 +66,6 @@ async def client_ask(
         disable_web_page_preview=disable_web_page_preview,
         reply_to_message_id=reply_to_message_id,
         reply_markup=reply_markup,
-        quote=quote,
         **kwargs,
     )
     response = await self.listen(

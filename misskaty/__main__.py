@@ -23,8 +23,8 @@ from misskaty import (
     UBOT_NAME,
     app,
     get_event_loop,
+    run_wsgi,
     scheduler,
-    run_wsgi
 )
 from misskaty.plugins import ALL_MODULES
 from misskaty.plugins.web_scraper import web
@@ -34,73 +34,94 @@ from utils import auto_clean
 LOGGER = getLogger("MissKaty")
 
 
-# Run Bot
-async def start_bot():
-    for module in ALL_MODULES:
-        imported_module = importlib.import_module(f"misskaty.plugins.{module}")
-        if hasattr(imported_module, "__MODULE__") and imported_module.__MODULE__:
-            imported_module.__MODULE__ = imported_module.__MODULE__
-            if hasattr(imported_module, "__HELP__") and imported_module.__HELP__:
-                HELPABLE[imported_module.__MODULE__.lower()] = imported_module
-    bot_modules = ""
-    j = 1
-    for i in ALL_MODULES:
-        if j == 4:
-            bot_modules += "|{:<15}|\n".format(i)
-            j = 0
-        else:
-            bot_modules += "|{:<15}".format(i)
-        j += 1
-    LOGGER.info("+===============================================================+")
-    LOGGER.info("|                        MissKatyPyro                           |")
-    LOGGER.info("+===============+===============+===============+===============+")
-    LOGGER.info(bot_modules)
-    LOGGER.info("+===============+===============+===============+===============+")
-    LOGGER.info("[INFO]: BOT STARTED AS @%s!", BOT_USERNAME)
-    try:
-        LOGGER.info("[INFO]: SENDING ONLINE STATUS")
-        if USER_SESSION:
-            await app.send_message(
-                OWNER_ID,
-                f"USERBOT AND BOT STARTED with Pyrogram v{__version__}..\nUserBot: {UBOT_NAME}\nBot: {BOT_NAME}\n\nwith Pyrogram v{__version__} (Layer {layer}) started on @{BOT_USERNAME}.\n\n<code>{bot_modules}</code>",
+class BotBootstrap:
+    async def load_modules(self):
+        for module in ALL_MODULES:
+            imported_module = importlib.import_module(f"misskaty.plugins.{module}")
+            if hasattr(imported_module, "__MODULE__") and imported_module.__MODULE__:
+                if hasattr(imported_module, "__HELP__") and imported_module.__HELP__:
+                    HELPABLE[imported_module.__MODULE__.lower()] = imported_module
+
+    @staticmethod
+    def build_modules_table() -> str:
+        bot_modules = ""
+        j = 1
+        for module in ALL_MODULES:
+            if j == 4:
+                bot_modules += "|{:<15}|\n".format(module)
+                j = 0
+            else:
+                bot_modules += "|{:<15}".format(module)
+            j += 1
+        return bot_modules
+
+    async def send_online_status(self, bot_modules: str):
+        try:
+            LOGGER.info("[INFO]: SENDING ONLINE STATUS")
+            if USER_SESSION:
+                await app.send_message(
+                    OWNER_ID,
+                    f"USERBOT AND BOT STARTED with Pyrogram v{__version__}..\nUserBot: {UBOT_NAME}\nBot: {BOT_NAME}\n\nwith Pyrogram v{__version__} (Layer {layer}) started on @{BOT_USERNAME}.\n\n<code>{bot_modules}</code>",
+                )
+            else:
+                await app.send_message(
+                    OWNER_ID,
+                    f"BOT STARTED with Pyrogram v{__version__}..\nBot: {BOT_NAME}\n\nwith Pyrogram v{__version__} (Layer {layer}) started on @{BOT_USERNAME}.\n\n<code>{bot_modules}</code>",
+                )
+        except Exception as e:
+            LOGGER.error(str(e))
+
+    async def init_web_collection(self):
+        if "web" not in await dbname.list_collection_names():
+            webdb = dbname["web"]
+            for key, value in web.items():
+                await webdb.insert_one({key: value})
+
+    async def handle_restart_message(self):
+        if os.path.exists("restart.pickle"):
+            with open("restart.pickle", "rb") as status:
+                chat_id, message_id = pickle.load(status)
+            os.remove("restart.pickle")
+            await app.edit_message_text(
+                chat_id=chat_id,
+                message_id=message_id,
+                text="<b>Bot restarted successfully!</b>",
             )
-        else:
-            await app.send_message(
-                OWNER_ID,
-                f"BOT STARTED with Pyrogram v{__version__}..\nBot: {BOT_NAME}\n\nwith Pyrogram v{__version__} (Layer {layer}) started on @{BOT_USERNAME}.\n\n<code>{bot_modules}</code>",
-            )
-    except Exception as e:
-        LOGGER.error(str(e))
-    scheduler.start()
-    asyncio.create_task(run_wsgi())
-    if "web" not in await dbname.list_collection_names():
-        webdb = dbname["web"]
-        for key, value in web.items():
-            await webdb.insert_one({key: value})
-    if os.path.exists("restart.pickle"):
-        with open("restart.pickle", "rb") as status:
-            chat_id, message_id = pickle.load(status)
-        os.remove("restart.pickle")
-        await app.edit_message_text(
-            chat_id=chat_id,
-            message_id=message_id,
-            text="<b>Bot restarted successfully!</b>",
-        )
-    asyncio.create_task(auto_clean())
-    await idle()
+
+    async def start(self):
+        await self.load_modules()
+        bot_modules = self.build_modules_table()
+
+        LOGGER.info("+===============================================================+")
+        LOGGER.info("|                        MissKatyPyro                           |")
+        LOGGER.info("+===============+===============+===============+===============+")
+        LOGGER.info(bot_modules)
+        LOGGER.info("+===============+===============+===============+===============+")
+        LOGGER.info("[INFO]: BOT STARTED AS @%s!", BOT_USERNAME)
+
+        await self.send_online_status(bot_modules)
+
+        scheduler.start()
+        asyncio.create_task(run_wsgi())
+        await self.init_web_collection()
+        await self.handle_restart_message()
+        asyncio.create_task(auto_clean())
+        await idle()
 
 
-if __name__ == "__main__":
+def main():
+    bootstrap = BotBootstrap()
     try:
-        get_event_loop().run_until_complete(start_bot())
+        get_event_loop().run_until_complete(bootstrap.start())
         app.loop.run_forever()
     except KeyboardInterrupt:
         pass
     except Exception:
-        err = traceback.format_exc()
-        LOGGER.info(err)
+        LOGGER.info(traceback.format_exc())
     finally:
         app.loop.stop()
-        LOGGER.info(
-            "------------------------ Stopped Services ------------------------"
-        )
+        LOGGER.info("------------------------ Stopped Services ------------------------")
+
+
+if __name__ == "__main__":
+    main()
