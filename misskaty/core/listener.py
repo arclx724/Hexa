@@ -26,7 +26,7 @@ async def listen(
     from_user_id: int = None,
 ):
     future = asyncio.get_running_loop().create_future()
-    handler_filter = filters
+    handler_filter = pyro_filters.incoming & filters
 
     if chat_id is not None:
         handler_filter = pyro_filters.chat(chat_id) & handler_filter
@@ -94,6 +94,28 @@ async def chat_ask(
     )
 
 
+async def message_ask(
+    self: Message,
+    text: str,
+    filters=pyro_filters.text,
+    timeout: Optional[float] = None,
+    **kwargs,
+):
+    from_user_id = kwargs.pop("from_user_id", None)
+    if from_user_id is None and self.from_user:
+        from_user_id = self.from_user.id
+
+    return await self._client.ask(
+        chat_id=self.chat.id,
+        text=text,
+        filters=filters,
+        timeout=timeout,
+        from_user_id=from_user_id,
+        reply_to_message_id=self.id,
+        **kwargs,
+    )
+
+
 async def wait_for_click(
     self: Message, from_user_id: int = None, timeout: Optional[float] = None
 ):
@@ -138,6 +160,7 @@ def setup_listener_patch():
     Client.ask = client_ask
     Client.wait_for_click = client_wait_for_click
     Chat.ask = chat_ask
+    Message.ask = message_ask
     Message.wait_for_click = wait_for_click
 
 
@@ -146,6 +169,7 @@ __all__ = [
     "listen",
     "client_ask",
     "chat_ask",
+    "message_ask",
     "wait_for_click",
     "client_wait_for_click",
 ]
