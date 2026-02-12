@@ -137,7 +137,6 @@ async def start(self, ctx: Message, strings):
             caption=home_text_pm,
             reply_markup=home_keyboard_pm,
             reply_parameters=pyro_types.ReplyParameters(message_id=ctx.id),
-            message_effect_id=5104841245755180586,
         )
 
 
