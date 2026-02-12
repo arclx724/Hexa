@@ -2,6 +2,7 @@
 # * @date          2023-06-21 22:12:27
 # * @projectName   MissKatyPyro
 # * Copyright ©YasirPedia All rights reserved
+from pyrogram import types as pyro_types
 import logging
 
 from pyrogram.types import Message
@@ -23,7 +24,7 @@ async def currency(_, ctx: Message):
     if CURRENCY_API is None:
         return await ctx.reply_msg(
             "<code>Oops!!get the API from</code> <a href='https://app.exchangerate-api.com/sign-up'>HERE</a> <code>& add it to config vars</code> (<code>CURRENCY_API</code>)",
-            disable_web_page_preview=True,
+            link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
         )
     if len(ctx.text.split()) != 4:
         return await ctx.reply_msg(

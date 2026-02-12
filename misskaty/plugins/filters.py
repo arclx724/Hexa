@@ -25,6 +25,7 @@ SOFTWARE.
 import re
 
 from pyrogram import filters
+from pyrogram import types as pyro_types
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from database.filters_db import (
@@ -217,7 +218,7 @@ async def filters_re(self, message):
                 await message.reply_msg(
                     text=data,
                     reply_markup=keyb,
-                    disable_web_page_preview=True,
+                    link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
                 )
             else:
                 if not file_id:

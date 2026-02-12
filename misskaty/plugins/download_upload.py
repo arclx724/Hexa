@@ -14,6 +14,7 @@ from urllib.parse import unquote
 from bs4 import BeautifulSoup
 from cloudscraper import create_scraper
 from pyrogram import filters
+from pyrogram import types as pyro_types
 from pyrogram.file_id import FileId
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from pySmartDL import SmartDL
@@ -153,7 +154,7 @@ async def download(client, message):
                 current_message += f"ETA: {estimated_total_time}"
                 if round(diff % 10.00) == 0 and current_message != display_message:
                     await pesan.edit(
-                        disable_web_page_preview=True, text=current_message
+                        link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), text=current_message
                     )
                     display_message = current_message
                     await asyncio.sleep(10)

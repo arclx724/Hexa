@@ -1,3 +1,4 @@
+from pyrogram import types as pyro_types
 from pykeyboard import InlineKeyboard
 from pyrogram.types import CallbackQuery, Message
 
@@ -13,7 +14,7 @@ async def getData(chat_id, message_id, GetWord, CurrentPage):
     if "list" not in UDJson:
         return await app.send_msg(
             chat_id=chat_id,
-            reply_to_message_id=message_id,
+            reply_parameters=pyro_types.ReplyParameters(message_id=message_id),
             text=f"Word: {GetWord}\nResults: Sorry could not find any matching results!",
             del_in=5,
         )
@@ -32,7 +33,7 @@ async def getData(chat_id, message_id, GetWord, CurrentPage):
     except (IndexError, KeyError):
         await app.send_msg(
             chat_id=chat_id,
-            reply_to_message_id=message_id,
+            reply_parameters=pyro_types.ReplyParameters(message_id=message_id),
             text=f"Word: {GetWord}\nResults: Sorry could not find any matching results!",
             del_in=5,
         )

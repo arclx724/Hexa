@@ -8,6 +8,7 @@ import contextlib
 import re
 
 from pyrogram import Client, filters
+from pyrogram import types as pyro_types
 from pyrogram.errors import ChatSendPhotosForbidden, ChatWriteForbidden, QueryIdInvalid
 from pyrogram.types import (
     CallbackQuery,
@@ -106,14 +107,14 @@ async def start(self, ctx: Message, strings):
             )
             await ctx.reply_msg(
                 text,
-                disable_web_page_preview=True,
+                link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
                 message_effect_id=5104841245755180586,
             )
             if module == "federation":
                 return await ctx.reply(
                     text=text,
                     reply_markup=FED_MARKUP,
-                    disable_web_page_preview=True,
+                    link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
                     message_effect_id=5104841245755180586,
                 )
             await ctx.reply(
@@ -121,7 +122,7 @@ async def start(self, ctx: Message, strings):
                 reply_markup=InlineKeyboardMarkup(
                     [[InlineKeyboardButton("back", callback_data="help_back")]]
                 ),
-                disable_web_page_preview=True,
+                link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
                 message_effect_id=5104841245755180586,
             )
         elif name == "help":
@@ -135,7 +136,7 @@ async def start(self, ctx: Message, strings):
             photo="https://img.yasirweb.eu.org/file/90e9a448bc2f8b055b762.jpg",
             caption=home_text_pm,
             reply_markup=home_keyboard_pm,
-            reply_to_message_id=ctx.id,
+            reply_parameters=pyro_types.ReplyParameters(message_id=ctx.id),
             message_effect_id=5104841245755180586,
         )
 
@@ -193,7 +194,7 @@ async def help_command(_, ctx: Message, strings):
             )
             await ctx.reply_msg(
                 text,
-                disable_web_page_preview=True,
+                link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
                 message_effect_id=5104841245755180586,
             )
         else:
@@ -201,7 +202,7 @@ async def help_command(_, ctx: Message, strings):
             await ctx.reply_msg(
                 text,
                 reply_markup=help_keyboard,
-                disable_web_page_preview=True,
+                link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
                 message_effect_id=5104841245755180586,
             )
     else:
@@ -209,7 +210,7 @@ async def help_command(_, ctx: Message, strings):
         await ctx.reply_msg(
             text,
             reply_markup=help_keyboard,
-            disable_web_page_preview=True,
+            link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
             message_effect_id=5104841245755180586,
         )
 
@@ -255,14 +256,14 @@ async def help_button(self: Client, query: CallbackQuery, strings):
             return await query.message.edit(
                 text=text,
                 reply_markup=FED_MARKUP,
-                disable_web_page_preview=True,
+                link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
             )
         await query.message.edit_msg(
             text=text,
             reply_markup=InlineKeyboardMarkup(
                 [[InlineKeyboardButton(strings("back_btn"), callback_data="help_back")]]
             ),
-            disable_web_page_preview=True,
+            link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
         )
     elif home_match:
         await app.send_msg(
@@ -278,7 +279,7 @@ async def help_button(self: Client, query: CallbackQuery, strings):
             reply_markup=InlineKeyboardMarkup(
                 paginate_modules(curr_page - 1, HELPABLE, "help")
             ),
-            disable_web_page_preview=True,
+            link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
         )
 
     elif next_match:
@@ -288,14 +289,14 @@ async def help_button(self: Client, query: CallbackQuery, strings):
             reply_markup=InlineKeyboardMarkup(
                 paginate_modules(next_page + 1, HELPABLE, "help")
             ),
-            disable_web_page_preview=True,
+            link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
         )
 
     elif back_match:
         await query.message.edit_msg(
             text=top_text,
             reply_markup=InlineKeyboardMarkup(paginate_modules(0, HELPABLE, "help")),
-            disable_web_page_preview=True,
+            link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
         )
 
     elif create_match:
@@ -303,7 +304,7 @@ async def help_button(self: Client, query: CallbackQuery, strings):
         await query.message.edit_msg(
             text=text,
             reply_markup=keyb,
-            disable_web_page_preview=True,
+            link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
         )
 
     try:

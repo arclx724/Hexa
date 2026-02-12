@@ -14,6 +14,7 @@ import re
 import time
 
 from pyrogram import Client, enums, filters
+from pyrogram import types as pyro_types
 from pyrogram.types import Message
 
 from database.afk_db import add_afk, cleanmode_off, cleanmode_on, is_afk, remove_afk
@@ -86,7 +87,7 @@ async def active_afk(_, ctx: Message, strings):
                     strings("on_afk_msg_no_r").format(
                         usr=ctx.from_user.mention, id=ctx.from_user.id, tm=seenago
                     ),
-                    disable_web_page_preview=True,
+                    link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
                 )
             elif afktype == "text_reason":
                 send = await ctx.reply_text(
@@ -96,14 +97,14 @@ async def active_afk(_, ctx: Message, strings):
                         tm=seenago,
                         reas=reasonafk,
                     ),
-                    disable_web_page_preview=True,
+                    link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
                 )
         except Exception:
             send = await ctx.reply_text(
                 strings("is_online").format(
                     usr=ctx.from_user.first_name, id=ctx.from_user.id
                 ),
-                disable_web_page_preview=True,
+                link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
             )
         await put_cleanmode(ctx.chat.id, send.id)
         return
@@ -521,7 +522,7 @@ async def afk_watcher_func(self: Client, ctx: Message, strings):
             j += 1
     if msg != "":
         try:
-            send = await ctx.reply_text(msg, disable_web_page_preview=True)
+            send = await ctx.reply_text(msg, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True))
         except:
             pass
     try:

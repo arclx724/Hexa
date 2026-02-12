@@ -29,6 +29,7 @@ from logging import getLogger
 from time import time
 
 from pyrogram import Client, enums, filters
+from pyrogram import types as pyro_types
 from pyrogram.errors import (
     ChatAdminRequired,
     FloodWait,
@@ -506,17 +507,17 @@ async def pin(_, message, strings):
             await r.unpin()
             return await message.reply_text(
                 strings("unpin_success").format(link=r.link),
-                disable_web_page_preview=True,
+                link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
             )
         await r.pin(disable_notification=True)
         await message.reply(
             strings("pin_success").format(link=r.link),
-            disable_web_page_preview=True,
+            link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
         )
     except ChatAdminRequired:
         await message.reply(
             strings("pin_no_perm"),
-            disable_web_page_preview=True,
+            link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
         )
     except Exception as e:
         await message.reply_msg(str(e))
@@ -890,5 +891,5 @@ async def mentionall(app: Client, msg: Message):
             )
     else:
         await app.send_message(
-            msg.chat.id, "Admins only can do that !", reply_to_message_id=msg.id
+            msg.chat.id, "Admins only can do that !", reply_parameters=pyro_types.ReplyParameters(message_id=msg.id)
         )

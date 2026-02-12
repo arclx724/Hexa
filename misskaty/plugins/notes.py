@@ -25,6 +25,7 @@ SOFTWARE.
 from re import findall
 
 from pyrogram import filters
+from pyrogram import types as pyro_types
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from database.notes_db import (
@@ -187,7 +188,7 @@ async def get_one_note(_, message):
         await message.reply_text(
             text=data,
             reply_markup=keyb,
-            disable_web_page_preview=True,
+            link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
         )
     if type == "sticker":
         await message.reply_sticker(

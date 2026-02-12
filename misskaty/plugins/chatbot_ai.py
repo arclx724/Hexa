@@ -9,6 +9,7 @@ import privatebinapi
 from cachetools import TTLCache
 from openai import APIConnectionError, APIStatusError, AsyncOpenAI, RateLimitError
 from pyrogram import filters
+from pyrogram import types as pyro_types
 from pyrogram.errors import MessageTooLong
 from pyrogram.types import Message
 
@@ -43,7 +44,7 @@ async def get_openai_stream_response(is_stream, key, base_url, model, messages, 
                 answerlink = await privatebinapi.send_async("https://bin.yasirweb.eu.org", text=answer, expiration="1week", formatting="markdown")
                 await bmsg.edit_msg(
                     strings("answers_too_long").format(answerlink=answerlink.get("full_url")),
-                    disable_web_page_preview=True,
+                    link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
                 )
             else:
                 await bmsg.edit_msg(f"{html.escape(answer)}\n\n<b>Powered by:</b> <code>Gemini 2.5 Flash</code>")
@@ -61,7 +62,7 @@ async def get_openai_stream_response(is_stream, key, base_url, model, messages, 
                 answerlink = await privatebinapi.send_async("https://bin.yasirweb.eu.org", text=answer, expiration="1week", formatting="markdown")
                 await bmsg.edit_msg(
                     strings("answers_too_long").format(answerlink=answerlink.get("full_url")),
-                    disable_web_page_preview=True,
+                    link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
                 )
             else:
                 await bmsg.edit_msg(f"{html.escape(answer)}\n\n<b>Powered by:</b> <code>DeepSeek</code>")
@@ -141,7 +142,6 @@ async def openai_chatbot(self, ctx: Message, strings):
             gptai_conversations.pop(uid)
         return
     gptai_conversations[uid].append({"role": "assistant", "content": ai_response})
-
 
 
 

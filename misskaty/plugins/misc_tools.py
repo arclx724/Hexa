@@ -23,6 +23,7 @@ from bs4 import BeautifulSoup
 from gtts import gTTS
 from PIL import Image
 from pyrogram import Client, filters
+from pyrogram import types as pyro_types
 from pyrogram.errors import (
     ChatAdminRequired,
     MessageTooLong,
@@ -126,7 +127,7 @@ async def calculate_handler(self, ctx):
     await ctx.reply_text(
         text=f"Made by @{self.me.username}",
         reply_markup=calc_btn(ctx.from_user.id),
-        disable_web_page_preview=True,
+        link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
     )
 
 
@@ -164,7 +165,7 @@ async def calc_cb(self, query):
         text += f"\n\nMade by @{self.me.username}"
         await query.message.edit_msg(
             text=text,
-            disable_web_page_preview=True,
+            link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
             reply_markup=calc_btn(query.from_user.id),
         )
     except Exception as error:
@@ -359,7 +360,7 @@ async def gsearch(self, message):
         return await msg.edit(exc)
     await msg.edit_msg(
         text=f"<b>Ada {total} Hasil Pencarian dari {query}:</b>\n{res}<b>GoogleSearch by @{BOT_USERNAME}</b>",
-        disable_web_page_preview=True,
+        link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
     )
 
 

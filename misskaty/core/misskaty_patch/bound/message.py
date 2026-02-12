@@ -1,3 +1,4 @@
+from pyrogram import types as pyro_types
 import html
 import io
 from asyncio import get_event_loop
@@ -275,7 +276,7 @@ async def reply_as_file(
         document=doc,
         caption=caption[:1024],
         disable_notification=True,
-        reply_to_message_id=reply_to_id,
+        reply_parameters=pyro_types.ReplyParameters(message_id=reply_to_id),
     )
 
 

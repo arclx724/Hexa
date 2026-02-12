@@ -5,6 +5,7 @@ from contextlib import suppress
 from typing import MutableMapping, Optional, Tuple, Union
 
 from pyrogram import Client, StopPropagation, filters as pyro_filters
+from pyrogram import types as pyro_types
 from pyrogram.handlers import CallbackQueryHandler, MessageHandler
 from pyrogram.types import Chat, Message
 
@@ -151,8 +152,8 @@ async def client_ask(
     text: str,
     filters=pyro_filters.text,
     timeout: Optional[float] = None,
-    disable_web_page_preview=None,
-    reply_to_message_id=None,
+    link_preview_options: Optional[pyro_types.LinkPreviewOptions] = None,
+    reply_parameters: Optional[pyro_types.ReplyParameters] = None,
     reply_markup=None,
     from_user_id: int = None,
     **kwargs,
@@ -169,8 +170,8 @@ async def client_ask(
     sent = await self.send_message(
         chat_id=chat_id,
         text=text,
-        disable_web_page_preview=disable_web_page_preview,
-        reply_to_message_id=reply_to_message_id,
+        link_preview_options=link_preview_options,
+        reply_parameters=reply_parameters,
         reply_markup=reply_markup,
         **kwargs,
     )
@@ -216,7 +217,7 @@ async def message_ask(
         filters=filters,
         timeout=timeout,
         from_user_id=from_user_id,
-        reply_to_message_id=self.id,
+        reply_parameters=pyro_types.ReplyParameters(message_id=self.id),
         **kwargs,
     )
 

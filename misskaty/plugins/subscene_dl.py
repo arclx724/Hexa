@@ -10,6 +10,7 @@ import cloudscraper
 from bs4 import BeautifulSoup
 from pykeyboard import InlineButton, InlineKeyboard
 from pyrogram import filters
+from pyrogram import types as pyro_types
 from pyrogram.types import CallbackQuery, Message
 
 from misskaty import app
@@ -137,7 +138,7 @@ async def subscene_cmd(_, ctx: Message):
     if btn2:
         keyboard.row(*btn2)
     keyboard.row(InlineButton("❌ Close", f"close#{ctx.from_user.id}"))
-    await pesan.edit_msg(subres, disable_web_page_preview=True, reply_markup=keyboard)
+    await pesan.edit_msg(subres, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard)
 
 
 # Callback list title
@@ -175,7 +176,7 @@ async def subpage_callback(_, callback_query: CallbackQuery):
         keyboard.row(*btn2)
     keyboard.row(InlineButton("❌ Close", f"close#{callback_query.from_user.id}"))
     await callback_query.message.edit_msg(
-        subres, disable_web_page_preview=True, reply_markup=keyboard
+        subres, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
     )
 
 
@@ -213,7 +214,7 @@ async def subdlpage_callback(_, callback_query: CallbackQuery):
         keyboard.row(*btn2)
     keyboard.row(InlineButton("❌ Close", f"close#{callback_query.from_user.id}"))
     await callback_query.message.edit_msg(
-        subres, disable_web_page_preview=True, reply_markup=keyboard
+        subres, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
     )
 
 

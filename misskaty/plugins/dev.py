@@ -32,6 +32,7 @@ from psutil import net_io_counters, virtual_memory
 from pyrogram import Client
 from pyrogram import __version__ as pyrover
 from pyrogram import enums, filters
+from pyrogram import types as pyro_types
 from pyrogram.errors import (
     ChatSendPhotosForbidden,
     ChatSendPlainForbidden,
@@ -232,7 +233,7 @@ async def donate(self: Client, ctx: Message):
             ctx.chat.id,
             "https://img.yasirweb.eu.org/file/ee74ce527fb8264b54691.jpg",
             caption="Hi, If you find this bot useful, you can make a donation to the account below. Because this bot server uses VPS and is not free. Thank You..\n\n<b>Indonesian Payment:</b>\n<b>QRIS:</b> https://img.yasirweb.eu.org/file/ee74ce527fb8264b54691.jpg (Yasir Store)\n<b>Bank Jago:</b> 109641845083 (Yasir Aris M)\n\nFor international people can use PayPal to support me or via GitHub Sponsor:\nhttps://paypal.me/yasirarism\nhttps://github.com/sponsors/yasirarism\n\n<b>Source:</b> @BeriKopi",
-            reply_to_message_id=ctx.id,
+            reply_parameters=pyro_types.ReplyParameters(message_id=ctx.id),
             message_effect_id=5159385139981059251
             if ctx.chat.type.value == "private"
             else None,
@@ -251,7 +252,7 @@ async def donate(self: Client, ctx: Message):
 async def balas(_, ctx: Message) -> "str":
     pesan = ctx.input
     await ctx.delete_msg()
-    await ctx.reply_msg(pesan, reply_to_message_id=ctx.reply_to_message.id)
+    await ctx.reply_msg(pesan, reply_parameters=pyro_types.ReplyParameters(message_id=ctx.reply_to_message.id))
 
 
 @app.on_message(filters.command(["stats"], COMMAND_HANDLER))
@@ -400,11 +401,11 @@ __**New Global Ban**__
         m2 = await app.send_message(
             LOG_CHANNEL,
             text=ban_text,
-            disable_web_page_preview=True,
+            link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
         )
         await m.edit(
             f"Banned {user_mention} Globally!\nAction Log: {m2.link}",
-            disable_web_page_preview=True,
+            link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
         )
     except Exception:
         await ctx.reply_text(
@@ -698,5 +699,4 @@ if AUTO_RESTART:
     scheduler = AsyncIOScheduler(timezone="Asia/Jakarta")
     scheduler.add_job(auto_restart, trigger="interval", days=3)
     scheduler.start()
-
 

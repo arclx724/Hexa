@@ -12,6 +12,7 @@ from urllib.parse import unquote
 
 import requests
 from pyrogram import filters
+from pyrogram import types as pyro_types
 from pyrogram.errors import EntitiesTooLong, MessageTooLong
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
 
@@ -120,7 +121,7 @@ async def bypass(_, ctx: Message):
             await msg.edit_msg(
                 f"{result}\n\nBecause your bypassed url is too long, so your link will be pasted to rentry.\n{mention}",
                 reply_markup=markup,
-                disable_web_page_preview=True,
+                link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
             )
     else:
         data = wetransfer_bypass(url)

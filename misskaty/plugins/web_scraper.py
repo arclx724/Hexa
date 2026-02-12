@@ -17,6 +17,7 @@ from bs4 import BeautifulSoup
 from cachetools import TTLCache
 from pykeyboard import InlineButton, InlineKeyboard
 from pyrogram import filters
+from pyrogram import types as pyro_types
 from pyrogram.errors import QueryIdInvalid
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
 
@@ -387,7 +388,7 @@ async def getDataKuso(msg, kueri, CurrentPage, user, strings):
             except httpx.HTTPError as exc:
                 await msg.edit_msg(
                     f"ERROR: Failed to fetch data from {exc.request.url} - <code>{exc}</code>",
-                    disable_web_page_preview=True,
+                    link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
                 )
                 return None, 0, None, None
         res = BeautifulSoup(data, "lxml").find_all("h2", {"class": "episodeye"})
@@ -489,7 +490,7 @@ async def getDataNodrakor(msg, kueri, CurrentPage, user, strings):
             except httpx.HTTPError as exc:
                 await msg.edit_msg(
                     f"HTTP Exception for {exc.request.url} - <code>{exc}</code>",
-                    disable_web_page_preview=True,
+                    link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
                 )
                 return None, 0, None
         text = BeautifulSoup(data, "lxml")
@@ -542,7 +543,7 @@ async def getDataSavefilm21(msg, kueri, CurrentPage, user, strings):
             except httpx.HTTPError as exc:
                 await msg.edit_msg(
                     f"HTTP Exception for {exc.request.url} - <code>{exc}</code>",
-                    disable_web_page_preview=True,
+                    link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
                 )
                 return None, 0, None
         text = BeautifulSoup(data, "lxml")
@@ -593,7 +594,7 @@ async def getDataNunaDrama(msg, kueri, CurrentPage, user, strings):
             except httpx.HTTPError as exc:
                 await msg.edit_msg(
                     f"ERROR: Failed to fetch data from {exc.request.url} - <code>{exc}</code>",
-                    disable_web_page_preview=True,
+                    link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
                 )
                 return None, 0, None
         text = BeautifulSoup(nunafetch, "lxml")
@@ -649,7 +650,7 @@ async def getDataPusatFilm(msg, kueri, CurrentPage, user, strings):
             except httpx.HTTPError as exc:
                 await msg.edit_msg(
                     f"ERROR: Failed to fetch data from {exc.request.url} - <code>{exc}</code>",
-                    disable_web_page_preview=True,
+                    link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
                 )
                 return None, 0, None
         text = BeautifulSoup(nunafetch, "lxml")
@@ -705,7 +706,7 @@ async def getDataDutaMovie(msg, kueri, CurrentPage, user, strings):
             except httpx.HTTPError as exc:
                 await msg.edit_msg(
                     f"ERROR: Failed to fetch data from {exc.request.url} - <code>{exc}</code>",
-                    disable_web_page_preview=True,
+                    link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
                 )
                 return None, 0, None
         text = BeautifulSoup(nunafetch, "lxml")
@@ -765,7 +766,7 @@ async def getDataLendrive(msg, kueri, CurrentPage, user, strings):
             except httpx.HTTPError as exc:
                 await msg.edit_msg(
                     f"ERROR: Failed to fetch data from {exc.request.url} - <code>{exc}</code>",
-                    disable_web_page_preview=True,
+                    link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
                 )
                 return None, 0, None
         res = BeautifulSoup(data, "lxml")
@@ -828,7 +829,7 @@ async def getDataMelong(msg, kueri, CurrentPage, user, strings):
             except httpx.HTTPError as exc:
                 await msg.edit_msg(
                     f"HTTP Exception for {exc.request.url} - <code>{exc}</code>",
-                    disable_web_page_preview=True,
+                    link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
                 )
                 return None, 0, None
         bs4 = BeautifulSoup(data, "lxml")
@@ -878,7 +879,7 @@ async def getDataGomov(msg, kueri, CurrentPage, user, strings):
             except httpx.HTTPError as exc:
                 await msg.edit_msg(
                     f"ERROR: Failed to fetch data from {exc.request.url} - <code>{exc}</code>",
-                    disable_web_page_preview=True,
+                    link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
                 )
                 return None, 0, None
         text = BeautifulSoup(gomovv, "lxml")
@@ -970,7 +971,7 @@ async def same_search(_, msg, strings):
         PageLen, 1, "page_same#{number}" + f"#{bmsg.id}#{msg.from_user.id}"
     )
     keyboard.row(InlineButton(strings("cl_btn"), f"close#{msg.from_user.id}"))
-    await bmsg.edit_msg(sameres, disable_web_page_preview=True, reply_markup=keyboard)
+    await bmsg.edit_msg(sameres, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard)
 
 
 # Terbit21 CMD
@@ -993,7 +994,7 @@ async def terbit21_s(_, message, strings):
     )
     keyboard.row(InlineButton(strings("cl_btn"), f"close#{message.from_user.id}"))
     await pesan.edit_msg(
-        terbitres, disable_web_page_preview=True, reply_markup=keyboard
+        terbitres, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
     )
 
 
@@ -1016,7 +1017,7 @@ async def lk21_s(_, message, strings):
         "page_lk21#{number}" + f"#{pesan.id}#{message.from_user.id}",
     )
     keyboard.row(InlineButton(strings("cl_btn"), f"close#{message.from_user.id}"))
-    await pesan.edit_msg(lkres, disable_web_page_preview=True, reply_markup=keyboard)
+    await pesan.edit_msg(lkres, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard)
 
 
 # Pahe CMD
@@ -1038,7 +1039,7 @@ async def pahe_s(_, message, strings):
         "page_pahe#{number}" + f"#{pesan.id}#{message.from_user.id}",
     )
     keyboard.row(InlineButton(strings("cl_btn"), f"close#{message.from_user.id}"))
-    await pesan.edit_msg(paheres, disable_web_page_preview=True, reply_markup=keyboard)
+    await pesan.edit_msg(paheres, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard)
 
 
 # Gomov CMD
@@ -1064,7 +1065,7 @@ async def gomov_s(self, message, strings):
     keyboard.row(InlineButton(strings("ex_data"), user_id=self.me.id))
     keyboard.row(*btn)
     keyboard.row(InlineButton(strings("cl_btn"), f"close#{message.from_user.id}"))
-    await pesan.edit_msg(gomovres, disable_web_page_preview=True, reply_markup=keyboard)
+    await pesan.edit_msg(gomovres, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard)
 
 
 # MelongMovie CMD
@@ -1092,11 +1093,11 @@ async def melong_s(self, message, strings):
     keyboard.row(InlineButton(strings("cl_btn"), f"close#{message.from_user.id}"))
     try:
         await pesan.edit_msg(
-            melongres, disable_web_page_preview=True, reply_markup=keyboard
+            melongres, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
         )
     except Exception as err:
         await pesan.edit_msg(
-            f"<b>ERROR:</b> {err}", disable_web_page_preview=True, reply_markup=keyboard
+            f"<b>ERROR:</b> {err}", link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
         )
 
 
@@ -1124,7 +1125,7 @@ async def nunadrama_s(self, message, strings):
     keyboard.row(*btn)
     keyboard.row(InlineButton(strings("cl_btn"), f"close#{message.from_user.id}"))
     await pesan.edit_msg(
-        nunares, disable_web_page_preview=True, reply_markup=keyboard
+        nunares, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
     )
 
 
@@ -1152,7 +1153,7 @@ async def pusatfilm_s(self, message, strings):
     keyboard.row(*btn)
     keyboard.row(InlineButton(strings("cl_btn"), f"close#{message.from_user.id}"))
     await pesan.edit_msg(
-        pfres, disable_web_page_preview=True, reply_markup=keyboard
+        pfres, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
     )
 
 
@@ -1180,7 +1181,7 @@ async def dutamovie_s(self, message, strings):
     keyboard.row(*btn)
     keyboard.row(InlineButton(strings("cl_btn"), f"close#{message.from_user.id}"))
     await pesan.edit_msg(
-        dutares, disable_web_page_preview=True, reply_markup=keyboard
+        dutares, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
     )
 
 
@@ -1208,7 +1209,7 @@ async def savefilm_s(self, message, strings):
     keyboard.row(*btn)
     keyboard.row(InlineButton(strings("cl_btn"), f"close#{message.from_user.id}"))
     await pesan.edit_msg(
-        savefilmres, disable_web_page_preview=True, reply_markup=keyboard
+        savefilmres, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
     )
 
 
@@ -1236,7 +1237,7 @@ async def nodrakor_s(self, message, strings):
     keyboard.row(*btn)
     keyboard.row(InlineButton(strings("cl_btn"), f"close#{message.from_user.id}"))
     await pesan.edit_msg(
-        nodrakorres, disable_web_page_preview=True, reply_markup=keyboard
+        nodrakorres, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
     )
 
 
@@ -1265,7 +1266,7 @@ async def kusonime_s(self, message, strings):
     if btn2:
         keyboard.row(*btn2)
     keyboard.row(InlineButton(strings("cl_btn"), f"close#{message.from_user.id}"))
-    await pesan.edit_msg(kusores, disable_web_page_preview=True, reply_markup=keyboard)
+    await pesan.edit_msg(kusores, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard)
 
 
 # Lendrive CMD
@@ -1291,7 +1292,7 @@ async def lendrive_s(self, ctx: Message, strings):
     keyboard.row(InlineButton(strings("ex_data"), user_id=self.me.id))
     keyboard.row(*btn)
     keyboard.row(InlineButton(strings("cl_btn"), f"close#{ctx.from_user.id}"))
-    await pesan.edit_msg(lendres, disable_web_page_preview=True, reply_markup=keyboard)
+    await pesan.edit_msg(lendres, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard)
 
 
 # Movieku CMD
@@ -1316,7 +1317,7 @@ async def movieku_s(self, ctx: Message, strings):
     keyboard.row(*btn)
     keyboard.row(InlineButton(strings("cl_btn"), f"close#{ctx.from_user.id}"))
     await pesan.edit_msg(
-        moviekures, disable_web_page_preview=True, reply_markup=keyboard
+        moviekures, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
     )
 
 
@@ -1360,7 +1361,7 @@ async def sf21page_callback(self, callback_query, strings):
         InlineButton(strings("cl_btn"), f"close#{callback_query.from_user.id}")
     )
     await callback_query.message.edit_msg(
-        savefilmres, disable_web_page_preview=True, reply_markup=keyboard
+        savefilmres, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
     )
 
 
@@ -1404,7 +1405,7 @@ async def sf21page_callback(self, callback_query, strings):
         InlineButton(strings("cl_btn"), f"close#{callback_query.from_user.id}")
     )
     await callback_query.message.edit_msg(
-        nunares, disable_web_page_preview=True, reply_markup=keyboard
+        nunares, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
     )
 
 
@@ -1448,7 +1449,7 @@ async def sf21page_callback(self, callback_query, strings):
         InlineButton(strings("cl_btn"), f"close#{callback_query.from_user.id}")
     )
     await callback_query.message.edit_msg(
-        dutares, disable_web_page_preview=True, reply_markup=keyboard
+        dutares, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
     )
 
 # NunaDrama Page Callback
@@ -1491,7 +1492,7 @@ async def sf21page_callback(self, callback_query, strings):
         InlineButton(strings("cl_btn"), f"close#{callback_query.from_user.id}")
     )
     await callback_query.message.edit_msg(
-        nunares, disable_web_page_preview=True, reply_markup=keyboard
+        nunares, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
     )
 
 
@@ -1535,7 +1536,7 @@ async def pfpage_callback(self, callback_query, strings):
         InlineButton(strings("cl_btn"), f"close#{callback_query.from_user.id}")
     )
     await callback_query.message.edit_msg(
-        pfres, disable_web_page_preview=True, reply_markup=keyboard
+        pfres, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
     )
 
 
@@ -1579,7 +1580,7 @@ async def nodrakorpage_cb(self, callback_query, strings):
         InlineButton(strings("cl_btn"), f"close#{callback_query.from_user.id}")
     )
     await callback_query.message.edit_msg(
-        nodrakorres, disable_web_page_preview=True, reply_markup=keyboard
+        nodrakorres, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
     )
 
 
@@ -1623,7 +1624,7 @@ async def kusopage_callback(self, callback_query, strings):
         InlineButton(strings("cl_btn"), f"close#{callback_query.from_user.id}")
     )
     await callback_query.message.edit_msg(
-        kusores, disable_web_page_preview=True, reply_markup=keyboard
+        kusores, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
     )
 
 
@@ -1665,7 +1666,7 @@ async def lendrivepage_callback(self, callback_query, strings):
         InlineButton(strings("cl_btn"), f"close#{callback_query.from_user.id}")
     )
     await callback_query.message.edit_msg(
-        lendres, disable_web_page_preview=True, reply_markup=keyboard
+        lendres, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
     )
 
 
@@ -1703,7 +1704,7 @@ async def moviekupage_callback(self, callback_query, strings):
         InlineButton(strings("cl_btn"), f"close#{callback_query.from_user.id}")
     )
     await callback_query.message.edit_msg(
-        moviekures, disable_web_page_preview=True, reply_markup=keyboard
+        moviekures, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
     )
 
 
@@ -1734,7 +1735,7 @@ async def samepg(_, query, strings):
     )
     keyboard.row(InlineButton(strings("cl_btn"), f"close#{query.from_user.id}"))
     await query.message.edit_msg(
-        sameres, disable_web_page_preview=True, reply_markup=keyboard
+        sameres, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
     )
 
 
@@ -1770,7 +1771,7 @@ async def terbit21page_callback(_, callback_query, strings):
         InlineButton(strings("cl_btn"), f"close#{callback_query.from_user.id}")
     )
     await callback_query.message.edit_msg(
-        terbitres, disable_web_page_preview=True, reply_markup=keyboard
+        terbitres, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
     )
 
 
@@ -1812,7 +1813,7 @@ async def melongpage_callback(self, callback_query, strings):
         InlineButton(strings("cl_btn"), f"close#{callback_query.from_user.id}")
     )
     await callback_query.message.edit_msg(
-        terbitres, disable_web_page_preview=True, reply_markup=keyboard
+        terbitres, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
     )
 
 
@@ -1848,7 +1849,7 @@ async def lk21page_callback(_, callback_query, strings):
         InlineButton(strings("cl_btn"), f"close#{callback_query.from_user.id}")
     )
     await callback_query.message.edit_msg(
-        lkres, disable_web_page_preview=True, reply_markup=keyboard
+        lkres, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
     )
 
 
@@ -1884,7 +1885,7 @@ async def pahepage_callback(_, callback_query, strings):
         InlineButton(strings("cl_btn"), f"close#{callback_query.from_user.id}")
     )
     await callback_query.message.edit_msg(
-        lkres, disable_web_page_preview=True, reply_markup=keyboard
+        lkres, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
     )
 
 
@@ -1926,7 +1927,7 @@ async def gomovpage_callback(self, callback_query, strings):
         InlineButton(strings("cl_btn"), f"close#{callback_query.from_user.id}")
     )
     await callback_query.message.edit_msg(
-        gomovres, disable_web_page_preview=True, reply_markup=keyboard
+        gomovres, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
     )
 
 
@@ -2489,7 +2490,6 @@ async def muviku_scrap(_, message, strings):
             )
         except Exception as e:
             await message.reply(f"ERROR: {str(e)}")
-
 
 
 

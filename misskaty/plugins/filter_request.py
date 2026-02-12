@@ -8,6 +8,7 @@ import shutil
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from pyrogram import enums, filters
+from pyrogram import types as pyro_types
 from pyrogram.errors import PeerIdInvalid, UserNotParticipant
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
@@ -177,7 +178,7 @@ async def callbackreq(c, q):
             await c.send_message(
                 chat_id=chat_id,
                 text="#Done\nDone ✅, Selamat menonton. Jika request tidak bisa dilihat digrup silahkan join channel melalui link private yang ada di @YMovieZ_New ...",
-                reply_to_message_id=int(msg_id),
+                reply_parameters=pyro_types.ReplyParameters(message_id=int(msg_id)),
             )
 
             if q.message.caption:
@@ -235,7 +236,7 @@ async def callbackreqada(c, q):
             await c.send_message(
                 chat_id=chat_id,
                 text="#SudahAda\nFilm/series yang direquest sudah ada sebelumnya. Biasakan mencari terlebih dahulu..",
-                reply_to_message_id=int(msg_id),
+                reply_parameters=pyro_types.ReplyParameters(message_id=int(msg_id)),
             )
 
             if q.message.caption:
@@ -293,7 +294,7 @@ async def callbackreject(c, q):
             await c.send_message(
                 chat_id=chat_id,
                 text="Mohon maaf, request kamu ditolak karena tidak sesuai rules. Harap baca rules grup no.6 yaa 🙃.",
-                reply_to_message_id=int(msg_id),
+                reply_parameters=pyro_types.ReplyParameters(message_id=int(msg_id)),
             )
 
             if q.message.caption:
@@ -351,7 +352,7 @@ async def callbackunav(c, q):
             await c.send_message(
                 chat_id=chat_id,
                 text="Mohon maaf, request kamu tidak tersedia. Silahkan baca beberapa alasannya di channel @YMovieZ_New",
-                reply_to_message_id=int(msg_id),
+                reply_parameters=pyro_types.ReplyParameters(message_id=int(msg_id)),
             )
 
             if q.message.caption:

@@ -15,6 +15,7 @@ import httpx
 from bs4 import BeautifulSoup
 from pykeyboard import InlineButton, InlineKeyboard
 from pyrogram import Client, enums
+from pyrogram import types as pyro_types
 from pyrogram.errors import (
     ListenerTimeout,
     MediaCaptionTooLong,
@@ -1171,7 +1172,7 @@ async def imdb_id_callback(self: Client, query: CallbackQuery):
                     res_str,
                     parse_mode=enums.ParseMode.HTML,
                     reply_markup=markup,
-                    disable_web_page_preview=disable_web_preview,
+                    link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=disable_web_preview),
                 )
             elif thumb := r_json.get("image"):
                 try:
@@ -1203,7 +1204,7 @@ async def imdb_id_callback(self: Client, query: CallbackQuery):
                         res_str,
                         parse_mode=enums.ParseMode.HTML,
                         reply_markup=markup,
-                        disable_web_page_preview=disable_web_preview,
+                        link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=disable_web_preview),
                     )
                 except Exception as err:
                     LOGGER.error(
@@ -1214,14 +1215,14 @@ async def imdb_id_callback(self: Client, query: CallbackQuery):
                             res_str,
                             parse_mode=enums.ParseMode.HTML,
                             reply_markup=markup,
-                            disable_web_page_preview=disable_web_preview,
+                            link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=disable_web_preview),
                         )
             else:
                 await query.message.edit_msg(
                     res_str,
                     parse_mode=enums.ParseMode.HTML,
                     reply_markup=markup,
-                    disable_web_page_preview=disable_web_preview,
+                    link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=disable_web_preview),
                 )
         except httpx.HTTPError as exc:
             await query.message.edit_msg(
@@ -1584,7 +1585,7 @@ async def imdb_en_callback(self: Client, query: CallbackQuery):
                     res_str,
                     parse_mode=enums.ParseMode.HTML,
                     reply_markup=markup,
-                    disable_web_page_preview=disable_web_preview,
+                    link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=disable_web_preview),
                 )
             elif thumb := r_json.get("image"):
                 try:
@@ -1616,7 +1617,7 @@ async def imdb_en_callback(self: Client, query: CallbackQuery):
                         res_str,
                         parse_mode=enums.ParseMode.HTML,
                         reply_markup=markup,
-                        disable_web_page_preview=disable_web_preview,
+                        link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=disable_web_preview),
                     )
                 except Exception as err:
                     LOGGER.error(f"Error while displaying IMDB Data. ERROR: {err}")
@@ -1625,14 +1626,14 @@ async def imdb_en_callback(self: Client, query: CallbackQuery):
                             res_str,
                             parse_mode=enums.ParseMode.HTML,
                             reply_markup=markup,
-                            disable_web_page_preview=disable_web_preview,
+                            link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=disable_web_preview),
                         )
             else:
                 await query.message.edit_msg(
                     res_str,
                     parse_mode=enums.ParseMode.HTML,
                     reply_markup=markup,
-                    disable_web_page_preview=disable_web_preview,
+                    link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=disable_web_preview),
                 )
         except httpx.HTTPError as exc:
             await query.message.edit_msg(

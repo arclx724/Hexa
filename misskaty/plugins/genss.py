@@ -14,6 +14,7 @@ from logging import getLogger
 from urllib.parse import unquote
 
 from pyrogram import Client, enums
+from pyrogram import types as pyro_types
 from pyrogram.errors import FloodWait
 from pyrogram.file_id import FileId
 from pyrogram.types import Message
@@ -79,7 +80,7 @@ async def genss(self: Client, ctx: Message, strings):
                 current_message += f"ETA: {estimated_total_time}"
                 if round(diff % 10.00) == 0 and current_message != display_message:
                     await pesan.edit(
-                        disable_web_page_preview=True, text=current_message
+                        link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), text=current_message
                     )
                     display_message = current_message
                     await sleep(10)
@@ -100,16 +101,16 @@ async def genss(self: Client, ctx: Message, strings):
                 try:
                     await gather(
                         *[
-                            ctx.reply_document(images, reply_to_message_id=ctx.id),
-                            ctx.reply_photo(images, reply_to_message_id=ctx.id),
+                            ctx.reply_document(images, reply_parameters=pyro_types.ReplyParameters(message_id=ctx.id)),
+                            ctx.reply_photo(images, reply_parameters=pyro_types.ReplyParameters(message_id=ctx.id)),
                         ]
                     )
                 except FloodWait as e:
                     await sleep(e.value)
                     await gather(
                         *[
-                            ctx.reply_document(images, reply_to_message_id=ctx.id),
-                            ctx.reply_photo(images, reply_to_message_id=ctx.id),
+                            ctx.reply_document(images, reply_parameters=pyro_types.ReplyParameters(message_id=ctx.id)),
+                            ctx.reply_photo(images, reply_parameters=pyro_types.ReplyParameters(message_id=ctx.id)),
                         ]
                     )
                 await ctx.reply_msg(
@@ -120,7 +121,7 @@ async def genss(self: Client, ctx: Message, strings):
                         id=ctx.from_user.id if ctx.from_user else ctx.sender_chat.title,
                         bot_uname=self.me.username,
                     ),
-                    reply_to_message_id=ctx.id,
+                    reply_parameters=pyro_types.ReplyParameters(message_id=ctx.id),
                 )
                 await pesan.delete()
                 try:
@@ -169,16 +170,16 @@ async def genss(self: Client, ctx: Message, strings):
                 try:
                     await gather(
                         *[
-                            ctx.reply_document(images, reply_to_message_id=ctx.id),
-                            ctx.reply_photo(images, reply_to_message_id=ctx.id),
+                            ctx.reply_document(images, reply_parameters=pyro_types.ReplyParameters(message_id=ctx.id)),
+                            ctx.reply_photo(images, reply_parameters=pyro_types.ReplyParameters(message_id=ctx.id)),
                         ]
                     )
                 except FloodWait as e:
                     await sleep(e.value)
                     await gather(
                         *[
-                            ctx.reply_document(images, reply_to_message_id=ctx.id),
-                            ctx.reply_photo(images, reply_to_message_id=ctx.id),
+                            ctx.reply_document(images, reply_parameters=pyro_types.ReplyParameters(message_id=ctx.id)),
+                            ctx.reply_photo(images, reply_parameters=pyro_types.ReplyParameters(message_id=ctx.id)),
                         ]
                     )
                 await ctx.reply_msg(
@@ -189,7 +190,7 @@ async def genss(self: Client, ctx: Message, strings):
                         id=ctx.from_user.id if ctx.from_user else ctx.sender_chat.id,
                         bot_uname=self.me.username,
                     ),
-                    reply_to_message_id=ctx.id,
+                    reply_parameters=pyro_types.ReplyParameters(message_id=ctx.id),
                 )
                 await process.delete()
                 try:
