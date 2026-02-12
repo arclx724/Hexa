@@ -92,7 +92,8 @@ LOGGER = getLogger("MissKaty")
 
 async def edit_or_reply(self, msg, **kwargs):
     func = msg.edit if not self.me.is_bot else msg.reply
-    spec = getfullargspec(func.__wrapped__).args
+    wrapped = getattr(func, "__wrapped__", None) or getattr(func, "wrapped", None) or func
+    spec = getfullargspec(wrapped).args
     await func(**{k: v for k, v in kwargs.items() if k in spec})
 
 

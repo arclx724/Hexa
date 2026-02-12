@@ -2,41 +2,196 @@
 # * @date          2023-06-21 22:12:27
 # * @projectName   MissKatyPyro
 # * Copyright ©YasirPedia All rights reserved
-from logging import getLogger
+import asyncio
+import os
+import time
+from pathlib import Path
 from uuid import uuid4
 
-from iytdl import Process, iYTDL, main
-from iytdl.constants import YT_VID_URL
-from iytdl.exceptions import DownloadFailedError
 from pyrogram import Client, filters
 from pyrogram.enums import ParseMode
-from pyrogram.errors import (
-    MessageEmpty,
-    MessageIdInvalid,
-    QueryIdInvalid,
-    WebpageMediaEmpty,
-)
+from pyrogram.errors import MessageNotModified, QueryIdInvalid, WebpageMediaEmpty
 from pyrogram.types import (
     CallbackQuery,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
+    InputMediaAudio,
     InputMediaPhoto,
+    InputMediaVideo,
     Message,
 )
+from yt_dlp import DownloadError, YoutubeDL
 
 from misskaty import app
 from misskaty.core import pyro_cooldown
 from misskaty.core.decorator import capture_err, new_task
 from misskaty.helper import fetch, isValidURL, use_chat_lang
-from misskaty.vars import COMMAND_HANDLER, LOG_CHANNEL, SUDO, OWNER_ID
+from misskaty.helper.pyro_progress import humanbytes, time_formatter
+from misskaty.vars import COMMAND_HANDLER
 
-LOGGER = getLogger("MissKaty")
 YT_REGEX = r"^(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/(watch\?v=|embed/|v/|.+\?v=)?(?P<id>[A-Za-z0-9\-=_]{11})"
 YT_DB = {}
+YTDL_CACHE = {}
+ACTIVE_DOWNLOADS = {}
+PROCESS_TEXT = "<emoji id=5319190934510904031>⏳</emoji> Processing.."
 
 
-def rand_key():
+class DownloadCancelled(Exception):
+    pass
+
+
+def rand_key() -> str:
     return str(uuid4())[:8]
+
+
+def format_progress_bar(percentage: float) -> str:
+    filled = max(0, min(20, int(percentage // 5)))
+    return f"[{'●' * filled}{'○' * (20 - filled)}]"
+
+
+def get_cookie_file() -> str | None:
+    cookie_file = Path("cookies.txt")
+    return str(cookie_file) if cookie_file.is_file() else None
+
+
+def build_ydl_opts(extra: dict | None = None) -> dict:
+    opts = {
+        "quiet": True,
+        "no_warnings": True,
+        "js_runtimes": {"deno": {"path": "/root/.deno/bin/deno"}},
+    }
+    if cookie_file := get_cookie_file():
+        opts["cookiefile"] = cookie_file
+    if extra:
+        opts.update(extra)
+    return opts
+
+
+def resolve_downloaded_file(output_dir: str, job_id: str, expected_ext: str | None = None) -> str | None:
+    candidates = sorted(Path(output_dir).glob("*" if not job_id else f"{job_id}.*"), key=lambda x: x.stat().st_mtime, reverse=True)
+    if expected_ext:
+        for file in candidates:
+            if file.suffix.lower() == f".{expected_ext.lower()}":
+                return str(file)
+    return str(candidates[0]) if candidates else None
+
+
+
+
+def estimate_audio_size(duration: int, bitrate_kbps: int) -> int:
+    if duration <= 0 or bitrate_kbps <= 0:
+        return 0
+    return int((duration * bitrate_kbps * 1000) / 8)
+
+
+def parse_quality_tree(info: dict) -> dict:
+    formats = info.get("formats") or []
+    duration = int(info.get("duration") or 0)
+    resolutions = {}
+
+    heights = sorted({int(f.get("height") or 0) for f in formats if int(f.get("height") or 0) > 0}, reverse=True)
+    for target_height in heights:
+        candidates = []
+        for fmt in formats:
+            height = int(fmt.get("height") or 0)
+            if height != target_height:
+                continue
+            if fmt.get("vcodec") in (None, "none"):
+                continue
+            tbr = int(fmt.get("tbr") or fmt.get("vbr") or 0)
+            fps = int(fmt.get("fps") or 0)
+            format_id = str(fmt.get("format_id"))
+            selector = format_id
+            if fmt.get("acodec") in (None, "none"):
+                selector = f"{format_id}+bestaudio/best"
+            size_bytes = int(fmt.get("filesize") or fmt.get("filesize_approx") or 0)
+            candidates.append(
+                {
+                    "label": f"{tbr}kbps" if tbr else "Auto bitrate",
+                    "format": selector,
+                    "bitrate": tbr,
+                    "kind": "video",
+                    "ext": "mp4",
+                    "size": size_bytes,
+                    "fps": fps,
+                    "format_id": format_id,
+                    "height": target_height,
+                }
+            )
+        if candidates:
+            resolutions[str(target_height)] = sorted(
+                candidates,
+                key=lambda x: (x.get("bitrate", 0), x.get("fps", 0)),
+                reverse=True,
+            )
+
+    audio = []
+    for bitrate in (320, 256, 192, 160, 128, 96, 64):
+        audio.append(
+            {
+                "label": f"{bitrate}kbps",
+                "format": "bestaudio/best",
+                "kind": "audio",
+                "ext": "m4a",
+                "bitrate": str(bitrate),
+                "size": estimate_audio_size(duration, bitrate),
+            }
+        )
+    return {"resolutions": resolutions, "audio": audio}
+
+
+async def animate_processing(message: Message, title: str, stop_event: asyncio.Event):
+    frames = ["😺", "😸", "😹", "😻"]
+    idx = 0
+    while not stop_event.is_set():
+        text = f"{frames[idx % len(frames)]} {title}"
+        try:
+            if message.media:
+                await message.edit_caption(text, parse_mode=ParseMode.HTML)
+            else:
+                await message.edit_text(text, parse_mode=ParseMode.HTML)
+        except Exception:
+            pass
+        idx += 1
+        await asyncio.sleep(1.2)
+
+
+async def yt_extract(url: str, flat: bool = False) -> dict:
+    def _extract():
+        opts = build_ydl_opts({"skip_download": True})
+        if flat:
+            opts["extract_flat"] = "in_playlist"
+        with YoutubeDL(opts) as ydl:
+            return ydl.extract_info(url, download=False)
+
+    return await asyncio.to_thread(_extract)
+
+
+async def download_thumb_file(url: str | None, job_id: str, output_dir: str) -> str | None:
+    if not url:
+        return None
+    try:
+        response = await fetch.get(url)
+        if response.status_code != 200:
+            return None
+        thumb_path = os.path.join(output_dir, f"{job_id}_thumb.jpg")
+        with open(thumb_path, "wb") as file:
+            file.write(response.content)
+        return thumb_path
+    except Exception:
+        return None
+
+
+def quality_markup(cache_key: str, tree: dict) -> InlineKeyboardMarkup:
+    rows = []
+    for idx, (res, items) in enumerate(tree["resolutions"].items()):
+        size_hint = next((x.get("size", 0) for x in items if x.get("size", 0) > 0), 0)
+        label = f"🎬 {res}p" + (" ⭐" if idx == 0 else "")
+        if size_hint:
+            label += f" ({humanbytes(size_hint)})"
+        rows.append([InlineKeyboardButton(label, callback_data=f"yt_res|{cache_key}|{res}")])
+    rows.append([InlineKeyboardButton("🎧 Audio AAC", callback_data=f"yt_audio|{cache_key}")])
+    return InlineKeyboardMarkup(rows)
 
 
 @app.on_cmd("ytsearch", no_channel=True)
@@ -46,39 +201,26 @@ async def ytsearch(_, ctx: Message, strings):
         return await ctx.reply(strings("no_query"))
     query = ctx.text.split(maxsplit=1)[1]
     search_key = rand_key()
-    YT_DB[search_key] = query
-    search = await main.VideosSearch(query).next()
-    if search["result"] == []:
+    search = await yt_extract(f"ytsearch10:{query}", flat=True)
+    results = search.get("entries") or []
+    if not results:
         return await ctx.reply(strings("no_res").format(kweri=query))
-    i = search["result"][0]
-    out = f"<b><a href={i['link']}>{i['title']}</a></b>\n"
+    YT_DB[search_key] = {"query": query, "results": results}
+    i = results[0]
     out = strings("yts_msg").format(
-        pub=i["publishedTime"],
-        dur=i["duration"],
-        vi=i["viewCount"]["short"],
-        clink=i["channel"]["link"],
-        cname=i["channel"]["name"],
+        pub=i.get("upload_date") or "-",
+        dur=time_formatter(i.get("duration") or 0),
+        vi=humanbytes(i.get("view_count") or 0),
+        clink=i.get("channel_url") or i.get("uploader_url") or "https://youtube.com",
+        cname=i.get("channel") or i.get("uploader") or "Unknown",
     )
     btn = InlineKeyboardMarkup(
         [
-            [
-                InlineKeyboardButton(
-                    f"1/{len(search['result'])}",
-                    callback_data=f"ytdl_scroll|{search_key}|1",
-                )
-            ],
-            [
-                InlineKeyboardButton(
-                    strings("dl_btn"), callback_data=f"yt_gen|{i['id']}"
-                )
-            ],
+            [InlineKeyboardButton(f"1/{len(results)}", callback_data=f"ytdl_scroll|{search_key}|0")],
+            [InlineKeyboardButton(strings("dl_btn"), callback_data=f"yt_gen|{search_key}|0")],
         ]
     )
-    img = await get_ytthumb(i["id"])
-    caption = out
-    markup = btn
-    await ctx.reply_photo(
-        img, caption=caption, reply_markup=markup, parse_mode=ParseMode.HTML)
+    await ctx.reply_photo(await get_ytthumb(i.get("id")), caption=out, reply_markup=btn, parse_mode=ParseMode.HTML)
 
 
 @app.on_message(
@@ -90,228 +232,361 @@ async def ytsearch(_, ctx: Message, strings):
 )
 @capture_err
 @use_chat_lang()
-async def ytdownv2(self, ctx: Message, strings):
+async def ytdownv2(_, ctx: Message, strings):
     if not ctx.from_user:
         return await ctx.reply(strings("no_channel"))
-    url = (
-        ctx.command[1]
-        if ctx.command and len(ctx.command) > 1
-        else ctx.text or ctx.caption
-    )
+    url = ctx.command[1] if ctx.command and len(ctx.command) > 1 else ctx.text or ctx.caption
     if not isValidURL(url):
         return await ctx.reply(strings("invalid_link"))
-    async with iYTDL(log_group_id=0, cache_path="cache", silent=True) as ytdl:
-        try:
-            x = await ytdl.parse(url, extract=True)
-            if x is None:
-                return await ctx.reply(
-                    strings("err_parse"), parse_mode=ParseMode.HTML
-                )
-            caption = x.caption
-            markup = x.buttons
-            photo = x.image_url
-            try:
-                await ctx.reply_photo(
-                    photo,
-                    caption=caption,
-                    reply_markup=markup,
-                    parse_mode=ParseMode.HTML,
-                )
-            except WebpageMediaEmpty:
-                await ctx.reply_photo(
-                    "assets/thumb.jpg",
-                    caption=caption,
-                    reply_markup=markup,
-                    parse_mode=ParseMode.HTML,
-                )
-        except Exception as err:
-            try:
-                await ctx.reply(str(err), parse_mode=ParseMode.HTML)
-            except MessageEmpty:
-                await ctx.reply("Invalid link.")
 
+    progress_msg = await ctx.reply(PROCESS_TEXT, parse_mode=ParseMode.HTML)
+    stop_event = asyncio.Event()
+    anim_task = asyncio.create_task(animate_processing(progress_msg, PROCESS_TEXT, stop_event))
+    try:
+        info = await yt_extract(url)
+    except Exception as err:
+        stop_event.set()
+        await anim_task
+        return await progress_msg.edit_text(f"{strings('err_parse')}\n\n<code>{err}</code>", parse_mode=ParseMode.HTML)
+    finally:
+        stop_event.set()
+        await anim_task
 
-@app.on_cb(filters.regex(r"^yt_listall"))
-@use_chat_lang()
-async def ytdl_listall_callback(_, cq: CallbackQuery, strings):
-    if cq.from_user.id != cq.message.reply_to_message.from_user.id:
-        return await cq.answer(strings("unauth"), True)
-    callback = cq.data.split("|")
-    async with iYTDL(
-        log_group_id=0, cache_path="cache", ffmpeg_location="/usr/bin/ffmpeg"
-    ) as ytdl:
-        media, buttons = await ytdl.listview(callback[1])
-        await cq.edit_message_media(
-            media=media, reply_markup=buttons.add(cq.from_user.id)
+    cache_key = rand_key()
+    tree = parse_quality_tree(info)
+    YTDL_CACHE[cache_key] = {
+        "url": url,
+        "title": info.get("title") or "Untitled",
+        "thumb": info.get("thumbnail") or "assets/thumb.jpg",
+        "duration": int(info.get("duration") or 0),
+        "uploader": info.get("uploader") or info.get("channel") or "",
+        "artist": info.get("artist") or info.get("creator") or "",
+        "album": info.get("album") or "",
+        "track": info.get("track") or info.get("title") or "",
+        "release_date": info.get("release_date") or info.get("upload_date") or "",
+        "quality_tree": tree,
+        "user_id": ctx.from_user.id,
+    }
+
+    caption = f"<b>{YTDL_CACHE[cache_key]['title']}</b>\n\n1) Select resolution\n2) Select bitrate"
+    markup = quality_markup(cache_key, tree)
+    try:
+        await progress_msg.edit_media(
+            InputMediaPhoto(YTDL_CACHE[cache_key]["thumb"], caption=caption, parse_mode=ParseMode.HTML),
+            reply_markup=markup,
+        )
+    except WebpageMediaEmpty:
+        await progress_msg.edit_media(
+            InputMediaPhoto("assets/thumb.jpg", caption=caption, parse_mode=ParseMode.HTML),
+            reply_markup=markup,
         )
 
 
-@app.on_callback_query(filters.regex(r"^yt_extract_info"))
+@app.on_callback_query(filters.regex(r"^yt_(res|audio)\|"))
 @use_chat_lang()
-async def ytdl_extractinfo_callback(_, cq: CallbackQuery, strings):
-    if cq.from_user.id != cq.message.reply_to_message.from_user.id:
-        try:
-            return await cq.answer(strings("unauth"), True)
-        except QueryIdInvalid:
-            return
-    try:
-        await cq.answer(strings("wait"))
-    except QueryIdInvalid:
-        pass
+async def ytdl_pick_step(_, cq: CallbackQuery, strings):
     callback = cq.data.split("|")
-    async with iYTDL(
-        log_group_id=0, cache_path="cache", ffmpeg_location="/usr/bin/ffmpeg"
-    ) as ytdl:
-        try:
-            if data := await ytdl.extract_info_from_key(callback[1]):
-                if len(callback[1]) == 11:
-                    await cq.edit_message_text(
-                        text=data.caption,
-                        reply_markup=data.buttons.add(cq.from_user.id),
-                    )
-                else:
-                    await cq.edit_message_media(
-                        media=(
-                            InputMediaPhoto(
-                                media=data.image_url,
-                                caption=data.caption,
-                            )
-                        ),
-                        reply_markup=data.buttons.add(cq.from_user.id),
-                    )
-        except Exception as e:
-            await cq.edit_message_text(f"Extract Info Failed -> {e}")
+    action, cache_key = callback[0], callback[1]
+    data = YTDL_CACHE.get(cache_key)
+    if not data:
+        return await cq.answer("Task expired", show_alert=True)
+    if cq.from_user.id != data["user_id"]:
+        return await cq.answer(strings("unauth"), True)
+
+    if action == "yt_res":
+        res = callback[2]
+        options = data["quality_tree"]["resolutions"].get(res, [])
+        if not options:
+            return await cq.answer("No bitrate option for this resolution", show_alert=True)
+        rows = []
+        for idx, opt in enumerate(options):
+            fmt_id = opt.get("format_id") or "-"
+            fps = opt.get("fps") or 0
+            label = f"{opt['label']} • {fps}fps • {fmt_id}"
+            if opt.get("size"):
+                label += f" • {humanbytes(opt['size'])}"
+            rows.append([InlineKeyboardButton(label, callback_data=f"yt_dl|{cache_key}|v|{res}|{idx}")])
+        rows.append([InlineKeyboardButton("⬅️ Back", callback_data=f"yt_back|{cache_key}")])
+        return await cq.edit_message_reply_markup(reply_markup=InlineKeyboardMarkup(rows))
+
+    rows = []
+    for opt in data["quality_tree"]["audio"]:
+        label = f"🎧 {opt['label']}"
+        if opt.get("size"):
+            label += f" • {humanbytes(opt['size'])}"
+        rows.append([InlineKeyboardButton(label, callback_data=f"yt_dl|{cache_key}|a|{opt['bitrate']}")])
+    rows.append([InlineKeyboardButton("⬅️ Back", callback_data=f"yt_back|{cache_key}")])
+    await cq.edit_message_reply_markup(reply_markup=InlineKeyboardMarkup(rows))
 
 
-@app.on_callback_query(filters.regex(r"^yt_(gen|dl)"))
+@app.on_callback_query(filters.regex(r"^yt_back\|"))
+@use_chat_lang()
+async def ytdl_back_choice(_, cq: CallbackQuery, strings):
+    cache_key = cq.data.split("|")[1]
+    data = YTDL_CACHE.get(cache_key)
+    if not data:
+        return await cq.answer("Task expired", show_alert=True)
+    if cq.from_user.id != data["user_id"]:
+        return await cq.answer(strings("unauth"), True)
+    await cq.edit_message_reply_markup(reply_markup=quality_markup(cache_key, data["quality_tree"]))
+
+
+@app.on_callback_query(filters.regex(r"^yt_dl\|"))
 @use_chat_lang()
 @new_task
-async def ytdl_gendl_callback(self: Client, cq: CallbackQuery, strings):
-    if not (cq.message.reply_to_message and cq.message.reply_to_message.from_user):
-        return
-    match = cq.data.split("|")
-    if cq.from_user.id != cq.message.reply_to_message.from_user.id:
-        try:
-            return await cq.answer(strings("unauth"), True)
-        except QueryIdInvalid:
+async def ytdl_download_callback(self: Client, cq: CallbackQuery, strings):
+    callback = cq.data.split("|")
+    cache_key = callback[1]
+    data = YTDL_CACHE.get(cache_key)
+    if not data:
+        return await cq.answer("Task expired", show_alert=True)
+    if cq.from_user.id != data["user_id"]:
+        return await cq.answer(strings("unauth"), True)
+
+    if callback[2] == "v":
+        res = callback[3]
+        idx = int(callback[4])
+        option = data["quality_tree"]["resolutions"][res][idx]
+        label = f"{res}p • {option['label']}"
+    else:
+        bitrate = callback[3]
+        option = {"kind": "audio", "ext": "m4a", "codec": "aac", "format": "bestaudio/best", "bitrate": bitrate}
+        label = f"AAC {bitrate}kbps"
+
+    job_id = rand_key()
+    ACTIVE_DOWNLOADS[job_id] = {"cancelled": False, "downloaded": 0, "total": 0, "speed": 0, "eta": 0}
+    cancel_markup = InlineKeyboardMarkup([[InlineKeyboardButton("❌ Cancel", callback_data=f"yt_cancel|{job_id}")]])
+
+    try:
+        await cq.edit_message_caption(f"Preparing <b>{label}</b>...", parse_mode=ParseMode.HTML, reply_markup=cancel_markup)
+    except MessageNotModified:
+        pass
+
+    output_dir = "downloads"
+    os.makedirs(output_dir, exist_ok=True)
+    file_path = os.path.join(output_dir, "%(title).180B %(height)sp%(fps)sfps %(format_id)s.%(ext)s")
+
+    def progress_hook(status):
+        state = ACTIVE_DOWNLOADS.get(job_id)
+        if not state:
             return
-    if match[2] in ["mkv", "mp4"] and cq.from_user.id not in SUDO and cq.from_user.id == OWNER_ID:
-        try:
-            return await cq.answer(strings("vip-btn"), True)
-        except QueryIdInvalid:
-            return await cq.delete()
-    await cq.edit_message_caption("Downloading..")
-    async with iYTDL(
-        log_group_id=LOG_CHANNEL,
-        cache_path="cache",
-        ffmpeg_location="/usr/bin/ffmpeg",
-        delete_media=True,
-    ) as ytdl:
-        try:
-            if match[0] == "yt_gen":
-                yt_url = False
-                video_link = await ytdl.cache.get_url(match[1])
-            else:
-                yt_url = True
-                video_link = f"{YT_VID_URL}{match[1]}"
-            LOGGER.info(f"User {cq.from_user.id} using YTDL -> {video_link}")
-            media_type = "video" if match[3] == "v" else "audio"
-            uid, _ = ytdl.get_choice_by_id(match[2], media_type, yt_url=yt_url)
-            key = await ytdl.download(
-                url=video_link,
-                uid=uid,
-                downtype=media_type,
-                update=cq,
-            )
-            await ytdl.upload(
-                client=self,
-                key=key[0],
-                downtype=media_type,
-                update=cq,
-            )
-        except DownloadFailedError as e:
-            await cq.edit_message_caption(f"Download Failed - {e}")
-        except Exception as err:
+        if state["cancelled"]:
+            raise DownloadCancelled("Cancelled by user")
+        if status.get("status") == "downloading":
+            state["downloaded"] = status.get("downloaded_bytes") or 0
+            state["total"] = status.get("total_bytes") or status.get("total_bytes_estimate") or 0
+            state["speed"] = status.get("speed") or 0
+            state["eta"] = status.get("eta") or 0
+
+    def do_download():
+        ydl_opts = build_ydl_opts({
+            "outtmpl": file_path,
+            "noprogress": True,
+            "format": option["format"],
+            "progress_hooks": [progress_hook],
+            "merge_output_format": "mp4",
+        })
+        if option["kind"] == "audio":
+            ydl_opts["postprocessors"] = [
+                {"key": "FFmpegExtractAudio", "preferredcodec": option.get("codec", "aac"), "preferredquality": option.get("bitrate", "192")},
+                {"key": "FFmpegMetadata", "add_metadata": True},
+                {"key": "EmbedThumbnail"},
+            ]
+        with YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(data["url"], download=True)
+            requested = info.get("requested_downloads") or []
+            if requested and requested[0].get("filepath"):
+                return requested[0]["filepath"]
+            return ydl.prepare_filename(info)
+
+    download_task = asyncio.create_task(asyncio.to_thread(do_download))
+    status_text = ""
+
+    while not download_task.done():
+        state = ACTIVE_DOWNLOADS[job_id]
+        total = state["total"] or 1
+        percentage = (state["downloaded"] / total) * 100 if state["total"] else 0
+        text = (
+            f"{PROCESS_TEXT}\n⬇️ Downloading <b>{label}</b>\n"
+            f"{format_progress_bar(percentage)} {percentage:.2f}%\n"
+            f"{humanbytes(state['downloaded'])} / {humanbytes(state['total'])}\n"
+            f"Speed: {humanbytes(state['speed'])}/s\n"
+            f"ETA: {time_formatter(int(state['eta'])) or 'Unknown'}"
+        )
+        if text != status_text:
             try:
-                await cq.edit_message_caption(
-                    f"Download Failed for url -> {video_link}\n\n<b>ERROR:</b> <code>{err}</code>"
-                )
-            except MessageIdInvalid:
+                await cq.edit_message_caption(text, parse_mode=ParseMode.HTML, reply_markup=cancel_markup)
+                status_text = text
+            except (MessageNotModified, QueryIdInvalid):
                 pass
+        await asyncio.sleep(7)
+
+    try:
+        downloaded_file = await download_task
+    except DownloadCancelled:
+        ACTIVE_DOWNLOADS.pop(job_id, None)
+        return await cq.edit_message_caption("❌ Download cancelled.")
+    except DownloadError as err:
+        ACTIVE_DOWNLOADS.pop(job_id, None)
+        return await cq.edit_message_caption(f"❌ Download failed: <code>{err}</code>", parse_mode=ParseMode.HTML)
+    except Exception as err:
+        ACTIVE_DOWNLOADS.pop(job_id, None)
+        return await cq.edit_message_caption(f"❌ Download error: <code>{err}</code>", parse_mode=ParseMode.HTML)
+
+    if "%" in downloaded_file or not os.path.exists(downloaded_file):
+        downloaded_file = resolve_downloaded_file(output_dir, "", option.get("ext"))
+    if not downloaded_file or not os.path.exists(downloaded_file):
+        ACTIVE_DOWNLOADS.pop(job_id, None)
+        return await cq.edit_message_caption("❌ Downloaded file not found.")
+
+    thumb_file = await download_thumb_file(data.get("thumb"), job_id, output_dir)
+
+    try:
+        await cq.edit_message_caption("<emoji id=5319190934510904031>⏳</emoji> Uploading...", parse_mode=ParseMode.HTML, reply_markup=cancel_markup)
+    except (MessageNotModified, QueryIdInvalid):
+        pass
+
+    try:
+        if option["kind"] == "audio":
+            performer = data.get("artist") or data.get("uploader") or None
+            title = data.get("track") or data.get("title")
+            caption_lines = [f"<b>{data.get('title')}</b>"]
+            if data.get("album"):
+                caption_lines.append(f"Album: <code>{data.get('album')}</code>")
+            if data.get("release_date"):
+                caption_lines.append(f"Date: <code>{data.get('release_date')}</code>")
+            media = InputMediaAudio(
+                media=downloaded_file,
+                caption="\n".join(caption_lines),
+                parse_mode=ParseMode.HTML,
+                duration=data.get("duration") or None,
+                performer=performer,
+                title=title,
+                thumb=thumb_file,
+            )
+        else:
+            media = InputMediaVideo(
+                media=downloaded_file,
+                caption=data["title"],
+                duration=data.get("duration") or None,
+                thumb=thumb_file,
+                supports_streaming=True,
+            )
+        await self.edit_message_media(
+            cq.message.chat.id,
+            cq.message.id,
+            media=media,
+            reply_markup=None,
+        )
+    except DownloadCancelled:
+        await cq.edit_message_caption("❌ Upload cancelled.")
+    except Exception as err:
+        await cq.edit_message_caption(f"❌ Upload failed: <code>{err}</code>", parse_mode=ParseMode.HTML)
+    finally:
+        ACTIVE_DOWNLOADS.pop(job_id, None)
+        if os.path.exists(downloaded_file):
+            os.remove(downloaded_file)
+        if thumb_file and os.path.exists(thumb_file):
+            os.remove(thumb_file)
 
 
-@app.on_callback_query(filters.regex(r"^yt_cancel"))
+@app.on_callback_query(filters.regex(r"^yt_cancel\|"))
 @use_chat_lang()
 async def ytdl_cancel_callback(_, cq: CallbackQuery, strings):
-    if cq.from_user.id != cq.message.reply_to_message.from_user.id:
-        return await cq.answer(strings("unauth"), True)
-    callback = cq.data.split("|")
+    job_id = cq.data.split("|")[1]
+    task = ACTIVE_DOWNLOADS.get(job_id)
+    if not task:
+        return await cq.answer("Task already finished", show_alert=True)
+    task["cancelled"] = True
     try:
-        await cq.answer("Trying to Cancel Process..")
+        await cq.answer("Cancelling task...")
     except QueryIdInvalid:
         pass
-    process_id = callback[1]
-    try:
-        Process.cancel_id(process_id)
-        await cq.edit_message_caption("✔️ `Stopped Successfully`")
-    except:
-        return
 
 
 @app.on_callback_query(filters.regex(r"^ytdl_scroll"))
 @use_chat_lang()
 async def ytdl_scroll_callback(_, cq: CallbackQuery, strings):
-    if cq.from_user.id != cq.message.reply_to_message.from_user.id:
-        return await cq.answer(strings("unauth"), True)
     callback = cq.data.split("|")
     search_key = callback[1]
     page = int(callback[2])
-    query = YT_DB[search_key]
-    search = await main.VideosSearch(query).next()
-    i = search["result"][page]
-    out = f"<b><a href={i['link']}>{i['title']}</a></b>"
+    data = YT_DB.get(search_key)
+    if not data:
+        return await cq.answer("Search expired", show_alert=True)
+    if cq.from_user.id != cq.message.reply_to_message.from_user.id:
+        return await cq.answer(strings("unauth"), True)
+
+    results = data["results"]
+    if page < 0 or page > len(results) - 1:
+        return await cq.answer(strings("endlist"), show_alert=True)
+    i = results[page]
     out = strings("yts_msg").format(
-        pub=i["publishedTime"],
-        dur=i["duration"],
-        vi=i["viewCount"]["short"],
-        clink=i["channel"]["link"],
-        cname=i["channel"]["name"],
-    )
-    scroll_btn = [
-        [
-            InlineKeyboardButton(
-                strings("back"), callback_data=f"ytdl_scroll|{search_key}|{page-1}"
-            ),
-            InlineKeyboardButton(
-                f"{page+1}/{len(search['result'])}",
-                callback_data=f"ytdl_scroll|{search_key}|{page+1}",
-            ),
-        ]
-    ]
-    if page == 0:
-        if len(search["result"]) == 1:
-            return await cq.answer(strings("endlist"), show_alert=True)
-        scroll_btn = [[scroll_btn.pop().pop()]]
-    elif page == (len(search["result"]) - 1):
-        scroll_btn = [[scroll_btn.pop().pop(0)]]
-    btn = [[InlineKeyboardButton(strings("dl_btn"), callback_data=f"yt_gen|{i['id']}")]]
-    btn = InlineKeyboardMarkup(scroll_btn + btn)
-    await cq.edit_message_media(
-        InputMediaPhoto(await get_ytthumb(i["id"]), caption=out), reply_markup=btn
+        pub=i.get("upload_date") or "-",
+        dur=time_formatter(i.get("duration") or 0),
+        vi=humanbytes(i.get("view_count") or 0),
+        clink=i.get("channel_url") or i.get("uploader_url") or "https://youtube.com",
+        cname=i.get("channel") or i.get("uploader") or "Unknown",
     )
 
+    scroll_btn = [[]]
+    if page > 0:
+        scroll_btn[0].append(InlineKeyboardButton(strings("back"), callback_data=f"ytdl_scroll|{search_key}|{page - 1}"))
+    scroll_btn[0].append(InlineKeyboardButton(f"{page + 1}/{len(results)}", callback_data=f"ytdl_scroll|{search_key}|{page}"))
+    if page < len(results) - 1:
+        scroll_btn[0].append(InlineKeyboardButton("Next", callback_data=f"ytdl_scroll|{search_key}|{page + 1}"))
 
-async def get_ytthumb(videoid: str):
-    thumb_quality = [
-        "maxresdefault.jpg",  # Best quality
-        "hqdefault.jpg",
-        "sddefault.jpg",
-        "mqdefault.jpg",
-        "default.jpg",  # Worst quality
-    ]
+    btn = InlineKeyboardMarkup(scroll_btn + [[InlineKeyboardButton(strings("dl_btn"), callback_data=f"yt_gen|{search_key}|{page}")]])
+    await cq.edit_message_media(InputMediaPhoto(await get_ytthumb(i.get("id")), caption=out), reply_markup=btn)
+
+
+@app.on_callback_query(filters.regex(r"^yt_gen\|"))
+@use_chat_lang()
+async def ytdl_gen_from_search(_, cq: CallbackQuery, strings):
+    callback = cq.data.split("|")
+    search_key = callback[1]
+    page = int(callback[2])
+    data = YT_DB.get(search_key)
+    if not data:
+        return await cq.answer("Search expired", show_alert=True)
+    if cq.from_user.id != cq.message.reply_to_message.from_user.id:
+        return await cq.answer(strings("unauth"), True)
+
+    entry = data["results"][page]
+    url = entry.get("url") or entry.get("webpage_url") or f"https://www.youtube.com/watch?v={entry.get('id')}"
+
+    stop_event = asyncio.Event()
+    anim_task = asyncio.create_task(animate_processing(cq.message, PROCESS_TEXT, stop_event))
+    try:
+        info = await yt_extract(url)
+    finally:
+        stop_event.set()
+        await anim_task
+
+    cache_key = rand_key()
+    tree = parse_quality_tree(info)
+    YTDL_CACHE[cache_key] = {
+        "url": url,
+        "title": info.get("title") or entry.get("title") or "Untitled",
+        "thumb": info.get("thumbnail") or "assets/thumb.jpg",
+        "duration": int(info.get("duration") or entry.get("duration") or 0),
+        "uploader": info.get("uploader") or info.get("channel") or "",
+        "artist": info.get("artist") or info.get("creator") or "",
+        "album": info.get("album") or "",
+        "track": info.get("track") or info.get("title") or entry.get("title") or "",
+        "release_date": info.get("release_date") or info.get("upload_date") or "",
+        "quality_tree": tree,
+        "user_id": cq.from_user.id,
+    }
+    await cq.edit_message_reply_markup(reply_markup=quality_markup(cache_key, tree))
+
+
+async def get_ytthumb(videoid: str | None):
+    if not videoid:
+        return "https://i.imgur.com/4LwPLai.png"
+    thumb_quality = ["maxresdefault.jpg", "hqdefault.jpg", "sddefault.jpg", "mqdefault.jpg", "default.jpg"]
     thumb_link = "https://i.imgur.com/4LwPLai.png"
-    for qualiy in thumb_quality:
-        link = f"https://i.ytimg.com/vi/{videoid}/{qualiy}"
+    for quality in thumb_quality:
+        link = f"https://i.ytimg.com/vi/{videoid}/{quality}"
         if (await fetch.get(link)).status_code == 200:
             thumb_link = link
             break

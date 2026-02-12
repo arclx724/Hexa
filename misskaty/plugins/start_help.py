@@ -47,7 +47,7 @@ home_keyboard_pm = InlineKeyboardMarkup(
     ]
 )
 
-home_text_pm = f"Hey there! My name is {BOT_NAME}. I have many useful features for you, feel free to add me to your group.\n\nIf you want give coffee to my owner you can send /donate command for more info."
+home_text_pm = f"Hello <emoji id=5303081040464585038>🤗</emoji>, My name is <b>{BOT_NAME}</b> <emoji id=5474618190271104037>🐈</emoji>.\nI'm a bot with some useful features. You can change language bot using /setlang command, but it's still in beta stage.\nYou can choose an option below, by clicking a button."
 
 keyboard = InlineKeyboardMarkup(
     [
@@ -126,7 +126,7 @@ async def start(self, ctx: Message, strings):
                 message_effect_id=5104841245755180586,
             )
         elif name == "help":
-            text, keyb = await help_parser(ctx.from_user.first_name)
+            text, keyb = await help_parser(ctx.from_user.first_name, strings)
             await ctx.reply(
                 text, reply_markup=keyb, message_effect_id=5104841245755180586
             )
@@ -137,13 +137,13 @@ async def start(self, ctx: Message, strings):
             caption=home_text_pm,
             reply_markup=home_keyboard_pm,
             reply_parameters=pyro_types.ReplyParameters(message_id=ctx.id),
-            message_effect_id=5104841245755180586,
         )
 
 
 @app.on_callback_query(filters.regex("bot_commands"))
-async def commands_callbacc(_, cb: CallbackQuery):
-    text, keyb = await help_parser(cb.from_user.mention)
+@use_chat_lang()
+async def commands_callbacc(_, cb: CallbackQuery, strings):
+    text, keyb = await help_parser(cb.from_user.mention, strings)
     await app.send_message(
         cb.message.chat.id,
         text=text,
@@ -198,7 +198,7 @@ async def help_command(_, ctx: Message, strings):
                 message_effect_id=5104841245755180586,
             )
         else:
-            text, help_keyboard = await help_parser(ctx.from_user.first_name)
+            text, help_keyboard = await help_parser(ctx.from_user.first_name, strings)
             await ctx.reply(
                 text,
                 reply_markup=help_keyboard,
@@ -206,7 +206,7 @@ async def help_command(_, ctx: Message, strings):
                 message_effect_id=5104841245755180586,
             )
     else:
-        text, help_keyboard = await help_parser(ctx.from_user.first_name)
+        text, help_keyboard = await help_parser(ctx.from_user.first_name, strings)
         await ctx.reply(
             text,
             reply_markup=help_keyboard,
@@ -215,21 +215,11 @@ async def help_command(_, ctx: Message, strings):
         )
 
 
-async def help_parser(name, keyb=None):
+async def help_parser(name, strings, keyb=None):
     if not keyb:
         keyb = InlineKeyboardMarkup(paginate_modules(0, HELPABLE, "help"))
     return (
-        """Hello {first_name}, My name is {bot_name}.
-I'm a bot with some useful features. You can change language bot using /setlang command, but it's still in beta stage.
-You can choose an option below, by clicking a button.
-
-Send command /privacy if you want know data collected by this bot.
-
-If you want give coffee to my owner you can send /donate command for more info.
-""".format(
-            first_name=name,
-            bot_name="MissKaty",
-        ),
+        strings("help_txt").format(kamuh=name, bot=BOT_NAME),
         keyb,
     )
 
@@ -300,7 +290,7 @@ async def help_button(self: Client, query: CallbackQuery, strings):
         )
 
     elif create_match:
-        text, keyb = await help_parser(query)
+        text, keyb = await help_parser(query.from_user.first_name, strings)
         await query.message.edit(
             text=text,
             reply_markup=keyb,

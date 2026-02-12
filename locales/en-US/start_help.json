@@ -2,10 +2,10 @@
     "newgroup_log": "#NewGroup\nGroup = {jdl}(<code>{id}</code>)\nMembers Count = <code>{c}</code>",
     "newuser_log": "#NewUser\nID - <code>{id}</code>\nName - {nm}",
     "help_name": "Here is the help for **{mod}**:\n",
-    "help_txt": "Hello {kamuh}, My name is {bot}.\nI'm a pyrogram bot that developed by kind owner with some useful features.\nYou can look by clicking a button below.\n\nGeneral command are:\n - /start: Start the bot\n - /help: Give this message\n - /setlang: Change bot language [BETA]",
+    "help_txt": "Hello <emoji id=5303081040464585038>🤗</emoji> {kamuh}, My name is <b>{bot}</b> <emoji id=5474618190271104037>🐈</emoji>.\nI'm a bot with some useful features. You can change language bot using /setlang command, but it's still in beta stage.\nYou can choose an option below, by clicking a button.",
     "click_me": "Click Me",
     "back_btn": "Back",
     "click_btn": "Click on the below button to get help about {nm}",
     "pm_detail": "PM Me For More Details.",
-    "start_msg": "Hi {kamuh}, PM me to know about all my features. You can change bot language in bot using /setlang command but it's still in beta stage."
+    "start_msg": "Hello <emoji id=5303081040464585038>🤗</emoji> {kamuh}, PM me to know about all my features. You can change language bot using /setlang command, but it's still in beta stage."
 }

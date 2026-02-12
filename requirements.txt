@@ -23,7 +23,6 @@ Pillow
 git+https://github.com/yasirarism/privatebin-api
 httpx[http2]
 git+https://github.com/yasirarism/vcsi
-git+https://github.com/yasirarism/iytdl
 googletrans
 telethon
 pyrate_limiter
@@ -39,3 +38,4 @@ uvicorn
 python-multipart
 
 
+yt-dlp[default]
