@@ -53,6 +53,7 @@ def build_ydl_opts(extra: dict | None = None) -> dict:
     opts = {
         "quiet": True,
         "no_warnings": True,
+        "js_runtimes": {"deno": {"path": "/root/.deno/bin/deno"}},
     }
     if cookie_file := get_cookie_file():
         opts["cookiefile"] = cookie_file
