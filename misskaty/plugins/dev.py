@@ -285,9 +285,16 @@ async def server_stats(_, ctx: Message) -> "Message":
     disk_used = get_readable_file_size(used)
     disk_free = get_readable_file_size(free)
 
-    neofetch = (await shell_exec("neofetch --stdout"))[0]
+    fastfetch_cmd = (
+        "if command -v fastfetch >/dev/null 2>&1; then "
+        "fastfetch --logo none --pipe false --color never; "
+        "elif command -v neofetch >/dev/null 2>&1; then "
+        "neofetch --stdout; "
+        "else echo 'System fetch tool is not available.'; fi"
+    )
+    system_fetch = (await shell_exec(fastfetch_cmd))[0]
 
-    caption = f"<b>{BOT_NAME} {misskaty_version} is Up and Running successfully.</b>\n\n<code>{neofetch}</code>\n\n**OS Uptime:** <code>{osuptime}</code>\n<b>Bot Uptime:</b> <code>{currentTime}</code>\n**Bot Usage:** <code>{botusage}</code>\n\n**Total Space:** <code>{disk_total}</code>\n**Free Space:** <code>{disk_free}</code>\n\n**Download:** <code>{download}</code>\n**Upload:** <code>{upload}</code>\n\n<b>PyroFork Version</b>: <code>{pyrover}</code>\n<b>Python Version</b>: <code>{sys.version_info[0]}.{sys.version_info[1]}.{sys.version_info[2]} {sys.version_info[3].title()}</code>"
+    caption = f"<b>{BOT_NAME} {misskaty_version} is Up and Running successfully.</b>\n\n<code>{system_fetch}</code>\n\n**OS Uptime:** <code>{osuptime}</code>\n<b>Bot Uptime:</b> <code>{currentTime}</code>\n**Bot Usage:** <code>{botusage}</code>\n\n**Total Space:** <code>{disk_total}</code>\n**Free Space:** <code>{disk_free}</code>\n\n**Download:** <code>{download}</code>\n**Upload:** <code>{upload}</code>\n\n<b>KuriGram Version</b>: <code>{pyrover}</code>\n<b>Python Version</b>: <code>{sys.version_info[0]}.{sys.version_info[1]}.{sys.version_info[2]} {sys.version_info[3].title()}</code>"
 
     if "oracle" in platform.uname().release:
         return await ctx.reply(caption)
@@ -700,4 +707,3 @@ if AUTO_RESTART:
     scheduler = AsyncIOScheduler(timezone="Asia/Jakarta")
     scheduler.add_job(auto_restart, trigger="interval", days=3)
     scheduler.start()
-
