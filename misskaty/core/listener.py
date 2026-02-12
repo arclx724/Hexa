@@ -113,15 +113,20 @@ async def client_ask(
             from_user_id=from_user_id,
         )
     )
-
-    sent = await self.send_message(
-        chat_id=chat_id,
-        text=text,
-        link_preview_options=link_preview_options,
-        reply_parameters=reply_parameters,
-        reply_markup=reply_markup,
-        **kwargs,
-    )
+    try:
+        sent = await self.send_message(
+            chat_id=chat_id,
+            text=text,
+            link_preview_options=link_preview_options,
+            reply_parameters=reply_parameters,
+            reply_markup=reply_markup,
+            **kwargs,
+        )
+    except Exception:
+        listener_task.cancel()
+        with suppress(asyncio.CancelledError):
+            await listener_task
+        raise
 
     response = await listener_task
     response.reply_to_message = sent
