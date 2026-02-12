@@ -1,6 +1,6 @@
 # MissKatyPyro
 ```diff 
-- I will not give any support to your fork, so try learn by yourself!! Don't contact me because of your fault. I will stop update to this repo, and i will only give minor bugfix to this repo.
+- I will not give any support to your fork, so try learn by yourself!! Don't contact me because of your fault.
 ```
 
 <!--Badges-->
@@ -33,8 +33,8 @@
 *MissKaty* is a Telegram Bot built using Python and the Pyrogram library. Many useful features for us to use. I hope that one day this project will be discontinued, someone will continue or develop it again. I gave the name MissKaty because I like cats, a cute animal that likes to be played with and friendly with humans.
 
 ## [2] Framework Tools And Server That Used To Build This Bot
- 🌱 PyroFork v2.x.x (Fork of Pyrogram with Topics, Stories Support and Some Patch)<br>
- 🌱 Python 3.12 Support<br>
+ 🌱 KuriGram<br>
+ 🌱 Python 3.13 Support<br>
  🌱 MongoDB as Database<br>
  🌱 PyKeyboard for Building Pagination<br>
  🌱 VS Code<br>
@@ -203,3 +203,4 @@ WARNING: Selling The Codes To Other People For Money Is *Strictly Prohibited*. O
 [sociabuzz-url]: https://sociabuzz.com/yasirarism/tribe
 [saweria-url]: https://saweria.co/yasirarism
 [trakteer-url]: https://trakteer.id/yasir-aris-sp7cn
+
