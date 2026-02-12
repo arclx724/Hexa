@@ -12,7 +12,7 @@ async def session(_, ctx: Message):
         umur = await ctx.ask("Ketik umur kamu", timeout=60)
         alamat = await ctx.ask("Ketik alamat kamu:", timeout=60)
     except ListenerTimeout:
-        return await ctx.reply_msg("Session expired, silakan ulangi /session")
+        return await ctx.reply("Session expired, silakan ulangi /session")
 
     await app.send_msg(
         ctx.chat.id,

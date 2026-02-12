@@ -31,9 +31,9 @@ async def ocr(_, ctx: Message, strings):
         and not reply.photo
         and (not reply.document or not reply.document.mime_type.startswith("image"))
     ):
-        return await ctx.reply_msg(
+        return await ctx.reply(
             strings("no_photo").format(cmd=ctx.command[0]))
-    msg = await ctx.reply_msg(strings("read_ocr"))
+    msg = await ctx.reply(strings("read_ocr"))
     try:
         file_path = await reply.download()
         if reply.sticker:
@@ -51,10 +51,10 @@ async def ocr(_, ctx: Message, strings):
                 follow_redirects=True,
             )
         ).json()
-        await msg.edit_msg(strings("result_ocr").format(result=req["text"]))
+        await msg.edit(strings("result_ocr").format(result=req["text"]))
         if os.path.exists(file_path):
             os.remove(file_path)
     except Exception as e:
-        await msg.edit_msg(str(e))
+        await msg.edit(str(e))
         if os.path.exists(file_path):
             os.remove(file_path)

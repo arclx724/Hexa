@@ -16,7 +16,7 @@ async def ban_reply(_, ctx: Message):
         return
     isban = await db.get_ban_status(ctx.from_user.id)
     if isban:
-        await ctx.reply_msg(
+        await ctx.reply(
             f'I am sorry, You are banned to use Me. \nBan Reason: {isban["reason"]}'
         )
         await ctx.stop_propagation()
@@ -48,7 +48,7 @@ async def grp_bd(self: Client, ctx: Message, strings):
         reply_markup = InlineKeyboardMarkup(buttons)
         vazha = await db.get_chat(ctx.chat.id)
         try:
-            k = await ctx.reply_msg(
+            k = await ctx.reply(
                 f"CHAT NOT ALLOWED 🐞\n\nMy owner has restricted me from working here!\nReason : <code>{vazha['reason']}</code>.",
                 reply_markup=reply_markup,
             )

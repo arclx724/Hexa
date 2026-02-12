@@ -99,7 +99,7 @@ async def download(client, message):
         ]
         media = next((v for v in vid if v is not None), None)
         if not media:
-            return await pesan.edit_msg("Unsupported media type..")
+            return await pesan.edit("Unsupported media type..")
         dc_id = FileId.decode(media.file_id).dc_id
         the_real_download_location = await client.download_media(
             message=message.reply_to_message,
@@ -125,7 +125,7 @@ async def download(client, message):
         try:
             downloader.start(blocking=False)
         except Exception as err:
-            return await message.edit_msg(str(err))
+            return await message.edit(str(err))
         c_time = time.time()
         while not downloader.isFinished():
             total_length = downloader.filesize or None
@@ -263,7 +263,7 @@ async def twitterdl(_, message):
             follow_redirects=True,
         )
         if post.status_code not in [200, 401]:
-            return await msg.edit_msg("Unknown error.")
+            return await msg.edit("Unknown error.")
         soup = BeautifulSoup(post.text, "lxml")
         cekdata = soup.find(
             "a",
@@ -290,7 +290,7 @@ async def twitterdl(_, message):
             )
         except Exception as er:
             LOGGER.error("ERROR: while fetching TwitterDL. %s", er)
-            return await msg.edit_msg("ERROR: Got error while extracting link.")
+            return await msg.edit("ERROR: Got error while extracting link.")
         await msg.delete()
     except Exception as e:
         await message.reply(f"Failed to download twitter video..\n\n<b>Reason:</b> {e}")

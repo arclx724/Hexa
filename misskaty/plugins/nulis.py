@@ -42,7 +42,7 @@ async def handwrite(client, message):
         return await message.reply(
             "Please reply to message or write after command to use Nulis CMD."
         )
-    nan = await message.reply_msg("Processing...")
+    nan = await message.reply("Processing...")
     try:
         img = Image.open("assets/kertas.jpg")
         draw = ImageDraw.Draw(img)

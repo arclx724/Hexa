@@ -163,7 +163,7 @@ async def calc_cb(self, query):
             else:
                 text = result
         text += f"\n\nMade by @{self.me.username}"
-        await query.message.edit_msg(
+        await query.message.edit(
             text=text,
             link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
             reply_markup=calc_btn(query.from_user.id),
@@ -175,9 +175,9 @@ async def calc_cb(self, query):
 @app.on_cmd("removebg")
 async def removebg(_, ctx: Client):
     if not ctx.reply_to_message:
-        return await ctx.reply_msg("Please reply image.")
+        return await ctx.reply("Please reply image.")
     if not ctx.reply_to_message.photo:
-        return await ctx.reply_msg("Only support photo for remove background.")
+        return await ctx.reply("Only support photo for remove background.")
     prg = await ctx.reply("Processing...")
     source = await ctx.reply_to_message.download()
     await gen_trans_image(source, f"transp_bckgrnd-{ctx.from_user.id}.png")
@@ -190,16 +190,16 @@ async def removebg(_, ctx: Client):
 @app.on_cmd("kbbi")
 async def kbbi_search(_, ctx: Client):
     if len(ctx.command) == 1:
-        return await ctx.reply_msg("Please add keyword to search definition in kbbi")
+        return await ctx.reply("Please add keyword to search definition in kbbi")
     try:
         r = await fetch.get(f"https://yasirapi.eu.org/kbbi?kata={ctx.input}")
     except httpx.HTTPError as e:
-        return await ctx.reply_msg(f"HTTP error occured: {e}")
+        return await ctx.reply(f"HTTP error occured: {e}")
     if r.status_code != 200:
         return await ctx.reply("Maaf, makna kata tersebut tidak ditemukan.")
     parse = r.json()
     if nomsg := parse.get("detail"):
-        return await ctx.reply_msg(nomsg)
+        return await ctx.reply(nomsg)
     kbbi_btn = InlineKeyboardMarkup(
         [[InlineKeyboardButton(text="Open in Web", url=parse.get("link"))]]
     )
@@ -235,7 +235,7 @@ async def carbon_make(self: Client, ctx: Message):
                 "https://carbon.yasirapi.eu.org/api/cook", json=json_data, timeout=20
             )
         except httpx.HTTPError as exc:
-            return await ctx.reply_msg(f"HTTP Exception for {exc.request.url} - {exc}")
+            return await ctx.reply(f"HTTP Exception for {exc.request.url} - {exc}")
     if response.status_code != 200:
         return await ctx.reply_photo(
             f"https://http.cat/{response.status_code}",
@@ -262,8 +262,8 @@ async def readqr(c, m):
     r = await fetch.post(url, files=myfile)
     os.remove(foto)
     if res := r.json()[0]["symbol"][0]["data"] is None:
-        return await m.reply_msg(res)
-    await m.reply_msg(
+        return await m.reply(res)
+    await m.reply(
         f"<b>QR Code Reader by @{c.me.username}:</b> <code>{r.json()[0]['symbol'][0]['data']}</code>",
     )
 
@@ -358,7 +358,7 @@ async def gsearch(self, message):
     except Exception:
         exc = traceback.format_exc()
         return await msg.edit(exc)
-    await msg.edit_msg(
+    await msg.edit(
         text=f"<b>Ada {total} Hasil Pencarian dari {query}:</b>\n{res}<b>GoogleSearch by @{BOT_USERNAME}</b>",
         link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
     )
@@ -374,25 +374,25 @@ async def translate(_, message):
         text = message.reply_to_message.text or message.reply_to_message.caption
     else:
         if len(message.command) < 3:
-            return await message.reply_msg(
+            return await message.reply(
                 "Berikan Kode bahasa yang valid.\n[Available options](https://tgraph.yasirweb.eu.org/Lang-Codes-11-08).\n<b>Usage:</b> <code>/tr en</code>",
             )
         target_lang = message.text.split(None, 2)[1]
         text = message.text.split(None, 2)[2]
-    msg = await message.reply_msg("Menerjemahkan...")
+    msg = await message.reply("Menerjemahkan...")
     try:
         my_translator = await gtranslate(text, source="auto", target=target_lang)
         result = my_translator.text
-        await msg.edit_msg(
+        await msg.edit(
             f"Translation using source = {my_translator.src} and target = {my_translator.dest}\n\n-> {result}"
         )
     except MessageTooLong:
         url = await rentry(result)
-        await msg.edit_msg(
+        await msg.edit(
             f"Your translated text pasted to rentry because has long text:\n{url}"
         )
     except Exception as err:
-        await msg.edit_msg(f"Oppss, Error: <code>{str(err)}</code>")
+        await msg.edit(f"Oppss, Error: <code>{str(err)}</code>")
 
 
 @app.on_message(filters.command(["tts"], COMMAND_HANDLER))
@@ -486,7 +486,7 @@ async def showid(_, message):
 async def who_is(client, message):
     # https://github.com/SpEcHiDe/PyroGramBot/blob/master/pyrobot/plugins/admemes/whois.py#L19
     if message.sender_chat:
-        return await message.reply_msg("Not supported channel..")
+        return await message.reply("Not supported channel..")
     status_message = await message.reply_text("`Fetching user info...`")
     await status_message.edit("`Processing user info...`")
     from_user = None

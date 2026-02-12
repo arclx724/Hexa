@@ -105,7 +105,7 @@ async def start(self, ctx: Message, strings):
                 strings("help_name").format(mod=HELPABLE[module].__MODULE__)
                 + HELPABLE[module].__HELP__
             )
-            await ctx.reply_msg(
+            await ctx.reply(
                 text,
                 link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
                 message_effect_id=5104841245755180586,
@@ -127,7 +127,7 @@ async def start(self, ctx: Message, strings):
             )
         elif name == "help":
             text, keyb = await help_parser(ctx.from_user.first_name)
-            await ctx.reply_msg(
+            await ctx.reply(
                 text, reply_markup=keyb, message_effect_id=5104841245755180586
             )
     else:
@@ -177,14 +177,14 @@ async def help_command(_, ctx: Message, strings):
                         ],
                     ]
                 )
-                await ctx.reply_msg(
+                await ctx.reply(
                     strings("click_btn").format(nm=name),
                     reply_markup=key,
                 )
             else:
-                await ctx.reply_msg(strings("pm_detail"), reply_markup=keyboard)
+                await ctx.reply(strings("pm_detail"), reply_markup=keyboard)
         else:
-            await ctx.reply_msg(strings("pm_detail"), reply_markup=keyboard)
+            await ctx.reply(strings("pm_detail"), reply_markup=keyboard)
     elif len(ctx.command) >= 2:
         name = (ctx.text.split(None, 1)[1]).replace(" ", "_").lower()
         if str(name) in HELPABLE:
@@ -192,14 +192,14 @@ async def help_command(_, ctx: Message, strings):
                 strings("help_name").format(mod=HELPABLE[name].__MODULE__)
                 + HELPABLE[name].__HELP__
             )
-            await ctx.reply_msg(
+            await ctx.reply(
                 text,
                 link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
                 message_effect_id=5104841245755180586,
             )
         else:
             text, help_keyboard = await help_parser(ctx.from_user.first_name)
-            await ctx.reply_msg(
+            await ctx.reply(
                 text,
                 reply_markup=help_keyboard,
                 link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
@@ -207,7 +207,7 @@ async def help_command(_, ctx: Message, strings):
             )
     else:
         text, help_keyboard = await help_parser(ctx.from_user.first_name)
-        await ctx.reply_msg(
+        await ctx.reply(
             text,
             reply_markup=help_keyboard,
             link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
@@ -258,7 +258,7 @@ async def help_button(self: Client, query: CallbackQuery, strings):
                 reply_markup=FED_MARKUP,
                 link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
             )
-        await query.message.edit_msg(
+        await query.message.edit(
             text=text,
             reply_markup=InlineKeyboardMarkup(
                 [[InlineKeyboardButton(strings("back_btn"), callback_data="help_back")]]
@@ -274,7 +274,7 @@ async def help_button(self: Client, query: CallbackQuery, strings):
         await query.message.delete_msg()
     elif prev_match:
         curr_page = int(prev_match[1])
-        await query.message.edit_msg(
+        await query.message.edit(
             text=top_text,
             reply_markup=InlineKeyboardMarkup(
                 paginate_modules(curr_page - 1, HELPABLE, "help")
@@ -284,7 +284,7 @@ async def help_button(self: Client, query: CallbackQuery, strings):
 
     elif next_match:
         next_page = int(next_match[1])
-        await query.message.edit_msg(
+        await query.message.edit(
             text=top_text,
             reply_markup=InlineKeyboardMarkup(
                 paginate_modules(next_page + 1, HELPABLE, "help")
@@ -293,7 +293,7 @@ async def help_button(self: Client, query: CallbackQuery, strings):
         )
 
     elif back_match:
-        await query.message.edit_msg(
+        await query.message.edit(
             text=top_text,
             reply_markup=InlineKeyboardMarkup(paginate_modules(0, HELPABLE, "help")),
             link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
@@ -301,7 +301,7 @@ async def help_button(self: Client, query: CallbackQuery, strings):
 
     elif create_match:
         text, keyb = await help_parser(query)
-        await query.message.edit_msg(
+        await query.message.edit(
             text=text,
             reply_markup=keyb,
             link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),

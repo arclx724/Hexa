@@ -65,14 +65,14 @@ To change caption of any files use.\n/save [NOTE_NAME] or /addnote [NOTE_NAME] [
 async def save_notee(_, message):
     try:
         if len(message.command) < 2 or not message.reply_to_message:
-            await message.reply_msg(
+            await message.reply(
                 "**Usage:**\nReply to a message with /save [NOTE_NAME] to save a new note."
             )
         else:
             text = message.text.markdown
             name = text.split(None, 1)[1].strip()
             if not name:
-                return await message.reply_msg("**Usage**\n__/save [NOTE_NAME]__")
+                return await message.reply("**Usage**\n__/save [NOTE_NAME]__")
             replied_message = message.reply_to_message
             text = name.split(" ", 1)
             if len(text) > 1:
@@ -131,7 +131,7 @@ async def save_notee(_, message):
             prefix = message.text.split()[0][0]
             chat_id = message.chat.id
             await save_note(chat_id, name, note)
-            await message.reply_msg(f"__**Saved note {name}.**__")
+            await message.reply(f"__**Saved note {name}.**__")
     except UnboundLocalError:
         return await message.reply_text(
             "**Replied message is inaccessible.\n`Forward the message and try again`**"
@@ -242,19 +242,19 @@ async def get_one_note(_, message):
 @adminsOnly("can_change_info")
 async def del_note(_, message):
     if len(message.command) < 2:
-        return await message.reply_msg("**Usage**\n__/delete [NOTE_NAME]__")
+        return await message.reply("**Usage**\n__/delete [NOTE_NAME]__")
     name = message.text.split(None, 1)[1].strip()
     if not name:
-        return await message.reply_msg("**Usage**\n__/delete [NOTE_NAME]__")
+        return await message.reply("**Usage**\n__/delete [NOTE_NAME]__")
 
     prefix = message.text.split()[0][0]
     chat_id = message.chat.id
 
     deleted = await delete_note(chat_id, name)
     if deleted:
-        await message.reply_msg(f"**Deleted note {name} successfully.**")
+        await message.reply(f"**Deleted note {name} successfully.**")
     else:
-        await message.reply_msg("**No such note.**")
+        await message.reply("**No such note.**")
 
 
 @app.on_message(filters.command("deleteall", COMMAND_HANDLER) & ~filters.private)

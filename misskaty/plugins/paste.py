@@ -69,7 +69,7 @@ pattern = compiles(r"^text/|json$|yaml$|xml$|toml$|x-sh$|x-shellscript$|x-subrip
 async def telegraph_paste(_, message):
     reply = message.reply_to_message
     if not reply and len(message.command) < 2:
-        return await message.reply_msg(
+        return await message.reply(
             f"**Reply To A Message With /{message.command[0]} or with command**",
             del_in=6,
         )
@@ -81,18 +81,18 @@ async def telegraph_paste(_, message):
             uname = f"[{message.from_user.first_name}](tg://user?id={message.from_user.id}) [{message.from_user.id}]"
     else:
         uname = message.sender_chat.title
-    msg = await message.reply_msg("`Pasting to Telegraph...`")
+    msg = await message.reply("`Pasting to Telegraph...`")
     data = ""
     limit = 1024 * 1024
     if reply and not (reply.text or reply.document):
-        return await msg.edit_msg("**Telegraph upload has been disabled by Durov, use ImgBB command instead.**")
+        return await msg.edit("**Telegraph upload has been disabled by Durov, use ImgBB command instead.**")
     if reply and reply.document:
         if reply.document.file_size > limit:
-            return await msg.edit_msg(
+            return await msg.edit(
                 f"**You can only paste files smaller than {humanbytes(limit)}.**"
             )
         if not pattern.search(reply.document.mime_type):
-            return await msg.edit_msg("**Only text files can be pasted.**")
+            return await msg.edit("**Only text files can be pasted.**")
         file = await reply.download()
         title = (
             message.text.split(None, 1)[1]
@@ -108,7 +108,7 @@ async def telegraph_paste(_, message):
                 remove(file)
             except:
                 pass
-            return await msg.edit_msg("`File Not Supported !`")
+            return await msg.edit("`File Not Supported !`")
     elif reply and (reply.text or reply.caption):
         title = (
             message.text.split(None, 1)[1]
@@ -125,10 +125,10 @@ async def telegraph_paste(_, message):
     try:
         url = await post_to_telegraph(False, title, data)
     except Exception as e:
-        return await msg.edit_msg(f"ERROR: {e}")
+        return await msg.edit(f"ERROR: {e}")
 
     if not url:
-        return await msg.edit_msg("Text Too Short Or File Problems")
+        return await msg.edit("Text Too Short Or File Problems")
     button = [
         [InlineKeyboardButton("Open Link", url=url)],
         [
@@ -139,7 +139,7 @@ async def telegraph_paste(_, message):
     ]
 
     pasted = f"**Successfully pasted your data to Telegraph<a href='{url}'>.</a>\n\nPaste by {uname}**"
-    await msg.edit_msg(pasted, reply_markup=InlineKeyboardMarkup(button))
+    await msg.edit(pasted, reply_markup=InlineKeyboardMarkup(button))
 
 
 @app.on_message(filters.command(["paste"], COMMAND_HANDLER))
@@ -147,20 +147,20 @@ async def wastepaste(_, message):
     reply = message.reply_to_message
     target = str(message.command[0]).split("@", maxsplit=1)[0]
     if not reply and len(message.command) < 2:
-        return await message.reply_msg(
+        return await message.reply(
             f"**Reply To A Message With /{target} or with command**", del_in=6
         )
 
-    msg = await message.reply_msg("`Pasting to YasirBin...`")
+    msg = await message.reply("`Pasting to YasirBin...`")
     data = ""
     limit = 1024 * 1024
     if reply and reply.document:
         if reply.document.file_size > limit:
-            return await msg.edit_msg(
+            return await msg.edit(
                 f"**You can only paste files smaller than {humanbytes(limit)}.**"
             )
         if not pattern.search(reply.document.mime_type):
-            return await msg.edit_msg("**Only text files can be pasted.**")
+            return await msg.edit("**Only text files can be pasted.**")
         file = await reply.download()
         try:
             with open(file, "r") as text:
@@ -171,7 +171,7 @@ async def wastepaste(_, message):
                 remove(file)
             except:
                 pass
-            return await msg.edit_msg("`File Not Supported !`")
+            return await msg.edit("`File Not Supported !`")
     elif reply and (reply.text or reply.caption):
         data = reply.text or reply.caption
     elif not reply and len(message.command) >= 2:
@@ -188,10 +188,10 @@ async def wastepaste(_, message):
     try:
         url = await privatebinapi.send_async("https://bin.yasirweb.eu.org", text=data, expiration="1week", formatting="markdown")
     except Exception as e:
-        return await msg.edit_msg(f"ERROR: {e}")
+        return await msg.edit(f"ERROR: {e}")
 
     if not url:
-        return await msg.edit_msg("Text Too Short Or File Problems")
+        return await msg.edit("Text Too Short Or File Problems")
     button = [
         [InlineKeyboardButton("Open Link", url=url["full_url"])],
         [
@@ -202,7 +202,7 @@ async def wastepaste(_, message):
     ]
 
     pasted = f"**Successfully pasted your data to YasirBin<a href='{url}'>.</a>\n\nPaste by {uname}**"
-    await msg.edit_msg(pasted, reply_markup=InlineKeyboardMarkup(button))
+    await msg.edit(pasted, reply_markup=InlineKeyboardMarkup(button))
 
 
 # Nekobin Paste
@@ -211,20 +211,20 @@ async def nekopaste(_, message):
     reply = message.reply_to_message
     target = str(message.command[0]).split("@", maxsplit=1)[0]
     if not reply and len(message.command) < 2:
-        return await message.reply_msg(
+        return await message.reply(
             f"**Reply To A Message With /{target} or with command**", del_in=6
         )
 
-    msg = await message.reply_msg("`Pasting to Nekobin...`")
+    msg = await message.reply("`Pasting to Nekobin...`")
     data = ""
     limit = 1024 * 1024
     if reply and reply.document:
         if reply.document.file_size > limit:
-            return await message.edit_msg(
+            return await message.edit(
                 f"**You can only paste files smaller than {humanbytes(limit)}.**"
             )
         if not pattern.search(reply.document.mime_type):
-            return await message.edit_msg("**Only text files can be pasted.**")
+            return await message.edit("**Only text files can be pasted.**")
         file = await reply.download()
         try:
             with open(file, "r") as text:
@@ -235,7 +235,7 @@ async def nekopaste(_, message):
                 remove(file)
             except:
                 pass
-            return await message.edit_msg("`File Not Supported !`")
+            return await message.edit("`File Not Supported !`")
     elif reply and (reply.text or reply.caption):
         data = reply.text.html or reply.caption.html
     elif not reply and len(message.command) >= 2:
@@ -259,10 +259,10 @@ async def nekopaste(_, message):
         ).json()
         url = f"https://bin.mayuri.my.id/{x['result']['key']}"
     except Exception as e:
-        return await msg.edit_msg(f"ERROR: {e}")
+        return await msg.edit(f"ERROR: {e}")
 
     if not url:
-        return await msg.edit_msg("Text Too Short Or File Problems")
+        return await msg.edit("Text Too Short Or File Problems")
     button = [
         [InlineKeyboardButton("Open Link", url=url)],
         [
@@ -273,7 +273,7 @@ async def nekopaste(_, message):
     ]
 
     pasted = f"**Successfully pasted your data to Nekobin<a href='{url}'>.</a>\n\nPaste by {uname}**"
-    await msg.edit_msg(pasted, reply_markup=InlineKeyboardMarkup(button))
+    await msg.edit(pasted, reply_markup=InlineKeyboardMarkup(button))
 
 
 # Paste as spacebin
@@ -282,20 +282,20 @@ async def spacebinn(_, message):
     reply = message.reply_to_message
     target = str(message.command[0]).split("@", maxsplit=1)[0]
     if not reply and len(message.command) < 2:
-        return await message.reply_msg(
+        return await message.reply(
             f"**Reply To A Message With /{target} or with command**", del_in=6
         )
 
-    msg = await message.reply_msg("`Pasting to Spacebin...`")
+    msg = await message.reply("`Pasting to Spacebin...`")
     data = ""
     limit = 1024 * 1024
     if reply and reply.document:
         if reply.document.file_size > limit:
-            return await msg.edit_msg(
+            return await msg.edit(
                 f"**You can only paste files smaller than {humanbytes(limit)}.**"
             )
         if not pattern.search(reply.document.mime_type):
-            return await msg.edit_msg("**Only text files can be pasted.**")
+            return await msg.edit("**Only text files can be pasted.**")
         file = await reply.download()
         try:
             with open(file, "r") as text:
@@ -306,7 +306,7 @@ async def spacebinn(_, message):
                 remove(file)
             except:
                 pass
-            return await msg.edit_msg("`File Not Supported !`")
+            return await msg.edit("`File Not Supported !`")
     elif reply and (reply.text or reply.caption):
         data = reply.text.html or reply.caption.html
     elif not reply and len(message.command) >= 2:
@@ -328,10 +328,10 @@ async def spacebinn(_, message):
         response = response.json()
         url = "https://spaceb.in/" + response["payload"]["id"]
     except Exception as e:
-        return await msg.edit_msg(f"ERROR: {e}")
+        return await msg.edit(f"ERROR: {e}")
 
     if not url:
-        return await msg.edit_msg("Text Too Short Or File Problems")
+        return await msg.edit("Text Too Short Or File Problems")
     button = [
         [InlineKeyboardButton("Open Link", url=url)],
         [
@@ -342,7 +342,7 @@ async def spacebinn(_, message):
     ]
 
     pasted = f"**Successfully pasted your data to Spacebin<a href='{url}'>.</a>\n\nPaste by {uname}**"
-    await msg.edit_msg(pasted, reply_markup=InlineKeyboardMarkup(button))
+    await msg.edit(pasted, reply_markup=InlineKeyboardMarkup(button))
 
 
 # Rentry paste
@@ -351,20 +351,20 @@ async def rentrypaste(_, message):
     reply = message.reply_to_message
     target = str(message.command[0]).split("@", maxsplit=1)[0]
     if not reply and len(message.command) < 2:
-        return await message.reply_msg(
+        return await message.reply(
             f"**Reply To A Message With /{target} or with command**", del_in=6
         )
 
-    msg = await message.reply_msg("`Pasting to Rentry...`")
+    msg = await message.reply("`Pasting to Rentry...`")
     data = ""
     limit = 1024 * 1024
     if reply and reply.document:
         if reply.document.file_size > limit:
-            return await msg.edit_msg(
+            return await msg.edit(
                 f"**You can only paste files smaller than {humanbytes(limit)}.**"
             )
         if not pattern.search(reply.document.mime_type):
-            return await msg.edit_msg("**Only text files can be pasted.**")
+            return await msg.edit("**Only text files can be pasted.**")
         file = await reply.download()
         try:
             with open(file, "r") as text:
@@ -375,7 +375,7 @@ async def rentrypaste(_, message):
                 remove(file)
             except:
                 pass
-            return await msg.edit_msg("`File Not Supported !`")
+            return await msg.edit("`File Not Supported !`")
     elif reply and (reply.text or reply.caption):
         data = reply.text.markdown or reply.caption.markdown
     elif not reply and len(message.command) >= 2:
@@ -397,7 +397,7 @@ async def rentrypaste(_, message):
         return await msg.edit(f"`{e}`")
 
     if not url:
-        return await msg.edit_msg("Text Too Short Or File Problems")
+        return await msg.edit("Text Too Short Or File Problems")
     button = [
         [InlineKeyboardButton("Open Link", url=url)],
         [
@@ -408,7 +408,7 @@ async def rentrypaste(_, message):
     ]
 
     pasted = f"**Successfully pasted your data to Rentry<a href='{url}'>.</a>\n\nPaste by {uname}**"
-    await msg.edit_msg(pasted, reply_markup=InlineKeyboardMarkup(button))
+    await msg.edit(pasted, reply_markup=InlineKeyboardMarkup(button))
 
 
 # ImgBB Upload
@@ -416,12 +416,12 @@ async def rentrypaste(_, message):
 async def imgbb_upload(_, message):
     reply = message.reply_to_message
     if not reply and len(message.command) == 1:
-        return await message.edit_msg(
+        return await message.edit(
             f"**Reply to a photo with /{message.command[0]} command to upload image on ImgBB.**", del_in=6
         )
     if not (reply.photo or (reply.document and reply.document.mime_type.startswith("image"))):
-        return await message.reply_msg("This command only support upload photo")
-    msg = await message.reply_msg("`Uploading image to ImgBB...`")
+        return await message.reply("This command only support upload photo")
+    msg = await message.reply("`Uploading image to ImgBB...`")
     if message.from_user:
         if message.from_user.username:
             uname = f"@{message.from_user.username}"
@@ -450,6 +450,6 @@ async def imgbb_upload(_, message):
         ]
     
         pasted = f"**Successfully pasted your images to ImgBB<a href='{url}'>.</a>\n\nPaste by {uname}**"
-        await msg.edit_msg(pasted, reply_markup=InlineKeyboardMarkup(button))
+        await msg.edit(pasted, reply_markup=InlineKeyboardMarkup(button))
     except Exception as e:
-        await msg.edit_msg(f"ERROR: {e}")
+        await msg.edit(f"ERROR: {e}")

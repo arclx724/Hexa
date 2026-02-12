@@ -27,10 +27,10 @@ from utils import get_file_id
 @use_chat_lang()
 async def mediainfo(_, ctx: Message, strings):
     if ctx.reply_to_message and ctx.reply_to_message.media:
-        process = await ctx.reply_msg(strings("processing_text"))
+        process = await ctx.reply(strings("processing_text"))
         file_info = get_file_id(ctx.reply_to_message)
         if file_info is None:
-            return await process.edit_msg(strings("media_invalid"))
+            return await process.edit(strings("media_invalid"))
         if (
             ctx.reply_to_message.video
             and ctx.reply_to_message.video.file_size > 2097152000
@@ -38,7 +38,7 @@ async def mediainfo(_, ctx: Message, strings):
             ctx.reply_to_message.document
             and ctx.reply_to_message.document.file_size > 2097152000
         ):
-            return await process.edit_msg(strings("dl_limit_exceeded"), del_in=6)
+            return await process.edit(strings("dl_limit_exceeded"), del_in=6)
         c_time = time.time()
         dc_id = FileId.decode(file_info.file_id).dc_id
         try:
@@ -48,7 +48,7 @@ async def mediainfo(_, ctx: Message, strings):
                 progress_args=(strings("dl_args_text"), process, c_time, dc_id),
             )
         except FileNotFoundError:
-            return await process.edit_msg("ERROR: FileNotFound.")
+            return await process.edit("ERROR: FileNotFound.")
         file_path = path.join("downloads/", path.basename(dl))
         output_ = await runcmd(f'mediainfo "{file_path}"')
         out = output_[0] if len(output_) != 0 else None
@@ -95,13 +95,13 @@ DETAILS
     else:
         try:
             link = ctx.input
-            process = await ctx.reply_msg(strings("wait_msg"))
+            process = await ctx.reply(strings("wait_msg"))
             try:
                 output = subprocess.check_output(["mediainfo", f"{link}"]).decode(
                     "utf-8"
                 )
             except Exception:
-                return await process.edit_msg(strings("err_link"))
+                return await process.edit(strings("err_link"))
             body_text = f"""
             MissKatyBot MediaInfo
             <pre>{output}</pre>
@@ -136,6 +136,6 @@ DETAILS
                 )
                 await process.delete()
         except IndexError:
-            return await ctx.reply_msg(
+            return await ctx.reply(
                 strings("mediainfo_help").format(cmd=ctx.command[0]), del_in=6
             )

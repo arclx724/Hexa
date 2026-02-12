@@ -36,7 +36,7 @@ Just type something in group to remove AFK Status."""
 @use_chat_lang()
 async def active_afk(_, ctx: Message, strings):
     if ctx.sender_chat:
-        return await ctx.reply_msg(strings("no_channel"), del_in=6)
+        return await ctx.reply(strings("no_channel"), del_in=6)
     user_id = ctx.from_user.id
     verifier, reasondb = await is_afk(user_id)
     if verifier:
@@ -199,7 +199,7 @@ async def active_afk(_, ctx: Message, strings):
         }
 
     await add_afk(user_id, details)
-    send = await ctx.reply_msg(
+    send = await ctx.reply(
         strings("now_afk").format(usr=ctx.from_user.mention, id=ctx.from_user.id)
     )
     await put_cleanmode(ctx.chat.id, send.id)
@@ -212,7 +212,7 @@ async def afk_state(_, ctx: Message, strings):
     if not ctx.from_user:
         return
     if len(ctx.command) == 1:
-        return await ctx.reply_msg(
+        return await ctx.reply(
             strings("afkdel_help").format(cmd=ctx.command[0]), del_in=6
         )
     chat_id = ctx.chat.id
@@ -220,12 +220,12 @@ async def afk_state(_, ctx: Message, strings):
     state = state.lower()
     if state == "enable":
         await cleanmode_on(chat_id)
-        await ctx.reply_msg(strings("afkdel_enable"))
+        await ctx.reply(strings("afkdel_enable"))
     elif state == "disable":
         await cleanmode_off(chat_id)
-        await ctx.reply_msg(strings("afkdel_disable"))
+        await ctx.reply(strings("afkdel_disable"))
     else:
-        await ctx.reply_msg(strings("afkdel_help").format(cmd=ctx.command[0]), del_in=6)
+        await ctx.reply(strings("afkdel_help").format(cmd=ctx.command[0]), del_in=6)
 
 
 # Detect user that AFK based on Yukki Repo

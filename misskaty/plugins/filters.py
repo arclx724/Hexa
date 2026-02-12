@@ -64,13 +64,13 @@ You can use markdown or html to save text too.
 async def save_filters(_, message):
     try:
         if len(message.command) < 2 or not message.reply_to_message:
-            return await message.reply_msg(
+            return await message.reply(
                 "**Usage:**\nReply to a message with /filter [FILTER_NAME] To set a new filter."
             )
         text = message.text.markdown
         name = text.split(None, 1)[1].strip()
         if not name:
-            return await message.reply_msg("**Usage:**\n__/filter [FILTER_NAME]__")
+            return await message.reply("**Usage:**\n__/filter [FILTER_NAME]__")
         chat_id = message.chat.id
         replied_message = message.reply_to_message
         text = name.split(" ", 1)
@@ -129,9 +129,9 @@ async def save_filters(_, message):
             "file_id": file_id,
         }
         await save_filter(chat_id, name, _filter)
-        return await message.reply_msg(f"__**Saved filter {name}.**__")
+        return await message.reply(f"__**Saved filter {name}.**__")
     except UnboundLocalError:
-        return await message.reply_msg(
+        return await message.reply(
             "**Replied message is inaccessible.\n`Forward the message and try again`**"
         )
 
@@ -141,12 +141,12 @@ async def save_filters(_, message):
 async def get_filterss(_, m):
     _filters = await get_filters_names(m.chat.id)
     if not _filters:
-        return await m.reply_msg("**No filters in this chat.**")
+        return await m.reply("**No filters in this chat.**")
     _filters.sort()
     msg = f"List of filters in {m.chat.title} - {m.chat.id}\n"
     for _filter in _filters:
         msg += f"**-** `{_filter}`\n"
-    await m.reply_msg(msg)
+    await m.reply(msg)
 
 
 @app.on_message(
@@ -155,16 +155,16 @@ async def get_filterss(_, m):
 @adminsOnly("can_change_info")
 async def del_filter(_, m):
     if len(m.command) < 2:
-        return await m.reply_msg("**Usage:**\n__/stopfilter [FILTER_NAME]__", del_in=6)
+        return await m.reply("**Usage:**\n__/stopfilter [FILTER_NAME]__", del_in=6)
     name = m.text.split(None, 1)[1].strip()
     if not name:
-        return await m.reply_msg("**Usage:**\n__/stopfilter [FILTER_NAME]__", del_in=6)
+        return await m.reply("**Usage:**\n__/stopfilter [FILTER_NAME]__", del_in=6)
     chat_id = m.chat.id
     deleted = await delete_filter(chat_id, name)
     if deleted:
-        return await m.reply_msg(f"**Deleted filter {name}.**")
+        return await m.reply(f"**Deleted filter {name}.**")
     else:
-        return await m.reply_msg("**No such filter.**")
+        return await m.reply("**No such filter.**")
 
 
 @app.on_message(
@@ -215,7 +215,7 @@ async def filters_re(self, message):
                     message = replied_message
 
             if data_type == "text":
-                await message.reply_msg(
+                await message.reply(
                     text=data,
                     reply_markup=keyb,
                     link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
@@ -275,7 +275,7 @@ async def filters_re(self, message):
 async def stop_all(_, message):
     _filters = await get_filters_names(message.chat.id)
     if not _filters:
-        await message.reply_msg("**No filters in this chat.**")
+        await message.reply("**No filters in this chat.**")
     else:
         keyboard = InlineKeyboardMarkup(
             [
@@ -285,7 +285,7 @@ async def stop_all(_, message):
                 ]
             ]
         )
-        await message.reply_msg(
+        await message.reply(
             "**Are you sure you want to delete all the filters in this chat forever ?.**",
             reply_markup=keyboard,
         )

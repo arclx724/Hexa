@@ -85,7 +85,7 @@ async def chlang(_, m: Union[CallbackQuery, Message], strings):
     try:
         await msg.wait_for_click(from_user_id=m.from_user.id, timeout=30)
     except ListenerTimeout:
-        await msg.edit_msg(strings("exp_task", context="general"))
+        await msg.edit(strings("exp_task", context="general"))
 
 
 @app.on_callback_query(filters.regex("^set_lang "))
@@ -115,6 +115,6 @@ async def set_chat_lang(_, m: CallbackQuery, strings):
         )
     else:
         keyboard = None
-    await m.message.edit_msg(
+    await m.message.edit(
         strings("language_changed_successfully"), reply_markup=keyboard
     )

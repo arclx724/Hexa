@@ -98,16 +98,16 @@ def wetransfer_bypass(url: str) -> str:
 @capture_err
 async def bypass(_, ctx: Message):
     if len(ctx.command) == 1:
-        return await ctx.reply_msg(
+        return await ctx.reply(
             f"Gunakan perintah /{ctx.command[0]} untuk bypass url", del_in=6
         )
     url = ctx.command[1]
-    msg = await ctx.reply_msg("Bypassing URL..")
+    msg = await ctx.reply("Bypassing URL..")
     mention = f"**Bypasser:** {ctx.from_user.mention} ({ctx.from_user.id})"
     if re.match(r"https?://(store.kde.org|www.pling.com)\/p\/(\d+)", url):
         data = await pling_bypass(url)
         try:
-            await msg.edit_msg(f"{data}\n\n{mention}")
+            await msg.edit(f"{data}\n\n{mention}")
         except (MessageTooLong, EntitiesTooLong):
             result = await rentry(data)
             markup = InlineKeyboardMarkup(
@@ -118,11 +118,11 @@ async def bypass(_, ctx: Message):
                     ]
                 ]
             )
-            await msg.edit_msg(
+            await msg.edit(
                 f"{result}\n\nBecause your bypassed url is too long, so your link will be pasted to rentry.\n{mention}",
                 reply_markup=markup,
                 link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
             )
     else:
         data = wetransfer_bypass(url)
-        await msg.edit_msg(f"{data}\n\n{mention}")
+        await msg.edit(f"{data}\n\n{mention}")

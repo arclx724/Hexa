@@ -186,9 +186,9 @@ async def memify(_, message):
                 hapus(png)
             except:
                 pass
-            await message.reply_msg(f"ERROR: {err}")
+            await message.reply(f"ERROR: {err}")
     else:
-        await message.reply_msg(
+        await message.reply(
             "Gunakan command <b>/mmf <text></b> dengan reply ke sticker, pisahkan dengan ; untuk membuat posisi text dibawah."
         )
 
@@ -197,7 +197,7 @@ async def memify(_, message):
 @use_chat_lang()
 async def dice(c, m, strings):
     dices = await c.send_dice(m.chat.id, reply_parameters=pyro_types.ReplyParameters(message_id=m.id))
-    await dices.reply_msg(strings("result").format(number=dices.dice.value))
+    await dices.reply(strings("result").format(number=dices.dice.value))
 
 
 @app.on_message(filters.command(["beri"], COMMAND_HANDLER))

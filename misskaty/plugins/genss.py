@@ -41,7 +41,7 @@ __HELP__ = """"
 async def genss(self: Client, ctx: Message, strings):
     replied = ctx.reply_to_message
     if len(ctx.command) == 2 and is_url(ctx.command[1]):
-        pesan = await ctx.reply_msg(strings("wait_dl"))
+        pesan = await ctx.reply(strings("wait_dl"))
         start_t = datetime.now()
         the_url_parts = " ".join(ctx.command[1:])
         url = the_url_parts.strip()
@@ -94,7 +94,7 @@ async def genss(self: Client, ctx: Message, strings):
             )
             try:
                 images = await take_ss(download_file_path)
-                await pesan.edit_msg(strings("up_progress"))
+                await pesan.edit(strings("up_progress"))
                 await self.send_chat_action(
                     chat_id=ctx.chat.id, action=enums.ChatAction.UPLOAD_PHOTO
                 )
@@ -113,7 +113,7 @@ async def genss(self: Client, ctx: Message, strings):
                             ctx.reply_photo(images, reply_parameters=pyro_types.ReplyParameters(message_id=ctx.id)),
                         ]
                     )
-                await ctx.reply_msg(
+                await ctx.reply(
                     strings("up_msg").format(
                         namma=ctx.from_user.mention
                         if ctx.from_user
@@ -130,7 +130,7 @@ async def genss(self: Client, ctx: Message, strings):
                 except:
                     pass
             except Exception as exc:
-                await ctx.reply_msg(strings("err_ssgen").format(exc=exc))
+                await ctx.reply(strings("err_ssgen").format(exc=exc))
                 try:
                     os.remove(images)
                     os.remove(download_file_path)
@@ -140,10 +140,10 @@ async def genss(self: Client, ctx: Message, strings):
         vid = [replied.video, replied.document]
         media = next((v for v in vid if v is not None), None)
         if media is None:
-            return await ctx.reply_msg(strings("no_reply"))
-        process = await ctx.reply_msg(strings("wait_dl"))
+            return await ctx.reply(strings("no_reply"))
+        process = await ctx.reply(strings("wait_dl"))
         if media.file_size > 2097152000:
-            return await process.edit_msg(strings("limit_dl"))
+            return await process.edit(strings("limit_dl"))
         c_time = time.time()
         dc_id = FileId.decode(media.file_id).dc_id
         try:
@@ -153,16 +153,16 @@ async def genss(self: Client, ctx: Message, strings):
                 progress_args=(strings("dl_progress"), process, c_time, dc_id),
             )
         except FileNotFoundError:
-            return await process.edit_msg("ERROR: FileNotFound.")
+            return await process.edit("ERROR: FileNotFound.")
         the_real_download_location = os.path.join("downloads/", os.path.basename(dl))
         if the_real_download_location is not None:
             try:
-                await process.edit_msg(
+                await process.edit(
                     strings("success_dl_msg").format(path=the_real_download_location)
                 )
                 await sleep(2)
                 images = await take_ss(the_real_download_location)
-                await process.edit_msg(strings("up_progress"))
+                await process.edit(strings("up_progress"))
                 await self.send_chat_action(
                     chat_id=ctx.chat.id, action=enums.ChatAction.UPLOAD_PHOTO
                 )
@@ -182,7 +182,7 @@ async def genss(self: Client, ctx: Message, strings):
                             ctx.reply_photo(images, reply_parameters=pyro_types.ReplyParameters(message_id=ctx.id)),
                         ]
                     )
-                await ctx.reply_msg(
+                await ctx.reply(
                     strings("up_msg").format(
                         namma=ctx.from_user.mention
                         if ctx.from_user
@@ -199,11 +199,11 @@ async def genss(self: Client, ctx: Message, strings):
                 except:
                     pass
             except Exception as exc:
-                await ctx.reply_msg(strings("err_ssgen").format(exc=exc))
+                await ctx.reply(strings("err_ssgen").format(exc=exc))
                 try:
                     os.remove(images)
                     os.remove(the_real_download_location)
                 except:
                     pass
     else:
-        await ctx.reply_msg(strings("no_reply"), del_in=6)
+        await ctx.reply(strings("no_reply"), del_in=6)

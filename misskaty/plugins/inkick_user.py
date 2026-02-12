@@ -153,10 +153,10 @@ async def rm_delacc(_, message):
                     await message.chat.ban_member(member.user.id)
                     await message.chat.unban_member(member.user.id)
         if count == 0:
-            return await sent_message.edit_msg(
+            return await sent_message.edit(
                 "There are no deleted accounts in this chat."
             )
-        await sent_message.edit_msg(f"✔️ **Berhasil menendang {count} akun terhapus.**")
+        await sent_message.edit(f"✔️ **Berhasil menendang {count} akun terhapus.**")
     else:
         sent_message = await message.reply_text(
             "❗ **Kamu harus jadi admin atau owner grup untuk melakukan tindakan ini.**"
@@ -172,7 +172,7 @@ async def rm_delacc(_, message):
 async def instatus(client, message):
     bstat = await app.get_chat_member(message.chat.id, client.me.id)
     if bstat.status.value != "administrator":
-        return await message.reply_msg(
+        return await message.reply(
             "Please give me all basic admin permission, to run this command."
         )
     start_time = time.perf_counter()
@@ -226,7 +226,7 @@ async def instatus(client, message):
                 uncached += 1
         end_time = time.perf_counter()
         timelog = "{:.2f}".format(end_time - start_time)
-        await sent_message.edit_msg(
+        await sent_message.edit(
             "<b>💠 {}\n👥 {} Anggota\n——————\n👁‍🗨 Informasi Status Anggota\n——————\n</b>🕒 <code>recently</code>: {}\n🕒 <code>last_week</code>: {}\n🕒 <code>last_month</code>: {}\n🕒 <code>long_ago</code>: {}\n🉑 Tanpa Username: {}\n🤐 Dibatasi: {}\n🚫 Diblokir: {}\n👻 Deleted Account (<code>/ban_ghosts</code>): {}\n🤖 Bot: {}\n⭐️ Premium User: {}\n👽 UnCached: {}\n\n⏱ Waktu eksekusi {} detik.".format(
                 message.chat.title,
                 count,

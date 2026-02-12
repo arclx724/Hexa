@@ -23,14 +23,14 @@ __HELP__ = """
 @use_chat_lang()
 async def take_ss(_, ctx: Message, strings):
     if len(ctx.command) == 1:
-        return await ctx.reply_msg(strings("no_url"), del_in=6)
+        return await ctx.reply(strings("no_url"), del_in=6)
     url = (
         ctx.command[1]
         if ctx.command[1].startswith("http")
         else f"https://{ctx.command[1]}"
     )
     download_file_path = os.path.join("downloads/", f"webSS_{ctx.from_user.id}.png")
-    msg = await ctx.reply_msg(strings("wait_str"))
+    msg = await ctx.reply(strings("wait_str"))
     try:
         url = f"https://webss.yasirweb.eu.org/api/screenshot?resX=1280&resY=900&outFormat=jpg&waitTime=1000&isFullPage=false&dismissModals=false&url={url}"
         downloader = SmartDL(
@@ -47,4 +47,4 @@ async def take_ss(_, ctx: Message, strings):
         if os.path.exists(download_file_path):
             os.remove(download_file_path)
     except Exception as e:
-        await msg.edit_msg(strings("ss_failed_str").format(err=str(e)))
+        await msg.edit(strings("ss_failed_str").format(err=str(e)))

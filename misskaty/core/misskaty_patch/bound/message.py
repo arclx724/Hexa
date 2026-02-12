@@ -38,7 +38,7 @@ async def reply_text(
     self: Message, text: str, as_raw: bool = False, del_in: int = 0, *args, **kwargs
 ) -> Union["Message", bool]:
     """\nExample:
-            message.reply_msg("hello")
+            message.reply("hello")
     Parameters:
         text (``str``):
             Text of the message to be sent.
@@ -103,7 +103,7 @@ async def edit_text(
     self, text: str, del_in: int = 0, *args, **kwargs
 ) -> Union["Message", bool]:
     """\nExample:
-            message.edit_msg("hello")
+            message.edit("hello")
     Parameters:
         text (``str``):
             New text of the message.
@@ -322,8 +322,6 @@ Message.reply_text = reply
 Message.edit = edit
 Message.edit_text = edit
 
-Message.reply_msg = reply_text
-Message.edit_msg = edit_text
 Message.edit_or_send_as_file = edit_or_send_as_file
 Message.reply_or_send_as_file = reply_or_send_as_file
 Message.reply_as_file = reply_as_file

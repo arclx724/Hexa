@@ -137,11 +137,11 @@ async def webdomain_cmd(_, message, strings):
     if not message.from_user:
         return
     if message.from_user.id != OWNER_ID:
-        return await message.reply_msg("⚠️ Access Denied!", del_in=5)
+        return await message.reply("⚠️ Access Denied!", del_in=5)
     await ensure_web_config()
     text = "<b>Web Domain Editor</b>\nPilih domain yang ingin kamu ubah."
     keyboard = build_web_buttons(message.from_user.id)
-    await message.reply_msg(text, reply_markup=keyboard)
+    await message.reply(text, reply_markup=keyboard)
 
 
 @app.on_cb("webdomain#")
@@ -163,7 +163,7 @@ async def webdomain_edit(_, query, strings):
         f"<b>Saat ini:</b> <code>{web[key]}</code>\n\n"
         "Pilih aksi di bawah."
     )
-    await query.message.edit_msg(
+    await query.message.edit(
         text, reply_markup=build_web_domain_menu(query.from_user.id, key)
     )
 
@@ -186,7 +186,7 @@ async def webdomain_view(_, query, strings):
         f"<b>Nama:</b> <code>{key}</code>\n"
         f"<b>Domain:</b> <code>{web[key]}</code>"
     )
-    await query.message.edit_msg(
+    await query.message.edit(
         text, reply_markup=build_web_domain_menu(query.from_user.id, key)
     )
 
@@ -204,7 +204,7 @@ async def webdomain_edit_value(_, query, strings):
         web[key] = DEFAULT_WEB[key]
     if key not in web:
         return await query.answer("⚠️ Domain tidak ditemukan.", True)
-    await query.message.edit_msg(
+    await query.message.edit(
         f"Kirim domain baru untuk <b>{key}</b>.\n"
         f"Saat ini: <code>{web[key]}</code>\n"
         "Ketik <code>/cancel</code> untuk batal."
@@ -214,14 +214,14 @@ async def webdomain_edit_value(_, query, strings):
             "Masukkan domain baru:", filters=filters.text, timeout=60
         )
     except Exception:
-        return await query.message.edit_msg("⚠️ Waktu habis.")
+        return await query.message.edit("⚠️ Waktu habis.")
     if response.text.strip().lower() == "/cancel":
         with contextlib.suppress(Exception):
             await response.delete()
         with contextlib.suppress(Exception):
             if response.reply_to_message:
                 await response.reply_to_message.delete()
-        return await query.message.edit_msg(
+        return await query.message.edit(
             "Dibatalkan.", reply_markup=build_web_buttons(query.from_user.id)
         )
     web[key] = response.text.strip()
@@ -231,7 +231,7 @@ async def webdomain_edit_value(_, query, strings):
     with contextlib.suppress(Exception):
         if response.reply_to_message:
             await response.reply_to_message.delete()
-    await query.message.edit_msg(
+    await query.message.edit(
         f"✅ Domain <b>{key}</b> diperbarui menjadi:\n<code>{web[key]}</code>",
         reply_markup=build_web_domain_menu(query.from_user.id, key),
     )
@@ -248,7 +248,7 @@ async def webdomain_back(_, query, strings):
     await ensure_web_config()
     text = "<b>Web Domain Editor</b>\nPilih domain yang ingin kamu ubah."
     keyboard = build_web_buttons(query.from_user.id)
-    await query.message.edit_msg(text, reply_markup=keyboard)
+    await query.message.edit(text, reply_markup=keyboard)
 
 
 def split_arr(arr, size: 5):
@@ -275,13 +275,13 @@ async def getDataTerbit21(msg, kueri, CurrentPage, strings):
                     terbitjson = await fetch.get(f"{web['yasirapi']}/terbit21")
                 terbitjson.raise_for_status()
             except httpx.HTTPError as exc:
-                await msg.edit_msg(
+                await msg.edit(
                     f"ERROR: Failed to fetch data from {exc.request.url} - <code>{exc}</code>"
                 )
                 return None, None
         res = terbitjson.json()
         if not res.get("result"):
-            await msg.edit_msg(strings("no_result"), del_in=5)
+            await msg.edit(strings("no_result"), del_in=5)
             return None, None
         SCRAP_DICT.add(msg.id, [split_arr(res["result"], 6), kueri], timeout=1800)
     index = int(CurrentPage - 1)
@@ -312,13 +312,13 @@ async def getDatalk21(msg, kueri, CurrentPage, strings):
                     lk21json = await fetch.get(f"{web['yasirapi']}/lk21")
                 lk21json.raise_for_status()
             except httpx.HTTPError as exc:
-                await msg.edit_msg(
+                await msg.edit(
                     f"ERROR: Failed to fetch data from {exc.request.url} - <code>{exc}</code>"
                 )
                 return None, None
         res = lk21json.json()
         if not res.get("result"):
-            await msg.edit_msg(strings("no_result"), del_in=5)
+            await msg.edit(strings("no_result"), del_in=5)
             return None, None
         SCRAP_DICT.add(msg.id, [split_arr(res["result"], 6), kueri], timeout=1800)
     index = int(CurrentPage - 1)
@@ -353,13 +353,13 @@ async def getDataPahe(msg, kueri, CurrentPage, strings):
                     )
                 pahejson.raise_for_status()
             except httpx.HTTPError as exc:
-                await msg.edit_msg(
+                await msg.edit(
                     f"ERROR: Failed to fetch data from {exc.request.url} - <code>{exc}</code>"
                 )
                 return None, None
         res = pahejson.json()
         if not res.get("result"):
-            await msg.edit_msg(strings("no_result"), del_in=5)
+            await msg.edit(strings("no_result"), del_in=5)
             return None, None
         SCRAP_DICT.add(msg.id, [split_arr(res["result"], 6), kueri], timeout=1800)
     index = int(CurrentPage - 1)
@@ -386,7 +386,7 @@ async def getDataKuso(msg, kueri, CurrentPage, user, strings):
                 )
                 data.raise_for_status()
             except httpx.HTTPError as exc:
-                await msg.edit_msg(
+                await msg.edit(
                     f"ERROR: Failed to fetch data from {exc.request.url} - <code>{exc}</code>",
                     link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
                 )
@@ -398,7 +398,7 @@ async def getDataKuso(msg, kueri, CurrentPage, user, strings):
             link = ress["href"]
             kusodata.append({"title": title, "link": link})
         if not kusodata:
-            await msg.edit_msg(strings("no_result"), del_in=5)
+            await msg.edit(strings("no_result"), del_in=5)
             return None, 0, None, None
         SCRAP_DICT.add(msg.id, [split_arr(kusodata, 10), kueri], timeout=1800)
     index = int(CurrentPage - 1)
@@ -440,7 +440,7 @@ async def getDataMovieku(msg, kueri, CurrentPage, user, strings):
                 )
                 data.raise_for_status()
             except httpx.HTTPError as exc:
-                await msg.edit_msg(
+                await msg.edit(
                     f"ERROR: Failed to fetch data from {exc.request.url} - <code>{exc}</code>"
                 )
                 return None, 0, None
@@ -453,7 +453,7 @@ async def getDataMovieku(msg, kueri, CurrentPage, user, strings):
             typee = typ.strip() if typ.strip() != "" else "~"
             moviekudata.append({"judul": judul, "link": link, "type": typee})
         if not moviekudata:
-            await msg.edit_msg(strings("no_result"), del_in=5)
+            await msg.edit(strings("no_result"), del_in=5)
             return None, 0, None
         SCRAP_DICT.add(msg.id, [split_arr(moviekudata, 6), kueri], timeout=1800)
     index = int(CurrentPage - 1)
@@ -488,7 +488,7 @@ async def getDataNodrakor(msg, kueri, CurrentPage, user, strings):
                 )
                 data.raise_for_status()
             except httpx.HTTPError as exc:
-                await msg.edit_msg(
+                await msg.edit(
                     f"HTTP Exception for {exc.request.url} - <code>{exc}</code>",
                     link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
                 )
@@ -497,9 +497,9 @@ async def getDataNodrakor(msg, kueri, CurrentPage, user, strings):
         entry = text.find_all(class_="entry-header")
         if entry[0].text.strip() == "Nothing Found":
             if not kueri:
-                await msg.edit_msg(strings("no_result"), del_in=5)
+                await msg.edit(strings("no_result"), del_in=5)
             else:
-                await msg.edit_msg(
+                await msg.edit(
                     strings("no_result_w_query").format(kueri=kueri), del_in=5
                 )
             return None, 0, None
@@ -541,7 +541,7 @@ async def getDataSavefilm21(msg, kueri, CurrentPage, user, strings):
                 )
                 data.raise_for_status()
             except httpx.HTTPError as exc:
-                await msg.edit_msg(
+                await msg.edit(
                     f"HTTP Exception for {exc.request.url} - <code>{exc}</code>",
                     link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
                 )
@@ -550,9 +550,9 @@ async def getDataSavefilm21(msg, kueri, CurrentPage, user, strings):
         entry = text.find_all(class_="entry-header")
         if "Tidak Ditemukan" in entry[0].text:
             if not kueri:
-                await msg.edit_msg(strings("no_result"), del_in=5)
+                await msg.edit(strings("no_result"), del_in=5)
             else:
-                await msg.edit_msg(
+                await msg.edit(
                     strings("no_result_w_query").format(kueri=kueri), del_in=5
                 )
             return None, 0, None
@@ -592,7 +592,7 @@ async def getDataNunaDrama(msg, kueri, CurrentPage, user, strings):
                 )
                 nunafetch.raise_for_status()
             except httpx.HTTPError as exc:
-                await msg.edit_msg(
+                await msg.edit(
                     f"ERROR: Failed to fetch data from {exc.request.url} - <code>{exc}</code>",
                     link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
                 )
@@ -601,9 +601,9 @@ async def getDataNunaDrama(msg, kueri, CurrentPage, user, strings):
         entry = text.find_all(class_="entry-header")
         if entry[0].text.strip() == "Nothing Found":
             if not kueri:
-                await msg.edit_msg(strings("no_result"), del_in=5)
+                await msg.edit(strings("no_result"), del_in=5)
             else:
-                await msg.edit_msg(
+                await msg.edit(
                     strings("no_result_w_query").format(kueri=kueri), del_in=5
                 )
             return None, 0, None
@@ -648,7 +648,7 @@ async def getDataPusatFilm(msg, kueri, CurrentPage, user, strings):
                 )
                 nunafetch.raise_for_status()
             except httpx.HTTPError as exc:
-                await msg.edit_msg(
+                await msg.edit(
                     f"ERROR: Failed to fetch data from {exc.request.url} - <code>{exc}</code>",
                     link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
                 )
@@ -657,9 +657,9 @@ async def getDataPusatFilm(msg, kueri, CurrentPage, user, strings):
         entry = text.find_all(class_="entry-header")
         if entry[0].text.strip() == "Nothing Found":
             if not kueri:
-                await msg.edit_msg(strings("no_result"), del_in=5)
+                await msg.edit(strings("no_result"), del_in=5)
             else:
-                await msg.edit_msg(
+                await msg.edit(
                     strings("no_result_w_query").format(kueri=kueri), del_in=5
                 )
             return None, 0, None
@@ -704,7 +704,7 @@ async def getDataDutaMovie(msg, kueri, CurrentPage, user, strings):
                 )
                 nunafetch.raise_for_status()
             except httpx.HTTPError as exc:
-                await msg.edit_msg(
+                await msg.edit(
                     f"ERROR: Failed to fetch data from {exc.request.url} - <code>{exc}</code>",
                     link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
                 )
@@ -713,9 +713,9 @@ async def getDataDutaMovie(msg, kueri, CurrentPage, user, strings):
         entry = text.find_all(class_="entry-header")
         if entry[0].text.strip() == "Nothing Found":
             if not kueri:
-                await msg.edit_msg(strings("no_result"), del_in=5)
+                await msg.edit(strings("no_result"), del_in=5)
             else:
-                await msg.edit_msg(
+                await msg.edit(
                     strings("no_result_w_query").format(kueri=kueri), del_in=5
                 )
             return None, 0, None
@@ -764,7 +764,7 @@ async def getDataLendrive(msg, kueri, CurrentPage, user, strings):
                     data = await fetch.get(web["lendrive"], follow_redirects=True)
                 data.raise_for_status()
             except httpx.HTTPError as exc:
-                await msg.edit_msg(
+                await msg.edit(
                     f"ERROR: Failed to fetch data from {exc.request.url} - <code>{exc}</code>",
                     link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
                 )
@@ -793,7 +793,7 @@ async def getDataLendrive(msg, kueri, CurrentPage, user, strings):
                 }
             )
         if not lenddata:
-            await msg.edit_msg(strings("no_result"), del_in=5)
+            await msg.edit(strings("no_result"), del_in=5)
             return None, 0, None
         savedict[msg.id] = [split_arr(lenddata, 6), kueri]
     index = int(CurrentPage - 1)
@@ -827,7 +827,7 @@ async def getDataMelong(msg, kueri, CurrentPage, user, strings):
                 )
                 data.raise_for_status()
             except httpx.HTTPError as exc:
-                await msg.edit_msg(
+                await msg.edit(
                     f"HTTP Exception for {exc.request.url} - <code>{exc}</code>",
                     link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
                 )
@@ -844,7 +844,7 @@ async def getDataMelong(msg, kueri, CurrentPage, user, strings):
                 quality = "N/A"
             melongdata.append({"judul": title, "link": url, "quality": quality})
         if not melongdata:
-            await msg.edit_msg(strings("no_result"), del_in=5)
+            await msg.edit(strings("no_result"), del_in=5)
             return None, 0, None
         SCRAP_DICT.add(msg.id, [split_arr(melongdata, 6), kueri], timeout=1800)
     index = int(CurrentPage - 1)
@@ -877,7 +877,7 @@ async def getDataGomov(msg, kueri, CurrentPage, user, strings):
                 )
                 gomovv.raise_for_status()
             except httpx.HTTPError as exc:
-                await msg.edit_msg(
+                await msg.edit(
                     f"ERROR: Failed to fetch data from {exc.request.url} - <code>{exc}</code>",
                     link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
                 )
@@ -886,9 +886,9 @@ async def getDataGomov(msg, kueri, CurrentPage, user, strings):
         entry = text.find_all(class_="entry-header")
         if entry[0].text.strip() == "Nothing Found":
             if not kueri:
-                await msg.edit_msg(strings("no_result"), del_in=5)
+                await msg.edit(strings("no_result"), del_in=5)
             else:
-                await msg.edit_msg(
+                await msg.edit(
                     strings("no_result_w_query").format(kueri=kueri), del_in=5
                 )
             return None, 0, None
@@ -932,7 +932,7 @@ async def getSame(msg, query, current_page, strings):
         else:
             data = cfse.get(web["samehadaku"])
         if data.status_code != 200:
-            await msg.edit_msg(strings("err_getweb").format(err=data.status_code))
+            await msg.edit(strings("err_getweb").format(err=data.status_code))
             return None, None
         res = BeautifulSoup(data.text, "lxml").find_all(class_="animposx")
         sdata = []
@@ -945,7 +945,7 @@ async def getSame(msg, query, current_page, strings):
             rate = i.find(class_="score")
             sdata.append({"url": url, "title": title, "sta": sta, "rate": rate})
         if not sdata:
-            await msg.edit_msg(strings("no_result"), del_in=5)
+            await msg.edit(strings("no_result"), del_in=5)
             return None, None
         savedict[msg.id] = [split_arr(sdata, 10), query]
     index = int(current_page - 1)
@@ -962,7 +962,7 @@ async def getSame(msg, query, current_page, strings):
 @use_chat_lang()
 async def same_search(_, msg, strings):
     query = msg.text.split(maxsplit=1)[1] if len(msg.command) > 1 else None
-    bmsg = await msg.reply_msg(strings("get_data"))
+    bmsg = await msg.reply(strings("get_data"))
     sameres, PageLen = await getSame(bmsg, query, 1, strings)
     if not sameres:
         return
@@ -971,7 +971,7 @@ async def same_search(_, msg, strings):
         PageLen, 1, "page_same#{number}" + f"#{bmsg.id}#{msg.from_user.id}"
     )
     keyboard.row(InlineButton(strings("cl_btn"), f"close#{msg.from_user.id}"))
-    await bmsg.edit_msg(sameres, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard)
+    await bmsg.edit(sameres, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard)
 
 
 # Terbit21 CMD
@@ -981,7 +981,7 @@ async def terbit21_s(_, message, strings):
     kueri = " ".join(message.command[1:])
     if not kueri:
         kueri = None
-    pesan = await message.reply_msg(strings("get_data"))
+    pesan = await message.reply(strings("get_data"))
     CurrentPage = 1
     terbitres, PageLen = await getDataTerbit21(pesan, kueri, CurrentPage, strings)
     if not terbitres:
@@ -993,7 +993,7 @@ async def terbit21_s(_, message, strings):
         "page_terbit21#{number}" + f"#{pesan.id}#{message.from_user.id}",
     )
     keyboard.row(InlineButton(strings("cl_btn"), f"close#{message.from_user.id}"))
-    await pesan.edit_msg(
+    await pesan.edit(
         terbitres, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
     )
 
@@ -1005,7 +1005,7 @@ async def lk21_s(_, message, strings):
     kueri = " ".join(message.command[1:])
     if not kueri:
         kueri = None
-    pesan = await message.reply_msg(strings("get_data"))
+    pesan = await message.reply(strings("get_data"))
     CurrentPage = 1
     lkres, PageLen = await getDatalk21(pesan, kueri, CurrentPage, strings)
     if not lkres:
@@ -1017,7 +1017,7 @@ async def lk21_s(_, message, strings):
         "page_lk21#{number}" + f"#{pesan.id}#{message.from_user.id}",
     )
     keyboard.row(InlineButton(strings("cl_btn"), f"close#{message.from_user.id}"))
-    await pesan.edit_msg(lkres, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard)
+    await pesan.edit(lkres, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard)
 
 
 # Pahe CMD
@@ -1027,7 +1027,7 @@ async def pahe_s(_, message, strings):
     kueri = " ".join(message.command[1:])
     if not kueri:
         kueri = ""
-    pesan = await message.reply_msg(strings("get_data"))
+    pesan = await message.reply(strings("get_data"))
     CurrentPage = 1
     paheres, PageLen = await getDataPahe(pesan, kueri, CurrentPage, strings)
     if not paheres:
@@ -1039,7 +1039,7 @@ async def pahe_s(_, message, strings):
         "page_pahe#{number}" + f"#{pesan.id}#{message.from_user.id}",
     )
     keyboard.row(InlineButton(strings("cl_btn"), f"close#{message.from_user.id}"))
-    await pesan.edit_msg(paheres, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard)
+    await pesan.edit(paheres, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard)
 
 
 # Gomov CMD
@@ -1049,7 +1049,7 @@ async def gomov_s(self, message, strings):
     kueri = " ".join(message.command[1:])
     if not kueri:
         kueri = ""
-    pesan = await message.reply_msg(strings("get_data"))
+    pesan = await message.reply(strings("get_data"))
     CurrentPage = 1
     gomovres, PageLen, btn = await getDataGomov(
         pesan, kueri, CurrentPage, message.from_user.id, strings
@@ -1065,7 +1065,7 @@ async def gomov_s(self, message, strings):
     keyboard.row(InlineButton(strings("ex_data"), user_id=self.me.id))
     keyboard.row(*btn)
     keyboard.row(InlineButton(strings("cl_btn"), f"close#{message.from_user.id}"))
-    await pesan.edit_msg(gomovres, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard)
+    await pesan.edit(gomovres, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard)
 
 
 # MelongMovie CMD
@@ -1075,7 +1075,7 @@ async def melong_s(self, message, strings):
     kueri = " ".join(message.command[1:])
     if not kueri:
         kueri = ""
-    pesan = await message.reply_msg(strings("get_data"))
+    pesan = await message.reply(strings("get_data"))
     CurrentPage = 1
     melongres, PageLen, btn = await getDataMelong(
         pesan, kueri, CurrentPage, message.from_user.id, strings
@@ -1092,11 +1092,11 @@ async def melong_s(self, message, strings):
     keyboard.row(*btn)
     keyboard.row(InlineButton(strings("cl_btn"), f"close#{message.from_user.id}"))
     try:
-        await pesan.edit_msg(
+        await pesan.edit(
             melongres, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
         )
     except Exception as err:
-        await pesan.edit_msg(
+        await pesan.edit(
             f"<b>ERROR:</b> {err}", link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
         )
 
@@ -1108,7 +1108,7 @@ async def nunadrama_s(self, message, strings):
     kueri = " ".join(message.command[1:])
     if not kueri:
         kueri = ""
-    pesan = await message.reply_msg(strings("get_data"))
+    pesan = await message.reply(strings("get_data"))
     CurrentPage = 1
     nunares, PageLen, btn = await getDataNunaDrama(
         pesan, kueri, CurrentPage, message.from_user.id, strings
@@ -1124,7 +1124,7 @@ async def nunadrama_s(self, message, strings):
     keyboard.row(InlineButton(strings("ex_data"), user_id=self.me.id))
     keyboard.row(*btn)
     keyboard.row(InlineButton(strings("cl_btn"), f"close#{message.from_user.id}"))
-    await pesan.edit_msg(
+    await pesan.edit(
         nunares, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
     )
 
@@ -1136,7 +1136,7 @@ async def pusatfilm_s(self, message, strings):
     kueri = " ".join(message.command[1:])
     if not kueri:
         kueri = ""
-    pesan = await message.reply_msg(strings("get_data"))
+    pesan = await message.reply(strings("get_data"))
     CurrentPage = 1
     pfres, PageLen, btn = await getDataPusatFilm(
         pesan, kueri, CurrentPage, message.from_user.id, strings
@@ -1152,7 +1152,7 @@ async def pusatfilm_s(self, message, strings):
     keyboard.row(InlineButton(strings("ex_data"), user_id=self.me.id))
     keyboard.row(*btn)
     keyboard.row(InlineButton(strings("cl_btn"), f"close#{message.from_user.id}"))
-    await pesan.edit_msg(
+    await pesan.edit(
         pfres, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
     )
 
@@ -1164,7 +1164,7 @@ async def dutamovie_s(self, message, strings):
     kueri = " ".join(message.command[1:])
     if not kueri:
         kueri = ""
-    pesan = await message.reply_msg(strings("get_data"))
+    pesan = await message.reply(strings("get_data"))
     CurrentPage = 1
     dutares, PageLen, btn = await getDataDutaMovie(
         pesan, kueri, CurrentPage, message.from_user.id, strings
@@ -1180,7 +1180,7 @@ async def dutamovie_s(self, message, strings):
     keyboard.row(InlineButton(strings("ex_data"), user_id=self.me.id))
     keyboard.row(*btn)
     keyboard.row(InlineButton(strings("cl_btn"), f"close#{message.from_user.id}"))
-    await pesan.edit_msg(
+    await pesan.edit(
         dutares, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
     )
 
@@ -1192,7 +1192,7 @@ async def savefilm_s(self, message, strings):
     kueri = " ".join(message.command[1:])
     if not kueri:
         kueri = ""
-    pesan = await message.reply_msg(strings("get_data"))
+    pesan = await message.reply(strings("get_data"))
     CurrentPage = 1
     savefilmres, PageLen, btn = await getDataSavefilm21(
         pesan, kueri, CurrentPage, message.from_user.id, strings
@@ -1208,7 +1208,7 @@ async def savefilm_s(self, message, strings):
     keyboard.row(InlineButton(strings("ex_data"), user_id=self.me.id))
     keyboard.row(*btn)
     keyboard.row(InlineButton(strings("cl_btn"), f"close#{message.from_user.id}"))
-    await pesan.edit_msg(
+    await pesan.edit(
         savefilmres, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
     )
 
@@ -1220,7 +1220,7 @@ async def nodrakor_s(self, message, strings):
     kueri = " ".join(message.command[1:])
     if not kueri:
         kueri = ""
-    pesan = await message.reply_msg(strings("get_data"))
+    pesan = await message.reply(strings("get_data"))
     CurrentPage = 1
     nodrakorres, PageLen, btn = await getDataNodrakor(
         pesan, kueri, CurrentPage, message.from_user.id, strings
@@ -1236,7 +1236,7 @@ async def nodrakor_s(self, message, strings):
     keyboard.row(InlineButton(strings("ex_data"), user_id=self.me.id))
     keyboard.row(*btn)
     keyboard.row(InlineButton(strings("cl_btn"), f"close#{message.from_user.id}"))
-    await pesan.edit_msg(
+    await pesan.edit(
         nodrakorres, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
     )
 
@@ -1248,7 +1248,7 @@ async def kusonime_s(self, message, strings):
     kueri = " ".join(message.command[1:])
     if not kueri:
         kueri = ""
-    pesan = await message.reply_msg(strings("get_data"))
+    pesan = await message.reply(strings("get_data"))
     CurrentPage = 1
     kusores, PageLen, btn1, btn2 = await getDataKuso(
         pesan, kueri, CurrentPage, message.from_user.id, strings
@@ -1266,7 +1266,7 @@ async def kusonime_s(self, message, strings):
     if btn2:
         keyboard.row(*btn2)
     keyboard.row(InlineButton(strings("cl_btn"), f"close#{message.from_user.id}"))
-    await pesan.edit_msg(kusores, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard)
+    await pesan.edit(kusores, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard)
 
 
 # Lendrive CMD
@@ -1276,7 +1276,7 @@ async def lendrive_s(self, ctx: Message, strings):
     kueri = ctx.input
     if not kueri:
         kueri = ""
-    pesan = await ctx.reply_msg(strings("get_data"))
+    pesan = await ctx.reply(strings("get_data"))
     CurrentPage = 1
     lendres, PageLen, btn = await getDataLendrive(
         pesan, kueri, CurrentPage, ctx.from_user.id, strings
@@ -1292,7 +1292,7 @@ async def lendrive_s(self, ctx: Message, strings):
     keyboard.row(InlineButton(strings("ex_data"), user_id=self.me.id))
     keyboard.row(*btn)
     keyboard.row(InlineButton(strings("cl_btn"), f"close#{ctx.from_user.id}"))
-    await pesan.edit_msg(lendres, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard)
+    await pesan.edit(lendres, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard)
 
 
 # Movieku CMD
@@ -1302,7 +1302,7 @@ async def movieku_s(self, ctx: Message, strings):
     kueri = ctx.input
     if not kueri:
         kueri = ""
-    pesan = await ctx.reply_msg(strings("get_data"))
+    pesan = await ctx.reply(strings("get_data"))
     CurrentPage = 1
     moviekures, PageLen, btn = await getDataMovieku(pesan, kueri, CurrentPage, ctx.from_user.id, strings)
     if not moviekures:
@@ -1316,7 +1316,7 @@ async def movieku_s(self, ctx: Message, strings):
     keyboard.row(InlineButton(strings("ex_data"), user_id=self.me.id))
     keyboard.row(*btn)
     keyboard.row(InlineButton(strings("cl_btn"), f"close#{ctx.from_user.id}"))
-    await pesan.edit_msg(
+    await pesan.edit(
         moviekures, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
     )
 
@@ -1334,7 +1334,7 @@ async def sf21page_callback(self, callback_query, strings):
     except (IndexError, ValueError):  # Gatau napa err ini
         return
     except KeyError:
-        return await callback_query.message.edit_msg(strings("invalid_cb"))
+        return await callback_query.message.edit(strings("invalid_cb"))
     except QueryIdInvalid:
         return
 
@@ -1360,7 +1360,7 @@ async def sf21page_callback(self, callback_query, strings):
     keyboard.row(
         InlineButton(strings("cl_btn"), f"close#{callback_query.from_user.id}")
     )
-    await callback_query.message.edit_msg(
+    await callback_query.message.edit(
         savefilmres, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
     )
 
@@ -1378,7 +1378,7 @@ async def sf21page_callback(self, callback_query, strings):
     except (IndexError, ValueError):  # Gatau napa err ini
         return
     except KeyError:
-        return await callback_query.message.edit_msg(strings("invalid_cb"))
+        return await callback_query.message.edit(strings("invalid_cb"))
     except QueryIdInvalid:
         return
 
@@ -1404,7 +1404,7 @@ async def sf21page_callback(self, callback_query, strings):
     keyboard.row(
         InlineButton(strings("cl_btn"), f"close#{callback_query.from_user.id}")
     )
-    await callback_query.message.edit_msg(
+    await callback_query.message.edit(
         nunares, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
     )
 
@@ -1422,7 +1422,7 @@ async def sf21page_callback(self, callback_query, strings):
     except (IndexError, ValueError):
         return
     except KeyError:
-        return await callback_query.message.edit_msg(strings("invalid_cb"))
+        return await callback_query.message.edit(strings("invalid_cb"))
     except QueryIdInvalid:
         return
 
@@ -1448,7 +1448,7 @@ async def sf21page_callback(self, callback_query, strings):
     keyboard.row(
         InlineButton(strings("cl_btn"), f"close#{callback_query.from_user.id}")
     )
-    await callback_query.message.edit_msg(
+    await callback_query.message.edit(
         dutares, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
     )
 
@@ -1465,7 +1465,7 @@ async def sf21page_callback(self, callback_query, strings):
     except (IndexError, ValueError):  # Gatau napa err ini
         return
     except KeyError:
-        return await callback_query.message.edit_msg(strings("invalid_cb"))
+        return await callback_query.message.edit(strings("invalid_cb"))
     except QueryIdInvalid:
         return
 
@@ -1491,7 +1491,7 @@ async def sf21page_callback(self, callback_query, strings):
     keyboard.row(
         InlineButton(strings("cl_btn"), f"close#{callback_query.from_user.id}")
     )
-    await callback_query.message.edit_msg(
+    await callback_query.message.edit(
         nunares, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
     )
 
@@ -1509,7 +1509,7 @@ async def pfpage_callback(self, callback_query, strings):
     except (IndexError, ValueError):
         return
     except KeyError:
-        return await callback_query.message.edit_msg(strings("invalid_cb"))
+        return await callback_query.message.edit(strings("invalid_cb"))
     except QueryIdInvalid:
         return
 
@@ -1535,7 +1535,7 @@ async def pfpage_callback(self, callback_query, strings):
     keyboard.row(
         InlineButton(strings("cl_btn"), f"close#{callback_query.from_user.id}")
     )
-    await callback_query.message.edit_msg(
+    await callback_query.message.edit(
         pfres, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
     )
 
@@ -1553,7 +1553,7 @@ async def nodrakorpage_cb(self, callback_query, strings):
     except (IndexError, ValueError):
         return
     except KeyError:
-        return await callback_query.message.edit_msg(strings("invalid_cb"))
+        return await callback_query.message.edit(strings("invalid_cb"))
     except QueryIdInvalid:
         return
 
@@ -1579,7 +1579,7 @@ async def nodrakorpage_cb(self, callback_query, strings):
     keyboard.row(
         InlineButton(strings("cl_btn"), f"close#{callback_query.from_user.id}")
     )
-    await callback_query.message.edit_msg(
+    await callback_query.message.edit(
         nodrakorres, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
     )
 
@@ -1597,7 +1597,7 @@ async def kusopage_callback(self, callback_query, strings):
     except QueryIdInvalid:
         return
     except KeyError:
-        return await callback_query.message.edit_msg(strings("invalid_cb"))
+        return await callback_query.message.edit(strings("invalid_cb"))
 
     try:
         kusores, PageLen, btn1, btn2 = await getDataKuso(
@@ -1623,7 +1623,7 @@ async def kusopage_callback(self, callback_query, strings):
     keyboard.row(
         InlineButton(strings("cl_btn"), f"close#{callback_query.from_user.id}")
     )
-    await callback_query.message.edit_msg(
+    await callback_query.message.edit(
         kusores, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
     )
 
@@ -1641,7 +1641,7 @@ async def lendrivepage_callback(self, callback_query, strings):
     except QueryIdInvalid:
         return
     except KeyError:
-        return await callback_query.message.edit_msg(strings("invalid_cb"))
+        return await callback_query.message.edit(strings("invalid_cb"))
 
     try:
         lendres, PageLen, btn = await getDataLendrive(
@@ -1665,7 +1665,7 @@ async def lendrivepage_callback(self, callback_query, strings):
     keyboard.row(
         InlineButton(strings("cl_btn"), f"close#{callback_query.from_user.id}")
     )
-    await callback_query.message.edit_msg(
+    await callback_query.message.edit(
         lendres, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
     )
 
@@ -1683,7 +1683,7 @@ async def moviekupage_callback(self, callback_query, strings):
     except QueryIdInvalid:
         return
     except KeyError:
-        return await callback_query.message.edit_msg(strings("invalid_cb"), True)
+        return await callback_query.message.edit(strings("invalid_cb"), True)
 
     try:
         moviekures, PageLen, btn = await getDataMovieku(
@@ -1703,7 +1703,7 @@ async def moviekupage_callback(self, callback_query, strings):
     keyboard.row(
         InlineButton(strings("cl_btn"), f"close#{callback_query.from_user.id}")
     )
-    await callback_query.message.edit_msg(
+    await callback_query.message.edit(
         moviekures, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
     )
 
@@ -1720,7 +1720,7 @@ async def samepg(_, query, strings):
     except QueryIdInvalid:
         return
     except KeyError:
-        return await query.message.edit_msg(strings("invalid_cb"))
+        return await query.message.edit(strings("invalid_cb"))
     try:
         sameres, PageLen = await getSame(
             query.message, lquery, int(current_page), strings
@@ -1734,7 +1734,7 @@ async def samepg(_, query, strings):
         "page_same#{number}" + f"#{_id}#{query.from_user.id}",
     )
     keyboard.row(InlineButton(strings("cl_btn"), f"close#{query.from_user.id}"))
-    await query.message.edit_msg(
+    await query.message.edit(
         sameres, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
     )
 
@@ -1752,7 +1752,7 @@ async def terbit21page_callback(_, callback_query, strings):
     except QueryIdInvalid:
         return
     except KeyError:
-        return await callback_query.message.edit_msg(strings("invalid_cb"))
+        return await callback_query.message.edit(strings("invalid_cb"))
 
     try:
         terbitres, PageLen = await getDataTerbit21(
@@ -1770,7 +1770,7 @@ async def terbit21page_callback(_, callback_query, strings):
     keyboard.row(
         InlineButton(strings("cl_btn"), f"close#{callback_query.from_user.id}")
     )
-    await callback_query.message.edit_msg(
+    await callback_query.message.edit(
         terbitres, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
     )
 
@@ -1788,7 +1788,7 @@ async def melongpage_callback(self, callback_query, strings):
     except QueryIdInvalid:
         return
     except KeyError:
-        return await callback_query.message.edit_msg(strings("invalid_cb"))
+        return await callback_query.message.edit(strings("invalid_cb"))
 
     try:
         terbitres, PageLen, btn = await getDataMelong(
@@ -1812,7 +1812,7 @@ async def melongpage_callback(self, callback_query, strings):
     keyboard.row(
         InlineButton(strings("cl_btn"), f"close#{callback_query.from_user.id}")
     )
-    await callback_query.message.edit_msg(
+    await callback_query.message.edit(
         terbitres, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
     )
 
@@ -1830,7 +1830,7 @@ async def lk21page_callback(_, callback_query, strings):
     except QueryIdInvalid:
         return
     except KeyError:
-        return await callback_query.message.edit_msg(strings("invalid_cb"))
+        return await callback_query.message.edit(strings("invalid_cb"))
 
     try:
         lkres, PageLen = await getDatalk21(
@@ -1848,7 +1848,7 @@ async def lk21page_callback(_, callback_query, strings):
     keyboard.row(
         InlineButton(strings("cl_btn"), f"close#{callback_query.from_user.id}")
     )
-    await callback_query.message.edit_msg(
+    await callback_query.message.edit(
         lkres, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
     )
 
@@ -1866,7 +1866,7 @@ async def pahepage_callback(_, callback_query, strings):
     except QueryIdInvalid:
         return
     except KeyError:
-        return await callback_query.message.edit_msg(strings("invalid_cb"))
+        return await callback_query.message.edit(strings("invalid_cb"))
 
     try:
         lkres, PageLen = await getDataPahe(
@@ -1884,7 +1884,7 @@ async def pahepage_callback(_, callback_query, strings):
     keyboard.row(
         InlineButton(strings("cl_btn"), f"close#{callback_query.from_user.id}")
     )
-    await callback_query.message.edit_msg(
+    await callback_query.message.edit(
         lkres, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
     )
 
@@ -1902,7 +1902,7 @@ async def gomovpage_callback(self, callback_query, strings):
     except QueryIdInvalid:
         return
     except KeyError:
-        return await callback_query.message.edit_msg(strings("invalid_cb"))
+        return await callback_query.message.edit(strings("invalid_cb"))
 
     try:
         gomovres, PageLen, btn = await getDataGomov(
@@ -1926,7 +1926,7 @@ async def gomovpage_callback(self, callback_query, strings):
     keyboard.row(
         InlineButton(strings("cl_btn"), f"close#{callback_query.from_user.id}")
     )
-    await callback_query.message.edit_msg(
+    await callback_query.message.edit(
         gomovres, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
     )
 
@@ -1946,7 +1946,7 @@ async def kusonime_scrap(client, callback_query, strings):
     except QueryIdInvalid:
         return
     except KeyError:
-        return await callback_query.message.edit_msg(strings("invalid_cb"))
+        return await callback_query.message.edit(strings("invalid_cb"))
 
     kuso = Kusonime()
     keyboard = InlineKeyboard()
@@ -1959,16 +1959,16 @@ async def kusonime_scrap(client, callback_query, strings):
     )
     try:
         if init_url := data_kuso.get(link, False):
-            await callback_query.message.edit_msg(
+            await callback_query.message.edit(
                 init_url.get("ph_url"), reply_markup=keyboard
             )
         tgh = await kuso.telegraph(link, client.me.username)
         data_kuso[link] = {"ph_url": tgh}
-        return await callback_query.message.edit_msg(tgh, reply_markup=keyboard)
+        return await callback_query.message.edit(tgh, reply_markup=keyboard)
     except Exception as e:
         LOGGER.error(f"clases: {e.__class__}, moduleName: {e.__class__.__name__}")
         if str(e).startswith("ERROR"):
-            return await callback_query.message.edit_msg(e, reply_markup=keyboard)
+            return await callback_query.message.edit(e, reply_markup=keyboard)
 
 
 # Savefilm21 DDL
@@ -1985,7 +1985,7 @@ async def savefilm21_scrap(_, callback_query, strings):
     except QueryIdInvalid:
         return
     except KeyError:
-        return await callback_query.message.edit_msg(strings("invalid_cb"))
+        return await callback_query.message.edit(strings("invalid_cb"))
 
     keyboard = InlineKeyboard()
     keyboard.row(
@@ -2002,16 +2002,16 @@ async def savefilm21_scrap(_, callback_query, strings):
             soup = BeautifulSoup(html.text, "lxml")
             res = soup.find_all(class_="button button-shadow")
             res = "".join(f"{i.text}\n{i['href']}\n\n" for i in res)
-            await callback_query.message.edit_msg(
+            await callback_query.message.edit(
                 strings("res_scrape").format(link=link, kl=res), reply_markup=keyboard
             )
         except httpx.HTTPError as exc:
-            await callback_query.message.edit_msg(
+            await callback_query.message.edit(
                 f"HTTP Exception for {exc.request.url} - <code>{exc}</code>",
                 reply_markup=keyboard,
             )
         except Exception as err:
-            await callback_query.message.edit_msg(
+            await callback_query.message.edit(
                 f"ERROR: {err}", reply_markup=keyboard
             )
 
@@ -2030,7 +2030,7 @@ async def nunadrama_ddl(_, callback_query, strings):
     except QueryIdInvalid:
         return
     except KeyError:
-        return await callback_query.message.edit_msg(strings("invalid_cb"))
+        return await callback_query.message.edit(strings("invalid_cb"))
 
     keyboard = InlineKeyboard()
     keyboard.row(
@@ -2052,16 +2052,16 @@ async def nunadrama_ddl(_, callback_query, strings):
             res = f"<b>Judul</b>: {title}\n\n<b>Link Download:</b>\n"
             for label, link in download_links.items():
                 res += f"{label}: <a href='{link}'>{link}</a>\n"
-            await callback_query.message.edit_msg(
+            await callback_query.message.edit(
                 strings("res_scrape").format(link=link, kl=res), reply_markup=keyboard
             )
         except httpx.HTTPError as exc:
-            await callback_query.message.edit_msg(
+            await callback_query.message.edit(
                 f"HTTP Exception for {exc.request.url} - <code>{exc}</code>",
                 reply_markup=keyboard,
             )
         except Exception as err:
-            await callback_query.message.edit_msg(
+            await callback_query.message.edit(
                 f"ERROR: {err}", reply_markup=keyboard
             )
 
@@ -2080,7 +2080,7 @@ async def pusatfilm_ddl(_, callback_query, strings):
     except QueryIdInvalid:
         return
     except KeyError:
-        return await callback_query.message.edit_msg(strings("invalid_cb"))
+        return await callback_query.message.edit(strings("invalid_cb"))
 
     keyboard = InlineKeyboard()
     keyboard.row(
@@ -2097,16 +2097,16 @@ async def pusatfilm_ddl(_, callback_query, strings):
             soup = BeautifulSoup(html.text, "lxml")
             ddl = soup.find("li", {"pull-right"}).find("a").get("href")
             res = f"<b>Link Download:</b> {ddl}"
-            await callback_query.message.edit_msg(
+            await callback_query.message.edit(
                 strings("res_scrape").format(link=link, kl=res), reply_markup=keyboard
             )
         except httpx.HTTPError as exc:
-            await callback_query.message.edit_msg(
+            await callback_query.message.edit(
                 f"HTTP Exception for {exc.request.url} - <code>{exc}</code>",
                 reply_markup=keyboard,
             )
         except Exception as err:
-            await callback_query.message.edit_msg(
+            await callback_query.message.edit(
                 f"ERROR: {err}", reply_markup=keyboard
             )
 
@@ -2125,7 +2125,7 @@ async def dutamovie_ddl(_, callback_query, strings):
     except QueryIdInvalid:
         return
     except KeyError:
-        return await callback_query.message.edit_msg(strings("invalid_cb"))
+        return await callback_query.message.edit(strings("invalid_cb"))
 
     keyboard = InlineKeyboard()
     keyboard.row(
@@ -2147,16 +2147,16 @@ async def dutamovie_ddl(_, callback_query, strings):
             res = f"<b>Judul</b>: {title}\n\n<b>Link Download:</b>\n"
             for label, link in download_links.items():
                 res += f"{label}: {link}\n\n"
-            await callback_query.message.edit_msg(
+            await callback_query.message.edit(
                 strings("res_scrape").format(link=link, kl=res), reply_markup=keyboard
             )
         except httpx.HTTPError as exc:
-            await callback_query.message.edit_msg(
+            await callback_query.message.edit(
                 f"HTTP Exception for {exc.request.url} - <code>{exc}</code>",
                 reply_markup=keyboard,
             )
         except Exception as err:
-            await callback_query.message.edit_msg(
+            await callback_query.message.edit(
                 f"ERROR: {err}", reply_markup=keyboard
             )
 
@@ -2175,7 +2175,7 @@ async def nodrakorddl_scrap(_, callback_query, strings):
     except QueryIdInvalid:
         return
     except KeyError:
-        return await callback_query.message.edit_msg(strings("invalid_cb"))
+        return await callback_query.message.edit(strings("invalid_cb"))
 
     keyboard = InlineKeyboard()
     keyboard.row(
@@ -2196,7 +2196,7 @@ async def nodrakorddl_scrap(_, callback_query, strings):
                 ).find_all("p")
                 msg = "".join(str(f"{i}\n") for i in result)
                 link = await post_to_telegraph(False, "MissKaty NoDrakor", msg)
-                return await callback_query.message.edit_msg(
+                return await callback_query.message.edit(
                     strings("res_scrape").format(link=link, kl=link),
                     reply_markup=keyboard,
                 )
@@ -2204,20 +2204,20 @@ async def nodrakorddl_scrap(_, callback_query, strings):
             res = "".join(f"{i.text}\n{i['href']}\n\n" for i in res)
             if len(res) > 3500:
                 link = await post_to_telegraph(False, "MissKaty NoDrakor", res)
-                return await callback_query.message.edit_msg(
+                return await callback_query.message.edit(
                     strings("res_scrape").format(link=link, kl=link),
                     reply_markup=keyboard,
                 )
-            await callback_query.message.edit_msg(
+            await callback_query.message.edit(
                 strings("res_scrape").format(link=link, kl=res), reply_markup=keyboard
             )
         except httpx.HTTPError as exc:
-            await callback_query.message.edit_msg(
+            await callback_query.message.edit(
                 f"HTTP Exception for {exc.request.url} - <code>{exc}</code>",
                 reply_markup=keyboard,
             )
         except Exception as err:
-            await callback_query.message.edit_msg(
+            await callback_query.message.edit(
                 f"ERROR: {err}", reply_markup=keyboard
             )
 
@@ -2236,7 +2236,7 @@ async def movieku_scrap(_, callback_query, strings):
     except QueryIdInvalid:
         return
     except KeyError:
-        return await callback_query.message.edit_msg(strings("invalid_cb"))
+        return await callback_query.message.edit(strings("invalid_cb"))
 
     keyboard = InlineKeyboard()
     keyboard.row(
@@ -2277,18 +2277,18 @@ async def movieku_scrap(_, callback_query, strings):
                 output.append('')
             if total_links > 70:
                 url = await post_to_telegraph(False, link, "<br>".join(output))
-                return await callback_query.message.edit_msg(strings("res_scrape").format(link=link, kl=f"Your result is too long, i have pasted your result on Telegraph:\n{url}"), reply_markup=keyboard)
+                return await callback_query.message.edit(strings("res_scrape").format(link=link, kl=f"Your result is too long, i have pasted your result on Telegraph:\n{url}"), reply_markup=keyboard)
             if "\n".join(output) == "":
                 output = "\nOpen link in browser, click on episode page and use /movieku_scrap [page link] commands for extract download link"
-                return await callback_query.message.edit_msg(strings("res_scrape").format(link=link, kl=output), reply_markup=keyboard)
-            await callback_query.message.edit_msg(strings("res_scrape").format(link=link, kl="\n".join(output)), reply_markup=keyboard)
+                return await callback_query.message.edit(strings("res_scrape").format(link=link, kl=output), reply_markup=keyboard)
+            await callback_query.message.edit(strings("res_scrape").format(link=link, kl="\n".join(output)), reply_markup=keyboard)
         except httpx.HTTPError as exc:
-            await callback_query.message.edit_msg(
+            await callback_query.message.edit(
                 f"HTTP Exception for {exc.request.url} - <code>{exc}</code>",
                 reply_markup=keyboard,
             )
         except Exception as err:
-            await callback_query.message.edit_msg(
+            await callback_query.message.edit(
                 f"ERROR: {err}", reply_markup=keyboard
             )
 
@@ -2307,7 +2307,7 @@ async def melong_scrap(_, callback_query, strings):
     except QueryIdInvalid:
         return
     except KeyError:
-        return await callback_query.message.edit_msg(strings("invalid_cb"))
+        return await callback_query.message.edit(strings("invalid_cb"))
 
     keyboard = InlineKeyboard()
     keyboard.row(
@@ -2327,16 +2327,16 @@ async def melong_scrap(_, callback_query, strings):
                 hardsub = ep.findPrevious("div")
                 softsub = ep.findNext("div")
                 rep += f"{hardsub}\n{softsub}"
-            await callback_query.message.edit_msg(
+            await callback_query.message.edit(
                 strings("res_scrape").format(link=link, kl=rep), reply_markup=keyboard
             )
         except httpx.HTTPError as exc:
-            await callback_query.message.edit_msg(
+            await callback_query.message.edit(
                 f"HTTP Exception for {exc.request.url} - <code>{exc}</code>",
                 reply_markup=keyboard,
             )
         except Exception as err:
-            await callback_query.message.edit_msg(
+            await callback_query.message.edit(
                 f"ERROR: {err}", reply_markup=keyboard
             )
 
@@ -2355,7 +2355,7 @@ async def gomov_dl(_, callback_query, strings):
     except QueryIdInvalid:
         return
     except KeyError:
-        return await callback_query.message.edit_msg(strings("invalid_cb"))
+        return await callback_query.message.edit(strings("invalid_cb"))
 
     keyboard = InlineKeyboard()
     keyboard.row(
@@ -2376,16 +2376,16 @@ async def gomov_dl(_, callback_query, strings):
                 title = i.find("a").text
                 ddl = i.find("a")["href"]
                 hasil += f"\n{title}\n{ddl}\n"
-            await callback_query.message.edit_msg(
+            await callback_query.message.edit(
                 strings("res_scrape").format(link=link, kl=hasil), reply_markup=keyboard
             )
         except httpx.HTTPError as exc:
-            await callback_query.message.edit_msg(
+            await callback_query.message.edit(
                 f"HTTP Exception for {exc.request.url} - <code>{exc}</code>",
                 reply_markup=keyboard,
             )
         except Exception as err:
-            await callback_query.message.edit_msg(
+            await callback_query.message.edit(
                 f"ERROR: {err}", reply_markup=keyboard
             )
 
@@ -2401,7 +2401,7 @@ async def lendrive_dl(_, callback_query, strings):
     try:
         link = savedict[message_id][0][CurrentPage - 1][idlink - 1].get("link")
     except KeyError:
-        return await callback_query.message.edit_msg(strings("invalid_cb"))
+        return await callback_query.message.edit(strings("invalid_cb"))
 
     keyboard = InlineKeyboard()
     keyboard.row(
@@ -2426,16 +2426,16 @@ async def lendrive_dl(_, callback_query, strings):
                     f"[ <a href='{a.get('href')}'>{a.text}</a> ]\n"
                     for a in i.findAll("a")
                 )
-            await callback_query.message.edit_msg(
+            await callback_query.message.edit(
                 strings("res_scrape").format(link=link, kl=kl), reply_markup=keyboard
             )
         except httpx.HTTPError as exc:
-            await callback_query.message.edit_msg(
+            await callback_query.message.edit(
                 f"HTTP Exception for {exc.request.url} - <code>{exc}</code>",
                 reply_markup=keyboard,
             )
         except Exception as err:
-            await callback_query.message.edit_msg(
+            await callback_query.message.edit(
                 f"ERROR: {err}", reply_markup=keyboard
             )
 
@@ -2478,8 +2478,8 @@ async def muviku_scrap(_, message, strings):
                 return await message.reply(strings("no_result"))
             if total_links > 70:
                 url = await post_to_telegraph(False, link, "<br>".join(output))
-                return await message.reply_msg(f"Your result is too long, i have pasted your result on Telegraph:\n{url}")
-            await message.reply_msg("\n".join(output))
+                return await message.reply(f"Your result is too long, i have pasted your result on Telegraph:\n{url}")
+            await message.reply("\n".join(output))
         except IndexError:
             return await message.reply(
                 strings("invalid_cmd_scrape").format(cmd=message.command[0])

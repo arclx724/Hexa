@@ -77,12 +77,12 @@ def get_subname(lang, url, ext):
 @use_chat_lang()
 async def ceksub(self, ctx: Message, strings):
     if len(ctx.command) == 1:
-        return await ctx.reply_msg(
+        return await ctx.reply(
             strings("sub_extr_help").format(cmd=ctx.command[0]), del_in=5
         )
     link = ctx.command[1]
     start_time = time()
-    pesan = await ctx.reply_msg(strings("progress_str"))
+    pesan = await ctx.reply(strings("progress_str"))
     try:
         res = (
             await shell_exec(
@@ -116,13 +116,13 @@ async def ceksub(self, ctx: Message, strings):
         buttons.append(
             [InlineKeyboardButton(strings("cancel_btn"), f"close#{ctx.from_user.id}")]
         )
-        await pesan.edit_msg(
+        await pesan.edit(
             strings("press_btn_msg").format(timelog=get_readable_time(timelog)),
             reply_markup=InlineKeyboardMarkup(buttons),
         )
     except Exception as e:
         self.log.info(traceback.print_exc())
-        await pesan.edit_msg(strings("fail_extr_media"))
+        await pesan.edit(strings("fail_extr_media"))
 
 
 @app.on_message(filters.command(["converttosrt", "converttoass"], COMMAND_HANDLER))
@@ -136,10 +136,10 @@ async def convertsrt(self: Client, ctx: Message, strings):
         or not reply.document.file_name
         or not reply.document.file_name.endswith((".vtt", ".ass", ".srt"))
     ):
-        return await ctx.reply_msg(
+        return await ctx.reply(
             strings("conv_sub_help").format(cmd=ctx.command[0]), del_in=6
         )
-    msg = await ctx.reply_msg(strings("convert_str"))
+    msg = await ctx.reply(strings("convert_str"))
     if not os.path.exists("downloads"):
         os.makedirs("downloads")
     dl = await reply.download(file_name="downloads/")
@@ -177,7 +177,7 @@ async def stream_extract(self: Client, update: CallbackQuery, strings):
         link = update.message.reply_to_message.command[1]
     except:
         return await update.answer(strings("invalid_cb"), True)
-    await update.message.edit_msg(strings("progress_str"))
+    await update.message.edit(strings("progress_str"))
     if codec == "aac":
         ext = "aac"
     elif codec == "mp3":
@@ -215,4 +215,4 @@ async def stream_extract(self: Client, update: CallbackQuery, strings):
             os.remove(namafile)
         except:
             pass
-        await update.message.edit_msg(strings("fail_extr_sub").format(link=link, e=e))
+        await update.message.edit(strings("fail_extr_sub").format(link=link, e=e))

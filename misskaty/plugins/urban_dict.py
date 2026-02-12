@@ -52,11 +52,11 @@ async def urbanDictionary(_, ctx: Message):
     try:
         UDReasult, PageLen = await getData(chat_id, message_id, GetWord, CurrentPage)
     except:
-        return await ctx.reply_msg("😭 Failed getting info from urban dictionary.")
+        return await ctx.reply("😭 Failed getting info from urban dictionary.")
 
     keyboard = InlineKeyboard()
     keyboard.paginate(PageLen, CurrentPage, "pagination_urban#{number}" + f"#{GetWord}")
-    await ctx.reply_msg(text=f"{UDReasult}", reply_markup=keyboard)
+    await ctx.reply(text=f"{UDReasult}", reply_markup=keyboard)
 
 
 @app.on_cb("pagination_urban#")
@@ -73,4 +73,4 @@ async def ud_callback(_, callback_query: CallbackQuery):
 
     keyboard = InlineKeyboard()
     keyboard.paginate(PageLen, CurrentPage, "pagination_urban#{number}" + f"#{GetWord}")
-    await callback_query.message.edit_msg(text=UDReasult, reply_markup=keyboard)
+    await callback_query.message.edit(text=UDReasult, reply_markup=keyboard)

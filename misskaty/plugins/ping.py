@@ -26,17 +26,17 @@ PING_LOCK = Lock()
 async def ping(_, ctx: Message):
     currentTime = get_readable_time(time.time() - botStartTime)
     start_t = time.time()
-    rm = await ctx.reply_msg("🐱 Pong!!...")
+    rm = await ctx.reply("🐱 Pong!!...")
     end_t = time.time()
     time_taken_s = round(end_t - start_t, 3)
-    await rm.edit_msg(
+    await rm.edit(
         f"<b>🐈 MissKatyBot {misskaty_version} based Pyrogram {pyrover} Online.</b>\n\n<b>Ping:</b> <code>{time_taken_s} detik</code>\n<b>Uptime:</b> <code>{currentTime}</code>\n<b>Python Version:</b> <code>{platform.python_version()}</code>"
     )
 
 
 @app.on_message(filters.command(["ping_dc"], COMMAND_HANDLER))
 async def ping_handler(_, ctx: Message):
-    m = await ctx.reply_msg("Pinging datacenters...")
+    m = await ctx.reply("Pinging datacenters...")
     async with PING_LOCK:
         ips = {
             "dc1": "149.154.175.53",
@@ -63,4 +63,4 @@ async def ping_handler(_, ctx: Message):
             except Exception:
                 # There's a cross emoji here, but it's invisible.
                 text += f"    **{dc.upper}:** ❌\n"
-        await m.edit_msg(text)
+        await m.edit(text)

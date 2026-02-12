@@ -173,7 +173,7 @@ async def member_has_joined(c: Client, member: ChatMemberUpdated, strings):
 @app.adminsOnly("can_change_info")
 async def welcome_toggle_handler(client, message):
     is_enabled = await toggle_welcome(message.chat.id)
-    await message.reply_msg(
+    await message.reply(
         f"Welcome messages are now {'enabled' if is_enabled else 'disabled'}."
     )
 
@@ -230,7 +230,7 @@ async def adminlist(_, message):
     if message.chat.type == enums.ChatType.PRIVATE:
         return await message.reply("Perintah ini hanya untuk grup")
     try:
-        msg = await message.reply_msg(f"Getting admin list in {message.chat.title}..")
+        msg = await message.reply(f"Getting admin list in {message.chat.title}..")
         administrators = []
         async for m in app.get_chat_members(
             message.chat.id, filter=enums.ChatMembersFilter.ADMINISTRATORS
@@ -239,7 +239,7 @@ async def adminlist(_, message):
             administrators.append(f"{m.user.first_name} [{uname}]")
 
         res = "".join(f"💠 {i}\n" for i in administrators)
-        return await msg.edit_msg(
+        return await msg.edit(
             f"Admin in <b>{message.chat.title}</b> ({message.chat.id}):\n{res}"
         )
     except Exception as e:

@@ -229,12 +229,12 @@ async def _toggle_layout_field(user_id: int, field_key: str):
 @app.on_cmd("imdb")
 async def imdb_choose(_, ctx: Message):
     if len(ctx.command) == 1:
-        return await ctx.reply_msg(
+        return await ctx.reply(
             f"ℹ️ Please add query after CMD!\nEx: <code>/{ctx.command[0]} Jurassic World</code>",
             del_in=7,
         )
     if ctx.sender_chat:
-        return await ctx.reply_msg(
+        return await ctx.reply(
             "Cannot identify user, please use in private chat.", del_in=7
         )
     kuery = ctx.text.split(None, 1)[1]
@@ -253,7 +253,7 @@ async def imdb_choose(_, ctx: Message):
     )
     buttons.row(InlineButton("🚩 Set Default Language", f"imdbset#{ctx.from_user.id}"))
     buttons.row(InlineButton("❌ Close", f"close#{ctx.from_user.id}"))
-    await ctx.reply_msg(
+    await ctx.reply(
         f"Hi {ctx.from_user.mention}, Please select the language you want to use on IMDB Search. If you want use default lang for every user, click third button. So no need click select lang if use CMD.\n\nTimeout: 10s",
         reply_markup=buttons,
     )
@@ -262,7 +262,7 @@ async def imdb_choose(_, ctx: Message):
 @app.on_cmd("imdbtemplate")
 async def imdb_template(_, ctx: Message):
     if ctx.sender_chat:
-        return await ctx.reply_msg(
+        return await ctx.reply(
             "Cannot identify user, please use in private chat.", del_in=7
         )
     if len(ctx.command) == 1:
@@ -277,13 +277,13 @@ async def imdb_template(_, ctx: Message):
             "{imdb_url}, {trailer_url}, {poster_url}, {imdb_code}, {locale}"
         )
         if template:
-            return await ctx.reply_msg(
+            return await ctx.reply(
                 "✅ Current IMDb template:\n"
                 f"<blockquote><code>{template}</code></blockquote>\n"
                 "Use <code>/imdbtemplate reset</code> to remove it.\n\n"
                 f"Available placeholders:\n<code>{placeholders}</code>"
             )
-        return await ctx.reply_msg(
+        return await ctx.reply(
             "Set a custom IMDb template:\n"
             "<code>/imdbtemplate Title: {title}\\nType: {movie_type}</code>\n\n"
             f"Available placeholders:\n<code>{placeholders}</code>\n\n"
@@ -295,12 +295,12 @@ async def imdb_template(_, ctx: Message):
     lowered = template_arg.lower()
     if lowered in {"reset", "remove", "delete", "default"}:
         await remove_imdb_template(ctx.from_user.id)
-        return await ctx.reply_msg("✅ IMDb template removed.")
+        return await ctx.reply("✅ IMDb template removed.")
     if lowered == "show":
         current = await get_imdb_template(ctx.from_user.id)
         if not current:
-            return await ctx.reply_msg("⚠️ IMDb template belum diatur.")
-        return await ctx.reply_msg(
+            return await ctx.reply("⚠️ IMDb template belum diatur.")
+        return await ctx.reply(
             f"✅ Current IMDb template:\n<blockquote><code>{current}</code></blockquote>"
         )
     if lowered.startswith("set"):
@@ -308,25 +308,25 @@ async def imdb_template(_, ctx: Message):
         if not template_value and ctx.reply_to_message:
             template_value = ctx.reply_to_message.text or ctx.reply_to_message.caption
         if not template_value:
-            return await ctx.reply_msg(
+            return await ctx.reply(
                 "⚠️ Please provide a template after <code>/imdbtemplate set</code> "
                 "or reply to a message containing the template."
             )
         await set_imdb_template(ctx.from_user.id, template_value)
-        return await ctx.reply_msg("✅ IMDb template updated.")
+        return await ctx.reply("✅ IMDb template updated.")
     await set_imdb_template(ctx.from_user.id, template_arg)
-    await ctx.reply_msg("✅ IMDb template updated.")
+    await ctx.reply("✅ IMDb template updated.")
 
 
 @app.on_cmd("imdbby")
 async def imdb_by_cmd(_, ctx: Message):
     if ctx.sender_chat:
-        return await ctx.reply_msg(
+        return await ctx.reply(
             "Cannot identify user, please use in private chat.", del_in=7
         )
     if len(ctx.command) == 1:
         current = await get_imdb_by(ctx.from_user.id)
-        return await ctx.reply_msg(
+        return await ctx.reply(
             "Set IMDb by text:\n"
             "<code>/imdbby YourTextHere</code>\n"
             "Remove with <code>/imdbby remove</code>.\n\n"
@@ -335,20 +335,20 @@ async def imdb_by_cmd(_, ctx: Message):
     value = ctx.text.split(None, 1)[1].strip()
     if value.lower() in {"remove", "reset", "delete"}:
         await remove_imdb_by(ctx.from_user.id)
-        return await ctx.reply_msg("✅ IMDb by removed.")
+        return await ctx.reply("✅ IMDb by removed.")
     await set_imdb_by(ctx.from_user.id, value)
-    await ctx.reply_msg("✅ IMDb by updated.")
+    await ctx.reply("✅ IMDb by updated.")
 
 
 @app.on_cmd("imdbset")
 async def imdb_settings_cmd(_, ctx: Message):
     if ctx.sender_chat:
-        return await ctx.reply_msg(
+        return await ctx.reply(
             "Cannot identify user, please use in private chat.", del_in=7
         )
     caption = _imdb_settings_caption(ctx.from_user.first_name)
     buttons = _imdb_settings_keyboard(ctx.from_user.id)
-    await ctx.reply_msg(caption, reply_markup=buttons)
+    await ctx.reply(caption, reply_markup=buttons)
 
 
 @app.on_cb("imdbset#")
@@ -359,7 +359,7 @@ async def imdblangset(_, query: CallbackQuery):
     buttons = _imdb_settings_keyboard(query.from_user.id)
     caption = _imdb_settings_caption(query.from_user.first_name)
     with contextlib.suppress(MessageIdInvalid, MessageNotModified):
-        await query.message.edit_msg(caption, reply_markup=buttons)
+        await query.message.edit(caption, reply_markup=buttons)
 
 
 @app.on_cb("imdbsetlang#")
@@ -388,7 +388,7 @@ async def imdb_lang_menu(_, query: CallbackQuery):
         [InlineKeyboardButton("↩️ Back", callback_data=f"imdbset#{query.from_user.id}")]
     )
     with contextlib.suppress(MessageIdInvalid, MessageNotModified):
-        await query.message.edit_msg(
+        await query.message.edit(
             "<i>Please select available language below..</i>", reply_markup=buttons
         )
 
@@ -405,7 +405,7 @@ async def imdb_layout_toggle(_, query: CallbackQuery):
     caption = _imdb_settings_caption(query.from_user.first_name)
     buttons = _imdb_settings_keyboard(query.from_user.id)
     with contextlib.suppress(MessageIdInvalid, MessageNotModified):
-        await query.message.edit_msg(caption, reply_markup=buttons)
+        await query.message.edit(caption, reply_markup=buttons)
 
 
 @app.on_cb("imdblayoutmenu#")
@@ -416,7 +416,7 @@ async def imdb_layout_menu(_, query: CallbackQuery):
     hidden = await _get_hidden_layout_fields(query.from_user.id)
     buttons = _layout_keyboard(hidden, query.from_user.id)
     with contextlib.suppress(MessageIdInvalid, MessageNotModified):
-        await query.message.edit_msg(_imdb_layout_caption(), reply_markup=buttons)
+        await query.message.edit(_imdb_layout_caption(), reply_markup=buttons)
 
 
 @app.on_cb("imdblayouttoggle#")
@@ -429,7 +429,7 @@ async def imdb_layout_toggle_field(_, query: CallbackQuery):
     hidden = await _toggle_layout_field(query.from_user.id, field_key)
     buttons = _layout_keyboard(hidden, query.from_user.id)
     with contextlib.suppress(MessageIdInvalid, MessageNotModified):
-        await query.message.edit_msg(_imdb_layout_caption(), reply_markup=buttons)
+        await query.message.edit(_imdb_layout_caption(), reply_markup=buttons)
 
 
 @app.on_cb("imdblayoutreset#")
@@ -442,7 +442,7 @@ async def imdb_layout_reset(_, query: CallbackQuery):
     await reset_imdb_layout_fields(query.from_user.id)
     buttons = _layout_keyboard(set(), query.from_user.id)
     with contextlib.suppress(MessageIdInvalid, MessageNotModified):
-        await query.message.edit_msg(_imdb_layout_caption(), reply_markup=buttons)
+        await query.message.edit(_imdb_layout_caption(), reply_markup=buttons)
 
 
 @app.on_cb("imdbtemplatemenu#")
@@ -511,7 +511,7 @@ async def imdb_template_menu(_, query: CallbackQuery):
         ]
     )
     with contextlib.suppress(MessageIdInvalid, MessageNotModified):
-        await query.message.edit_msg(text, reply_markup=buttons)
+        await query.message.edit(text, reply_markup=buttons)
 
 
 @app.on_cb("imdby#")
@@ -533,7 +533,7 @@ async def imdb_by_menu(_, query: CallbackQuery):
         ]
     )
     with contextlib.suppress(MessageIdInvalid, MessageNotModified):
-        await query.message.edit_msg(text, reply_markup=buttons)
+        await query.message.edit(text, reply_markup=buttons)
 
 
 @app.on_cb("setimdb")
@@ -563,12 +563,12 @@ async def imdbsetlang(_, query: CallbackQuery):
         ]
     )
     with contextlib.suppress(MessageIdInvalid, MessageNotModified):
-        await query.message.edit_msg(msg_text, reply_markup=buttons)
+        await query.message.edit(msg_text, reply_markup=buttons)
 
 
 async def imdb_search_id(kueri, message):
     BTN = []
-    k = await message.reply_msg(
+    k = await message.reply(
         f"🔎 Menelusuri <code>{kueri}</code> di database IMDb ...",
     )
     msg = ""
@@ -581,7 +581,7 @@ async def imdb_search_id(kueri, message):
             r.raise_for_status()
             res = r.json().get("d")
             if not res:
-                return await k.edit_msg(
+                return await k.edit(
                     f"⛔️ Tidak ditemukan hasil untuk kueri: <code>{kueri}</code>"
                 )
             msg += (
@@ -617,20 +617,20 @@ async def imdb_search_id(kueri, message):
                 )
             )
             buttons.add(*BTN)
-            await k.edit_msg(msg, reply_markup=buttons)
+            await k.edit(msg, reply_markup=buttons)
         except httpx.HTTPError as exc:
-            await k.edit_msg(f"HTTP Exception for IMDB Search - <code>{exc}</code>")
+            await k.edit(f"HTTP Exception for IMDB Search - <code>{exc}</code>")
         except (MessageIdInvalid, MessageNotModified):
             pass
         except Exception as err:
-            await k.edit_msg(
+            await k.edit(
                 f"Ooppss, gagal mendapatkan daftar judul di IMDb. Mungkin terkena rate limit atau down.\n\n<b>ERROR:</b> <code>{err}</code>"
             )
 
 
 async def imdb_search_en(kueri, message):
     BTN = []
-    k = await message.reply_msg(
+    k = await message.reply(
         f"🔎 Searching <code>{kueri}</code> in IMDb Database...",
     )
     msg = ""
@@ -643,7 +643,7 @@ async def imdb_search_en(kueri, message):
             r.raise_for_status()
             res = r.json().get("d")
             if not res:
-                return await k.edit_msg(
+                return await k.edit(
                     f"⛔️ Result not found for keywords: <code>{kueri}</code>"
                 )
             msg += (
@@ -679,13 +679,13 @@ async def imdb_search_en(kueri, message):
                 )
             )
             buttons.add(*BTN)
-            await k.edit_msg(msg, reply_markup=buttons)
+            await k.edit(msg, reply_markup=buttons)
         except httpx.HTTPError as exc:
-            await k.edit_msg(f"HTTP Exception for IMDB Search - <code>{exc}</code>")
+            await k.edit(f"HTTP Exception for IMDB Search - <code>{exc}</code>")
         except (MessageIdInvalid, MessageNotModified):
             pass
         except Exception as err:
-            await k.edit_msg(
+            await k.edit(
                 f"Failed when requesting movies title. Maybe got rate limit or down.\n\n<b>ERROR:</b> <code>{err}</code>"
             )
 
@@ -701,9 +701,9 @@ async def imdbcari(_, query: CallbackQuery):
             kueri = LIST_CARI.get(msg)
             del LIST_CARI[msg]
         except KeyError:
-            return await query.message.edit_msg("⚠️ Callback Query Sudah Expired!")
+            return await query.message.edit("⚠️ Callback Query Sudah Expired!")
         with contextlib.suppress(MessageIdInvalid, MessageNotModified):
-            await query.message.edit_msg("<i>🔎 Sedang mencari di Database IMDB..</i>")
+            await query.message.edit("<i>🔎 Sedang mencari di Database IMDB..</i>")
         msg = ""
         buttons = InlineKeyboard(row_width=4)
         with contextlib.redirect_stdout(sys.stderr):
@@ -714,7 +714,7 @@ async def imdbcari(_, query: CallbackQuery):
                 r.raise_for_status()
                 res = r.json().get("d")
                 if not res:
-                    return await query.message.edit_msg(
+                    return await query.message.edit(
                         f"⛔️ Tidak ditemukan hasil untuk kueri: <code>{kueri}</code>"
                     )
                 msg += f"🎬 Ditemukan ({len(res)}) hasil dari: <code>{kueri}</code> ~ {query.from_user.mention}\n\n"
@@ -745,15 +745,15 @@ async def imdbcari(_, query: CallbackQuery):
                     )
                 )
                 buttons.add(*BTN)
-                await query.message.edit_msg(msg, reply_markup=buttons)
+                await query.message.edit(msg, reply_markup=buttons)
             except httpx.HTTPError as exc:
-                await query.message.edit_msg(
+                await query.message.edit(
                     f"HTTP Exception for IMDB Search - <code>{exc}</code>"
                 )
             except (MessageIdInvalid, MessageNotModified):
                 pass
             except Exception as err:
-                await query.message.edit_msg(
+                await query.message.edit(
                     f"Ooppss, gagal mendapatkan daftar judul di IMDb. Mungkin terkena rate limit atau down.\n\n<b>ERROR:</b> <code>{err}</code>"
                 )
     else:
@@ -763,8 +763,8 @@ async def imdbcari(_, query: CallbackQuery):
             kueri = LIST_CARI.get(msg)
             del LIST_CARI[msg]
         except KeyError:
-            return await query.message.edit_msg("⚠️ Callback Query Expired!")
-        await query.message.edit_msg("<i>🔎 Looking in the IMDB Database..</i>")
+            return await query.message.edit("⚠️ Callback Query Expired!")
+        await query.message.edit("<i>🔎 Looking in the IMDB Database..</i>")
         msg = ""
         buttons = InlineKeyboard(row_width=4)
         with contextlib.redirect_stdout(sys.stderr):
@@ -775,7 +775,7 @@ async def imdbcari(_, query: CallbackQuery):
                 r.raise_for_status()
                 res = r.json().get("d")
                 if not res:
-                    return await query.message.edit_msg(
+                    return await query.message.edit(
                         f"⛔️ Result not found for keywords: <code>{kueri}</code>"
                     )
                 msg += f"🎬 Found ({len(res)}) result for keywords: <code>{kueri}</code> ~ {query.from_user.mention}\n\n"
@@ -806,15 +806,15 @@ async def imdbcari(_, query: CallbackQuery):
                     )
                 )
                 buttons.add(*BTN)
-                await query.message.edit_msg(msg, reply_markup=buttons)
+                await query.message.edit(msg, reply_markup=buttons)
             except httpx.HTTPError as exc:
-                await query.message.edit_msg(
+                await query.message.edit(
                     f"HTTP Exception for IMDB Search - <code>{exc}</code>"
                 )
             except (MessageIdInvalid, MessageNotModified):
                 pass
             except Exception as err:
-                await query.message.edit_msg(
+                await query.message.edit(
                     f"Failed when requesting movies title. Maybe got rate limit or down.\n\n<b>ERROR:</b> <code>{err}</code>"
                 )
 
@@ -826,7 +826,7 @@ async def imdb_id_callback(self: Client, query: CallbackQuery):
         return await query.answer("⚠️ Akses Ditolak!", True)
     with contextlib.redirect_stdout(sys.stderr):
         try:
-            await query.message.edit_msg("⏳ Permintaan kamu sedang diproses.. ")
+            await query.message.edit("⏳ Permintaan kamu sedang diproses.. ")
             imdb_url = f"https://m.imdb.com/title/tt{movie}/"
             resp = await fetch.get(imdb_url)
             resp.raise_for_status()
@@ -1168,7 +1168,7 @@ async def imdb_id_callback(self: Client, query: CallbackQuery):
             disable_web_preview = "web_preview" in hidden_fields
             send_as_photo = "send_as_photo" not in hidden_fields
             if not send_as_photo:
-                await query.message.edit_msg(
+                await query.message.edit(
                     res_str,
                     parse_mode=enums.ParseMode.HTML,
                     reply_markup=markup,
@@ -1200,7 +1200,7 @@ async def imdb_id_callback(self: Client, query: CallbackQuery):
                     WebpageCurlFailed,
                     MessageNotModified,
                 ):
-                    await query.message.edit_msg(
+                    await query.message.edit(
                         res_str,
                         parse_mode=enums.ParseMode.HTML,
                         reply_markup=markup,
@@ -1211,25 +1211,25 @@ async def imdb_id_callback(self: Client, query: CallbackQuery):
                         f"Terjadi error saat menampilkan data IMDB. ERROR: {err}"
                     )
                     with contextlib.suppress(MessageNotModified, MessageIdInvalid):
-                        await query.message.edit_msg(
+                        await query.message.edit(
                             res_str,
                             parse_mode=enums.ParseMode.HTML,
                             reply_markup=markup,
                             link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=disable_web_preview),
                         )
             else:
-                await query.message.edit_msg(
+                await query.message.edit(
                     res_str,
                     parse_mode=enums.ParseMode.HTML,
                     reply_markup=markup,
                     link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=disable_web_preview),
                 )
         except httpx.HTTPError as exc:
-            await query.message.edit_msg(
+            await query.message.edit(
                 f"HTTP Exception for IMDB Search - <code>{exc}</code>"
             )
         except AttributeError:
-            await query.message.edit_msg("Maaf, gagal mendapatkan info data dari IMDB.")
+            await query.message.edit("Maaf, gagal mendapatkan info data dari IMDB.")
         except (MessageNotModified, MessageIdInvalid):
             pass
 
@@ -1241,7 +1241,7 @@ async def imdb_en_callback(self: Client, query: CallbackQuery):
         return await query.answer("⚠️ Access Denied!", True)
     with contextlib.redirect_stdout(sys.stderr):
         try:
-            await query.message.edit_msg("<i>⏳ Getting IMDb source..</i>")
+            await query.message.edit("<i>⏳ Getting IMDb source..</i>")
             imdb_url = f"https://m.imdb.com/title/tt{movie}/"
             resp = await fetch.get(imdb_url)
             resp.raise_for_status()
@@ -1581,7 +1581,7 @@ async def imdb_en_callback(self: Client, query: CallbackQuery):
             disable_web_preview = "web_preview" in hidden_fields
             send_as_photo = "send_as_photo" not in hidden_fields
             if not send_as_photo:
-                await query.message.edit_msg(
+                await query.message.edit(
                     res_str,
                     parse_mode=enums.ParseMode.HTML,
                     reply_markup=markup,
@@ -1613,7 +1613,7 @@ async def imdb_en_callback(self: Client, query: CallbackQuery):
                     MediaEmpty,
                     MessageNotModified,
                 ):
-                    await query.message.edit_msg(
+                    await query.message.edit(
                         res_str,
                         parse_mode=enums.ParseMode.HTML,
                         reply_markup=markup,
@@ -1622,24 +1622,24 @@ async def imdb_en_callback(self: Client, query: CallbackQuery):
                 except Exception as err:
                     LOGGER.error(f"Error while displaying IMDB Data. ERROR: {err}")
                     with contextlib.suppress(MessageNotModified, MessageIdInvalid):
-                        await query.message.edit_msg(
+                        await query.message.edit(
                             res_str,
                             parse_mode=enums.ParseMode.HTML,
                             reply_markup=markup,
                             link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=disable_web_preview),
                         )
             else:
-                await query.message.edit_msg(
+                await query.message.edit(
                     res_str,
                     parse_mode=enums.ParseMode.HTML,
                     reply_markup=markup,
                     link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=disable_web_preview),
                 )
         except httpx.HTTPError as exc:
-            await query.message.edit_msg(
+            await query.message.edit(
                 f"HTTP Exception for IMDB Search - <code>{exc}</code>"
             )
         except AttributeError:
-            await query.message.edit_msg("Sorry, failed getting data from IMDB.")
+            await query.message.edit("Sorry, failed getting data from IMDB.")
         except (MessageNotModified, MessageIdInvalid):
             pass

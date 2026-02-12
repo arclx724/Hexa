@@ -60,8 +60,15 @@ class ConversationManager:
         timeout: Optional[float],
     ) -> Message:
         key = (chat_id, from_user_id if from_user_id is not None else _ANY_USER)
-        if key in self._futures:
-            raise ListenerTimeout("Another conversation is already running for this target")
+        existing = self._futures.get(key)
+        if existing is not None:
+            existing_future, _ = existing
+            if existing_future.done() or existing_future.cancelled():
+                self._futures.pop(key, None)
+            else:
+                raise ListenerTimeout(
+                    "Another conversation is already running for this target"
+                )
 
         future = asyncio.get_running_loop().create_future()
         self._futures[key] = (future, flt)

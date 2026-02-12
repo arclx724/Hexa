@@ -11,7 +11,7 @@ data = {}
 async def task(msg, warn=False, sec=None):
     if warn:
         user = msg.from_user or msg.sender_chat
-        ids = await msg.reply_msg(
+        ids = await msg.reply(
             f"Sorry {user.mention if msg.from_user else msg.sender_chat.title} [<code>{user.id}</code>], you must wait for {sec}s before using this feature again.."
         )
         try:
@@ -19,7 +19,7 @@ async def task(msg, warn=False, sec=None):
         except MessageDeleteForbidden:
             pass
         await asyncio.sleep(sec)
-        await ids.edit_msg(
+        await ids.edit(
             f"Alright {user.mention if msg.from_user else msg.sender_chat.title} [<code>{user.id}</code>], your cooldown is over you can command again.",
             del_in=3,
         )
