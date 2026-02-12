@@ -47,7 +47,7 @@ async def get_openai_stream_response(is_stream, key, base_url, model, messages, 
                     link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
                 )
             else:
-                await bmsg.edit(f"{html.escape(answer)}\n\n<b>Powered by:</b> <code>Gemini 2.5 Flash</code>")
+                await bmsg.edit(f"{html.escape(answer)}\n\n<b><emoji id=5886440807325504167>✨</emoji> Powered by:</b> <code>Gemini 2.5 Flash</code>")
         else:
             async for chunk in response:
                 if not chunk.choices or not chunk.choices[0].delta.content:
@@ -65,7 +65,7 @@ async def get_openai_stream_response(is_stream, key, base_url, model, messages, 
                     link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
                 )
             else:
-                await bmsg.edit(f"{html.escape(answer)}\n\n<b>Powered by:</b> <code>DeepSeek</code>")
+                await bmsg.edit(f"{html.escape(answer)}\n\n<b><emoji id=5886440807325504167>✨</emoji> Powered by:</b> <code>DeepSeek</code>")
     except APIConnectionError as e:
         await bmsg.edit(f"The server could not be reached because {e.__cause__}")
         return None
