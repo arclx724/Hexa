@@ -5,6 +5,7 @@ import time
 from pyrogram import filters
 from pyrogram.types import Message
 
+from database.users_chats_db import db
 from misskaty import app
 from misskaty.vars import OWNER_ID
 from utils import broadcast_messages
@@ -12,21 +13,18 @@ from utils import broadcast_messages
 
 @app.on_message(filters.command("broadcast") & filters.user(OWNER_ID) & filters.reply)
 async def broadcast(_, ctx: Message):
-    userdb = app.db["peers"]
     b_msg = ctx.reply_to_message
     sts = await ctx.reply("Broadcasting your messages...")
     start_time = time.time()
-    total_users = await userdb.count_documents({})
+    total_users = await db.total_users_count()
     done = 0
     blocked = 0
     deleted = 0
     failed = 0
 
     success = 0
-    async for chat in userdb.find({"type": "user"}):
-        if chat["type"] != "user":
-            continue
-        pti, sh = await broadcast_messages(int(chat["_id"]), b_msg)
+    async for user in await db.get_all_users():
+        pti, sh = await broadcast_messages(int(user["id"]), b_msg)
         if pti:
             success += 1
         elif pti is False:
