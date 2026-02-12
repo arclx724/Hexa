@@ -12,11 +12,13 @@ import uvloop, uvicorn
 from beanie import init_beanie
 from apscheduler.jobstores.mongodb import MongoDBJobStore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from async_pymongo import AsyncClient
 from pymongo import MongoClient
 from pyrogram import Client
+
+from database import Database
 from web.webserver import api
 
+from misskaty.core.client import MissKatyClient
 from misskaty.core.storage import MongoStorage
 from misskaty.core.storage.models import all_models
 from misskaty.vars import (
@@ -58,7 +60,9 @@ faulthandler_enable()
 from misskaty.core import misskaty_patch
 storage_session = MongoStorage(name=BOT_TOKEN.split(":")[0], remove_peers=False)
 # Pyrogram Bot Client
-app = Client(
+app_db = Database(DATABASE_URI, DATABASE_NAME)
+
+app = MissKatyClient(
     "MissKatyBot",
     api_id=API_ID,
     api_hash=API_HASH,
@@ -68,8 +72,8 @@ app = Client(
     app_version="MissKatyPyro Stable",
     workers=50,
     max_concurrent_transmissions=4,
+    database=app_db,
 )
-app.db = AsyncClient(DATABASE_URI)
 app.log = getLogger("MissKaty")
 
 # Pyrogram UserBot Client
@@ -88,7 +92,7 @@ jobstores = {
 scheduler = AsyncIOScheduler(jobstores=jobstores, timezone=TZ)
 
 async def init_storage_models():
-    await init_beanie(database=app.db[DATABASE_NAME], document_models=all_models)
+    await init_beanie(database=app.db, document_models=all_models)
 
 async def run_wsgi():
     config = uvicorn.Config(api, host="0.0.0.0", port=int(PORT))
