@@ -886,7 +886,7 @@ async def imdb_id_callback(self: Client, query: CallbackQuery):
             if rating := r_json.get("aggregateRating"):
                 rating_value = rating.get("ratingValue", "-")
                 rating_count = rating.get("ratingCount", "-")
-                res_str += f"<b>Peringkat:</b> <code>{rating_value}<emoji id=5958376256788502078>⭐</emoji>dari {rating_count} pengguna</code>\n"
+                res_str += f"<b>Peringkat:</b> <code>{rating_value}<emoji id=5958376256788502078>⭐</emoji> dari {rating_count} pengguna</code>\n"
             if release := sop.select('li[data-testid="title-details-releasedate"]'):
                 rilis = (
                     release[0]
@@ -1107,7 +1107,7 @@ async def imdb_id_callback(self: Client, query: CallbackQuery):
                     )
                 if "rating" in hidden_fields:
                     res_str = res_str.replace(
-                        f"<b>Peringkat:</b> <code>{rating_value}⭐️ dari {rating_count} pengguna</code>\n",
+                        f"<b>Peringkat:</b> <code>{rating_value}<emoji id=5958376256788502078>⭐</emoji> dari {rating_count} pengguna</code>\n",
                         "",
                     )
                 if "release_date" in hidden_fields:
