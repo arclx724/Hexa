@@ -132,7 +132,7 @@ def parse_quality_tree(info: dict) -> dict:
                 "label": f"{bitrate}kbps",
                 "format": "bestaudio/best",
                 "kind": "audio",
-                "ext": "mp3",
+                "ext": "m4a",
                 "bitrate": str(bitrate),
                 "size": estimate_audio_size(duration, bitrate),
             }
@@ -190,7 +190,7 @@ def quality_markup(cache_key: str, tree: dict) -> InlineKeyboardMarkup:
         if size_hint:
             label += f" ({humanbytes(size_hint)})"
         rows.append([InlineKeyboardButton(label, callback_data=f"yt_res|{cache_key}|{res}")])
-    rows.append([InlineKeyboardButton("🎧 Audio MP3", callback_data=f"yt_audio|{cache_key}")])
+    rows.append([InlineKeyboardButton("🎧 Audio AAC", callback_data=f"yt_audio|{cache_key}")])
     return InlineKeyboardMarkup(rows)
 
 
@@ -259,6 +259,11 @@ async def ytdownv2(_, ctx: Message, strings):
         "title": info.get("title") or "Untitled",
         "thumb": info.get("thumbnail") or "assets/thumb.jpg",
         "duration": int(info.get("duration") or 0),
+        "uploader": info.get("uploader") or info.get("channel") or "",
+        "artist": info.get("artist") or info.get("creator") or "",
+        "album": info.get("album") or "",
+        "track": info.get("track") or info.get("title") or "",
+        "release_date": info.get("release_date") or info.get("upload_date") or "",
         "quality_tree": tree,
         "user_id": ctx.from_user.id,
     }
@@ -345,8 +350,8 @@ async def ytdl_download_callback(self: Client, cq: CallbackQuery, strings):
         label = f"{res}p • {option['label']}"
     else:
         bitrate = callback[3]
-        option = {"kind": "audio", "ext": "mp3", "format": "bestaudio/best", "bitrate": bitrate}
-        label = f"MP3 {bitrate}kbps"
+        option = {"kind": "audio", "ext": "m4a", "codec": "aac", "format": "bestaudio/best", "bitrate": bitrate}
+        label = f"AAC {bitrate}kbps"
 
     job_id = rand_key()
     ACTIVE_DOWNLOADS[job_id] = {"cancelled": False, "downloaded": 0, "total": 0, "speed": 0, "eta": 0}
@@ -382,7 +387,11 @@ async def ytdl_download_callback(self: Client, cq: CallbackQuery, strings):
             "merge_output_format": "mp4",
         })
         if option["kind"] == "audio":
-            ydl_opts["postprocessors"] = [{"key": "FFmpegExtractAudio", "preferredcodec": "mp3", "preferredquality": option.get("bitrate", "192")}]
+            ydl_opts["postprocessors"] = [
+                {"key": "FFmpegExtractAudio", "preferredcodec": option.get("codec", "aac"), "preferredquality": option.get("bitrate", "192")},
+                {"key": "FFmpegMetadata", "add_metadata": True},
+                {"key": "EmbedThumbnail"},
+            ]
         with YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(data["url"], download=True)
             requested = info.get("requested_downloads") or []
@@ -430,37 +439,29 @@ async def ytdl_download_callback(self: Client, cq: CallbackQuery, strings):
         ACTIVE_DOWNLOADS.pop(job_id, None)
         return await cq.edit_message_caption("❌ Downloaded file not found.")
 
-    start = time.time()
-    last_upload_edit = 0.0
     thumb_file = await download_thumb_file(data.get("thumb"), job_id, output_dir)
 
-    async def upload_progress(current, total):
-        nonlocal last_upload_edit
-        if ACTIVE_DOWNLOADS.get(job_id, {}).get("cancelled"):
-            raise DownloadCancelled("Cancelled by user")
-        now = time.time()
-        if (now - last_upload_edit) < 7 and current != total:
-            return
-        last_upload_edit = now
-        percentage = current * 100 / total if total else 0
-        text = (
-            f"{PROCESS_TEXT}\n⬆️ Uploading <b>{os.path.basename(downloaded_file)}</b>\n"
-            f"{format_progress_bar(percentage)} {percentage:.2f}%\n"
-            f"{humanbytes(current)} / {humanbytes(total)}\n"
-            f"Elapsed: {time_formatter(int(time.time() - start)) or '0 seconds'}"
-        )
-        try:
-            await cq.edit_message_caption(text, parse_mode=ParseMode.HTML, reply_markup=cancel_markup)
-        except (MessageNotModified, QueryIdInvalid):
-            pass
+    try:
+        await cq.edit_message_caption("<emoji id=5319190934510904031>⏳</emoji> Uploading...", parse_mode=ParseMode.HTML, reply_markup=cancel_markup)
+    except (MessageNotModified, QueryIdInvalid):
+        pass
 
     try:
         if option["kind"] == "audio":
+            performer = data.get("artist") or data.get("uploader") or None
+            title = data.get("track") or data.get("title")
+            caption_lines = [f"<b>{data.get('title')}</b>"]
+            if data.get("album"):
+                caption_lines.append(f"Album: <code>{data.get('album')}</code>")
+            if data.get("release_date"):
+                caption_lines.append(f"Date: <code>{data.get('release_date')}</code>")
             media = InputMediaAudio(
                 media=downloaded_file,
-                caption=data["title"],
+                caption="\n".join(caption_lines),
+                parse_mode=ParseMode.HTML,
                 duration=data.get("duration") or None,
-                title=data["title"],
+                performer=performer,
+                title=title,
                 thumb=thumb_file,
             )
         else:
@@ -471,7 +472,6 @@ async def ytdl_download_callback(self: Client, cq: CallbackQuery, strings):
                 thumb=thumb_file,
                 supports_streaming=True,
             )
-        await upload_progress(0, 1)
         await self.edit_message_media(
             cq.message.chat.id,
             cq.message.id,
@@ -569,6 +569,11 @@ async def ytdl_gen_from_search(_, cq: CallbackQuery, strings):
         "title": info.get("title") or entry.get("title") or "Untitled",
         "thumb": info.get("thumbnail") or "assets/thumb.jpg",
         "duration": int(info.get("duration") or entry.get("duration") or 0),
+        "uploader": info.get("uploader") or info.get("channel") or "",
+        "artist": info.get("artist") or info.get("creator") or "",
+        "album": info.get("album") or "",
+        "track": info.get("track") or info.get("title") or entry.get("title") or "",
+        "release_date": info.get("release_date") or info.get("upload_date") or "",
         "quality_tree": tree,
         "user_id": cq.from_user.id,
     }
