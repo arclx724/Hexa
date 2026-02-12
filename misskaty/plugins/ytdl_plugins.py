@@ -61,6 +61,15 @@ def build_ydl_opts(extra: dict | None = None) -> dict:
         opts.update(extra)
     return opts
 
+def resolve_downloaded_file(output_dir: str, job_id: str, expected_ext: str | None = None) -> str | None:
+    candidates = sorted(Path(output_dir).glob(f"{job_id}.*"), key=lambda x: x.stat().st_mtime, reverse=True)
+    if expected_ext:
+        for file in candidates:
+            if file.suffix.lower() == f".{expected_ext.lower()}":
+                return str(file)
+    return str(candidates[0]) if candidates else None
+
+
 def parse_video_options(info: dict) -> list[dict]:
     options = []
     seen = set()
@@ -80,14 +89,16 @@ def parse_video_options(info: dict) -> list[dict]:
         )
         if len(options) >= 6:
             break
-    options.append(
-        {
-            "label": "🎧 Audio MP3",
-            "kind": "audio",
-            "format": "bestaudio/best",
-            "ext": "mp3",
-        }
-    )
+    for bitrate in (320, 192, 128):
+        options.append(
+            {
+                "label": f"🎧 Audio MP3 {bitrate}kbps",
+                "kind": "audio",
+                "format": "bestaudio/best",
+                "ext": "mp3",
+                "bitrate": str(bitrate),
+            }
+        )
     return options
 
 
@@ -237,7 +248,11 @@ async def ytdl_download_callback(self: Client, cq: CallbackQuery, strings):
             "merge_output_format": "mp4",
         })
         if option["kind"] == "audio":
-            ydl_opts["postprocessors"] = [{"key": "FFmpegExtractAudio", "preferredcodec": "mp3", "preferredquality": "192"}]
+            ydl_opts["postprocessors"] = [{
+                "key": "FFmpegExtractAudio",
+                "preferredcodec": "mp3",
+                "preferredquality": option.get("bitrate", "192"),
+            }]
         with YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(data["url"], download=True)
             return ydl.prepare_filename(info)
@@ -276,8 +291,8 @@ async def ytdl_download_callback(self: Client, cq: CallbackQuery, strings):
         ACTIVE_DOWNLOADS.pop(job_id, None)
         return await cq.edit_message_caption(f"❌ Download error: <code>{err}</code>", parse_mode=ParseMode.HTML)
 
-    if "%" in downloaded_file:
-        downloaded_file = next((os.path.join(output_dir, x) for x in os.listdir(output_dir) if x.startswith(job_id)), None)
+    if "%" in downloaded_file or not os.path.exists(downloaded_file):
+        downloaded_file = resolve_downloaded_file(output_dir, job_id, option.get("ext"))
     if not downloaded_file or not os.path.exists(downloaded_file):
         ACTIVE_DOWNLOADS.pop(job_id, None)
         return await cq.edit_message_caption("❌ Downloaded file not found.")
