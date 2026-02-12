@@ -2,7 +2,7 @@ import asyncio
 import datetime
 import time
 
-from async_pymongo import AsyncClient
+from pymongo import AsyncMongoClient
 from pyrogram import filters
 from pyrogram.types import Message
 
@@ -13,7 +13,7 @@ from utils import broadcast_messages
 
 @app.on_message(filters.command("broadcast") & filters.user(OWNER_ID) & filters.reply)
 async def broadcast(_, ctx: Message):
-    mongo = AsyncClient(DATABASE_URI)
+    mongo = AsyncMongoClient(DATABASE_URI)
     userdb = mongo["MissKatyBot"]["peers"]
     b_msg = ctx.reply_to_message
     sts = await ctx.reply_msg("Broadcasting your messages...")

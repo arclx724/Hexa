@@ -5,9 +5,9 @@
 * Copyright @YasirPedia All rights reserved
 """
 
-from async_pymongo import AsyncClient
+from pymongo import AsyncMongoClient
 
 from misskaty.vars import DATABASE_NAME, DATABASE_URI
 
-mongo = AsyncClient(DATABASE_URI)
+mongo = AsyncMongoClient(DATABASE_URI)
 dbname = mongo[DATABASE_NAME]

@@ -5,7 +5,8 @@ from os import remove as hapus
 import regex
 from PIL import Image, ImageDraw, ImageFont
 from pyrogram import filters
-from pyrogram.errors import MessageIdInvalid, PeerIdInvalid, ReactionInvalid, ListenerTimeout
+from pyrogram.errors import MessageIdInvalid, PeerIdInvalid, ReactionInvalid
+from misskaty.core.listener_errors import ListenerTimeout
 
 from misskaty import app, user
 from misskaty.core.decorator.errors import capture_err

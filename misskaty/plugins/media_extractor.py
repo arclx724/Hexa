@@ -15,7 +15,7 @@ from time import time
 from urllib.parse import unquote
 
 from pyrogram import Client, filters
-from pyrogram.errors import ListenerTimeout
+from misskaty.core.listener_errors import ListenerTimeout
 from pyrogram.types import (
     CallbackQuery,
     InlineKeyboardButton,
