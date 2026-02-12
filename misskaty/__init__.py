@@ -12,7 +12,6 @@ import uvloop, uvicorn
 from beanie import init_beanie
 from apscheduler.jobstores.mongodb import MongoDBJobStore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo import MongoClient
 from pyrogram import Client
 
@@ -76,7 +75,6 @@ app = MissKatyClient(
     database=app_db,
 )
 app.log = getLogger("MissKaty")
-app.beanie_db = AsyncIOMotorClient(app.database.uri)[DATABASE_NAME]
 
 # Pyrogram UserBot Client
 user = Client(
@@ -112,7 +110,7 @@ async def verify_database_connection():
         raise
 
 async def init_storage_models():
-    await init_beanie(database=app.beanie_db, document_models=all_models)
+    await init_beanie(database=app.db, document_models=all_models)
 
 async def run_wsgi():
     config = uvicorn.Config(api, host="0.0.0.0", port=int(PORT))

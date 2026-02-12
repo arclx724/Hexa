@@ -2,9 +2,7 @@ emoji
 git+https://github.com/KurimuzonAkuma/pyrogram
 tgcrypto
 beanie
-motor
 pymongo
-async_pymongo
 python-dotenv
 requests
 beautifulsoup4
