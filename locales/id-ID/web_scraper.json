@@ -1,7 +1,7 @@
 {
     "no_result": "Maaf, saya tidak dapat menemukan hasil apa pun!",
     "no_result_w_query": "Maaf, saya tidak dapat menemukan kueri: {kueri}",
-    "get_data": "⏳ Mohon tunggu, mengambil data dari web..",
+    "get_data": "<emoji id=5319190934510904031>⏳</emoji> Mohon tunggu, mengambil data dari web..",
     "cl_btn": "❌ Tutup",
     "back_btn": "↩️ Kembali",
     "dl_text": "⬇️ Unduh",
