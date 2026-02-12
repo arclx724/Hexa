@@ -5,6 +5,7 @@
 import asyncio
 import os
 import time
+from math import floor
 from pathlib import Path
 from logging import getLogger
 from uuid import uuid4
@@ -72,23 +73,38 @@ def resolve_downloaded_file(output_dir: str, job_id: str, expected_ext: str | No
 
 def parse_video_options(info: dict) -> list[dict]:
     options = []
-    seen = set()
     formats = info.get("formats") or []
-    heights = sorted({f.get("height") for f in formats if f.get("height")}, reverse=True)
-    for height in heights:
-        if height in seen:
+    seen = set()
+    progressive = []
+
+    for fmt in formats:
+        if not fmt.get("height"):
             continue
-        seen.add(height)
-        options.append(
+        if fmt.get("vcodec") in (None, "none"):
+            continue
+        tbr = int(fmt.get("tbr") or fmt.get("vbr") or 0)
+        key = (fmt.get("height"), floor(tbr / 50) * 50)
+        if key in seen:
+            continue
+        seen.add(key)
+        format_id = str(fmt.get("format_id"))
+        selector = format_id
+        if fmt.get("acodec") in (None, "none"):
+            selector = f"{format_id}+bestaudio/best"
+        progressive.append(
             {
-                "label": f"🎬 {height}p",
+                "label": f"🎬 {fmt['height']}p • {tbr}kbps" if tbr else f"🎬 {fmt['height']}p",
                 "kind": "video",
-                "format": f"bestvideo[height<={height}]+bestaudio/best[height<={height}]",
+                "format": selector,
                 "ext": "mp4",
+                "bitrate": tbr,
+                "height": int(fmt["height"]),
             }
         )
-        if len(options) >= 6:
-            break
+
+    progressive.sort(key=lambda x: (x.get("height", 0), x.get("bitrate", 0)), reverse=True)
+    options.extend([{k: v for k, v in opt.items() if k != "height"} for opt in progressive[:8]])
+
     for bitrate in (320, 192, 128):
         options.append(
             {
@@ -111,6 +127,21 @@ async def yt_extract(url: str, flat: bool = False) -> dict:
             return ydl.extract_info(url, download=False)
 
     return await asyncio.to_thread(_extract)
+
+
+async def download_thumb_file(url: str | None, job_id: str, output_dir: str) -> str | None:
+    if not url:
+        return None
+    try:
+        response = await fetch.get(url)
+        if response.status_code != 200:
+            return None
+        thumb_path = os.path.join(output_dir, f"{job_id}_thumb.jpg")
+        with open(thumb_path, "wb") as file:
+            file.write(response.content)
+        return thumb_path
+    except Exception:
+        return None
 
 
 @app.on_cmd("ytsearch", no_channel=True)
@@ -173,6 +204,7 @@ async def ytdownv2(_, ctx: Message, strings):
         "title": title,
         "thumb": thumb,
         "options": options,
+        "duration": int(info.get("duration") or 0),
         "user_id": ctx.from_user.id,
     }
 
@@ -277,7 +309,7 @@ async def ytdl_download_callback(self: Client, cq: CallbackQuery, strings):
                 status_text = text
             except (MessageNotModified, QueryIdInvalid):
                 pass
-        await asyncio.sleep(2)
+        await asyncio.sleep(7)
 
     try:
         downloaded_file = await download_task
@@ -299,14 +331,21 @@ async def ytdl_download_callback(self: Client, cq: CallbackQuery, strings):
 
     ACTIVE_DOWNLOADS[job_id]["stage"] = "upload"
     start = time.time()
+    last_upload_edit = 0.0
+    thumb_file = await download_thumb_file(data.get("thumb"), job_id, output_dir)
 
     async def upload_progress(current, total):
+        nonlocal last_upload_edit
         state = ACTIVE_DOWNLOADS.get(job_id)
         if not state:
             return
         if state["cancelled"]:
             raise DownloadCancelled("Cancelled by user")
         percentage = current * 100 / total if total else 0
+        now = time.time()
+        if (now - last_upload_edit) < 7 and current != total:
+            return
+        last_upload_edit = now
         text = (
             f"⬆️ Uploading <b>{os.path.basename(downloaded_file)}</b>\n"
             f"{format_progress_bar(percentage)} {percentage:.2f}%\n"
@@ -324,6 +363,9 @@ async def ytdl_download_callback(self: Client, cq: CallbackQuery, strings):
                 cq.message.chat.id,
                 downloaded_file,
                 caption=data["title"],
+                duration=data.get("duration") or None,
+                title=data["title"],
+                thumb=thumb_file,
                 progress=upload_progress,
             )
         else:
@@ -331,6 +373,8 @@ async def ytdl_download_callback(self: Client, cq: CallbackQuery, strings):
                 cq.message.chat.id,
                 downloaded_file,
                 caption=data["title"],
+                duration=data.get("duration") or None,
+                thumb=thumb_file,
                 supports_streaming=True,
                 progress=upload_progress,
             )
@@ -341,6 +385,8 @@ async def ytdl_download_callback(self: Client, cq: CallbackQuery, strings):
         ACTIVE_DOWNLOADS.pop(job_id, None)
         if os.path.exists(downloaded_file):
             os.remove(downloaded_file)
+        if thumb_file and os.path.exists(thumb_file):
+            os.remove(thumb_file)
 
 
 @app.on_callback_query(filters.regex(r"^yt_cancel\|"))
@@ -418,6 +464,7 @@ async def ytdl_gen_from_search(_, cq: CallbackQuery, strings):
         "title": info.get("title") or entry.get("title") or "Untitled",
         "thumb": info.get("thumbnail") or "assets/thumb.jpg",
         "options": options,
+        "duration": int(info.get("duration") or entry.get("duration") or 0),
         "user_id": cq.from_user.id,
     }
     rows = [[InlineKeyboardButton(opt["label"], callback_data=f"yt_dl|{cache_key}|{idx}")] for idx, opt in enumerate(options)]
