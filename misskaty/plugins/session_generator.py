@@ -306,5 +306,5 @@ async def generate_session(
     await client.disconnect()
     await bot.send_message(
         msg.chat.id,
-        f'» Successfully generated your {"Telethon" if telethon else "Pyrogram"} String Session.\n\nPlease check saved messages to get it ! \n\n**A String Generator bot by ** @IAmCuteCodes',
+        f'» Successfully generated your {"Telethon" if telethon else "Pyrogram"} String Session.\n\nPlease check saved messages to get it ! \n\n**A String Generator bot by ** @Yasir_ID',
     )
