@@ -60,6 +60,15 @@ async def client_ask(
     from_user_id: int = None,
     **kwargs,
 ):
+    listener_task = asyncio.create_task(
+        self.listen(
+            chat_id=chat_id,
+            filters=filters,
+            timeout=timeout,
+            from_user_id=from_user_id,
+        )
+    )
+
     sent = await self.send_message(
         chat_id=chat_id,
         text=text,
@@ -68,12 +77,7 @@ async def client_ask(
         reply_markup=reply_markup,
         **kwargs,
     )
-    response = await self.listen(
-        chat_id=chat_id,
-        filters=filters,
-        timeout=timeout,
-        from_user_id=from_user_id,
-    )
+    response = await listener_task
     response.reply_to_message = sent
     return response
 
