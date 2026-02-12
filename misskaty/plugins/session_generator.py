@@ -119,7 +119,7 @@ async def generate_session(bot, msg, telethon=False, is_bot: bool = False):
     if is_bot:
         ty += " Bot"
     await msg.reply(f"» Trying to start **{ty}** session generator...")
-    api_id_msg = await msg.chat.ask(
+    api_id_msg = await msg.ask(
         "Please send your **API_ID** to proceed.\n\nClick on /skip for using bot's api.",
         filters=filters.text,
     )
@@ -137,7 +137,7 @@ async def generate_session(bot, msg, telethon=False, is_bot: bool = False):
                 "**API_ID** must be integer, start generating your session again.",
                 reply_markup=InlineKeyboardMarkup(gen_button),
             )
-        api_hash_msg = await msg.chat.ask(
+        api_hash_msg = await msg.ask(
             "» Now please send your **API_HASH** to continue.", filters=filters.text
         )
         if await is_batal(api_hash_msg):
@@ -149,7 +149,7 @@ async def generate_session(bot, msg, telethon=False, is_bot: bool = False):
         if is_bot
         else "» Please send your **PHONE_NUMBER** with country code for which you want generate session. \nᴇxᴀᴍᴩʟᴇ : `+6286356837789`'"
     )
-    phone_number_msg = await msg.chat.ask(t, filters=filters.text)
+    phone_number_msg = await msg.ask(t, filters=filters.text)
     if await is_batal(phone_number_msg):
         return
     phone_number = phone_number_msg.text
@@ -191,7 +191,7 @@ async def generate_session(bot, msg, telethon=False, is_bot: bool = False):
     try:
         phone_code_msg = None
         if not is_bot:
-            phone_code_msg = await msg.chat.ask(
+            phone_code_msg = await msg.ask(
                 "» Please send the **OTP** That you've received from Telegram on your account.\nIf OTP is `12345`, **please send it as** `1 2 3 4 5`.",
                 filters=filters.text,
                 timeout=600,
@@ -223,7 +223,7 @@ async def generate_session(bot, msg, telethon=False, is_bot: bool = False):
             )
         except (SessionPasswordNeeded, SessionPasswordNeededError):
             try:
-                two_step_msg = await msg.chat.ask(
+                two_step_msg = await msg.ask(
                     "» Please enter your **Two Step Verification** password to continue.",
                     filters=filters.text,
                     timeout=300,

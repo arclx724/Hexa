@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 from contextlib import suppress
 from logging import getLogger
-from typing import Optional
+from typing import Dict, Optional, Tuple
 
 from pyrogram import Client, filters as pyro_filters
 from pyrogram import types as pyro_types
@@ -14,6 +14,66 @@ from misskaty.core.listener_errors import ListenerTimeout, patch_pyrogram_errors
 
 _UNALLOWED_CLICK_TEXT = "You're not expected to click this button."
 LOGGER = getLogger("MissKaty")
+_ANY_USER = 0
+
+
+class ConversationManager:
+    def __init__(self):
+        self._futures: Dict[Tuple[int, int], Tuple[asyncio.Future, object]] = {}
+        self._handler: Optional[MessageHandler] = None
+
+    def register(self, client: Client):
+        if self._handler is not None:
+            return
+        self._handler = MessageHandler(self._on_message, pyro_filters.incoming)
+        client.add_handler(self._handler, group=-1)
+        LOGGER.info("Conversation handler registered")
+
+    async def _on_message(self, _, message: Message):
+        if not message.from_user:
+            return
+
+        exact_key = (message.chat.id, message.from_user.id)
+        any_key = (message.chat.id, _ANY_USER)
+
+        key = exact_key if exact_key in self._futures else any_key
+        if key not in self._futures:
+            return
+
+        future, flt = self._futures[key]
+
+        if flt is not None:
+            passed = flt.__call__(_, message)
+            if asyncio.iscoroutine(passed):
+                passed = await passed
+            if not passed:
+                return
+
+        if not future.done():
+            future.set_result(message)
+
+    async def wait(
+        self,
+        chat_id: int,
+        from_user_id: Optional[int],
+        flt,
+        timeout: Optional[float],
+    ) -> Message:
+        key = (chat_id, from_user_id if from_user_id is not None else _ANY_USER)
+        if key in self._futures:
+            raise ListenerTimeout("Another conversation is already running for this target")
+
+        future = asyncio.get_running_loop().create_future()
+        self._futures[key] = (future, flt)
+        try:
+            return await asyncio.wait_for(future, timeout)
+        except asyncio.TimeoutError as exc:
+            raise ListenerTimeout from exc
+        finally:
+            self._futures.pop(key, None)
+
+
+_CONVERSATION_MANAGER = ConversationManager()
 
 
 async def listen(
@@ -23,27 +83,7 @@ async def listen(
     timeout: Optional[float] = None,
     from_user_id: int = None,
 ):
-    future = asyncio.get_running_loop().create_future()
-
-    handler_filter = pyro_filters.incoming & pyro_filters.chat(chat_id) & filters
-    if from_user_id is not None:
-        handler_filter = handler_filter & pyro_filters.user(from_user_id)
-
-    async def _on_message(_, message: Message):
-        if not future.done():
-            future.set_result(message)
-
-    handler = MessageHandler(_on_message, handler_filter)
-    group = -999999
-    self.add_handler(handler, group)
-
-    try:
-        return await asyncio.wait_for(future, timeout)
-    except asyncio.TimeoutError as exc:
-        raise ListenerTimeout from exc
-    finally:
-        with suppress(Exception):
-            self.remove_handler(handler, group)
+    return await _CONVERSATION_MANAGER.wait(chat_id, from_user_id, filters, timeout)
 
 
 async def client_ask(
@@ -58,12 +98,6 @@ async def client_ask(
     from_user_id: int = None,
     **kwargs,
 ):
-    LOGGER.debug(
-        "ask() register listener chat_id=%s from_user_id=%s timeout=%s",
-        chat_id,
-        from_user_id,
-        timeout,
-    )
     listener_task = asyncio.create_task(
         self.listen(
             chat_id=chat_id,
@@ -83,12 +117,6 @@ async def client_ask(
     )
 
     response = await listener_task
-    LOGGER.debug(
-        "ask() got response chat_id=%s user_id=%s msg_id=%s",
-        response.chat.id if response.chat else None,
-        response.from_user.id if response.from_user else None,
-        response.id,
-    )
     response.reply_to_message = sent
     return response
 
@@ -159,7 +187,7 @@ async def wait_for_click(
             future.set_result(query)
 
     handler = CallbackQueryHandler(_on_callback)
-    group = -999998
+    group = -2
     self._client.add_handler(handler, group)
 
     try:
@@ -191,6 +219,9 @@ def setup_listener_patch(client: Optional[Client] = None):
     Chat.ask = chat_ask
     Message.ask = message_ask
     Message.wait_for_click = wait_for_click
+
+    if client is not None:
+        _CONVERSATION_MANAGER.register(client)
 
 
 __all__ = [

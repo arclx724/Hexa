@@ -210,7 +210,7 @@ async def webdomain_edit_value(_, query, strings):
         "Ketik <code>/cancel</code> untuk batal."
     )
     try:
-        response = await query.message.chat.ask(
+        response = await query.message.ask(
             "Masukkan domain baru:", filters=filters.text, timeout=60
         )
     except Exception:
