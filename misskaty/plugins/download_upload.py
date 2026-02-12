@@ -87,7 +87,7 @@ async def upload(bot, message):
 @capture_err
 @new_task
 async def download(client, message):
-    pesan = await message.reply_text("Processing...")
+    pesan = await message.reply_text("<emoji id=5319190934510904031>⏳</emoji> Processing..")
     if message.reply_to_message is not None:
         start_t = datetime.now()
         c_time = time.time()
@@ -143,7 +143,7 @@ async def download(client, message):
 
             estimated_total_time = downloader.get_eta(human=True)
             try:
-                current_message = "Trying to download...\n"
+                current_message = "<emoji id=5319190934510904031>⏳</emoji> Processing..\n"
                 current_message += f"URL: <code>{url}</code>\n"
                 current_message += (
                     f"File Name: <code>{unquote(custom_file_name)}</code>\n"
@@ -180,7 +180,7 @@ async def instadl(_, message):
             f"Use command /{message.command[0]} [link] to download Instagram Photo or Video."
         )
     link = message.command[1]
-    msg = await message.reply("Trying download...")
+    msg = await message.reply("<emoji id=5319190934510904031>⏳</emoji> Processing..")
     try:
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:105.0) Gecko/20100101 Firefox/105.0",
@@ -236,7 +236,7 @@ async def twitterdl(_, message):
     url = message.command[1]
     if "x.com" in url:
         url = url.replace("x.com", "twitter.com")
-    msg = await message.reply("Trying download...")
+    msg = await message.reply("<emoji id=5319190934510904031>⏳</emoji> Processing..")
     try:
         headers = {
             "Host": "ssstwitter.com",
@@ -305,7 +305,7 @@ async def tiktokdl(_, message):
             f"Use command /{message.command[0]} [link] to download tiktok video."
         )
     link = message.command[1]
-    msg = await message.reply("Trying download...")
+    msg = await message.reply("<emoji id=5319190934510904031>⏳</emoji> Processing..")
     try:
         r = (
             await fetch.post(
@@ -335,7 +335,7 @@ async def fbdl(_, message):
             f"Use command /{message.command[0]} [link] to download Facebook video."
         )
     link = message.command[1]
-    msg = await message.reply("Trying download...")
+    msg = await message.reply("<emoji id=5319190934510904031>⏳</emoji> Processing..")
     try:
         resjson = (await fetch.get(f"https://yasirapi.eu.org/fbdl?link={link}")).json()
         try:

@@ -33,6 +33,7 @@ YT_REGEX = r"^(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/(wa
 YT_DB = {}
 YTDL_CACHE = {}
 ACTIVE_DOWNLOADS = {}
+PROCESS_TEXT = "<emoji id=5319190934510904031>⏳</emoji> Processing.."
 
 
 class DownloadCancelled(Exception):
@@ -88,7 +89,8 @@ def parse_quality_tree(info: dict) -> dict:
     duration = int(info.get("duration") or 0)
     resolutions = {}
 
-    for target_height in (1080, 720, 480, 360, 240):
+    heights = sorted({int(f.get("height") or 0) for f in formats if int(f.get("height") or 0) > 0}, reverse=True)
+    for target_height in heights:
         candidates = []
         for fmt in formats:
             height = int(fmt.get("height") or 0)
@@ -97,6 +99,7 @@ def parse_quality_tree(info: dict) -> dict:
             if fmt.get("vcodec") in (None, "none"):
                 continue
             tbr = int(fmt.get("tbr") or fmt.get("vbr") or 0)
+            fps = int(fmt.get("fps") or 0)
             format_id = str(fmt.get("format_id"))
             selector = format_id
             if fmt.get("acodec") in (None, "none"):
@@ -110,18 +113,20 @@ def parse_quality_tree(info: dict) -> dict:
                     "kind": "video",
                     "ext": "mp4",
                     "size": size_bytes,
+                    "fps": fps,
+                    "format_id": format_id,
+                    "height": target_height,
                 }
             )
         if candidates:
-            unique = {}
-            for c in candidates:
-                key = c["bitrate"] // 50 if c["bitrate"] else -1
-                if key not in unique or c["bitrate"] > unique[key]["bitrate"]:
-                    unique[key] = c
-            resolutions[str(target_height)] = sorted(unique.values(), key=lambda x: x["bitrate"], reverse=True)[:5]
+            resolutions[str(target_height)] = sorted(
+                candidates,
+                key=lambda x: (x.get("bitrate", 0), x.get("fps", 0)),
+                reverse=True,
+            )
 
     audio = []
-    for bitrate in (320, 192, 128):
+    for bitrate in (320, 256, 192, 160, 128, 96, 64):
         audio.append(
             {
                 "label": f"{bitrate}kbps",
@@ -142,9 +147,9 @@ async def animate_processing(message: Message, title: str, stop_event: asyncio.E
         text = f"{frames[idx % len(frames)]} {title}"
         try:
             if message.media:
-                await message.edit_caption(text)
+                await message.edit_caption(text, parse_mode=ParseMode.HTML)
             else:
-                await message.edit_text(text)
+                await message.edit_text(text, parse_mode=ParseMode.HTML)
         except Exception:
             pass
         idx += 1
@@ -179,9 +184,9 @@ async def download_thumb_file(url: str | None, job_id: str, output_dir: str) -> 
 
 def quality_markup(cache_key: str, tree: dict) -> InlineKeyboardMarkup:
     rows = []
-    for res, items in tree["resolutions"].items():
+    for idx, (res, items) in enumerate(tree["resolutions"].items()):
         size_hint = next((x.get("size", 0) for x in items if x.get("size", 0) > 0), 0)
-        label = f"🎬 {res}p"
+        label = f"🎬 {res}p" + (" ⭐" if idx == 0 else "")
         if size_hint:
             label += f" ({humanbytes(size_hint)})"
         rows.append([InlineKeyboardButton(label, callback_data=f"yt_res|{cache_key}|{res}")])
@@ -234,9 +239,9 @@ async def ytdownv2(_, ctx: Message, strings):
     if not isValidURL(url):
         return await ctx.reply(strings("invalid_link"))
 
-    progress_msg = await ctx.reply("😺 Processing yt-dlp data...")
+    progress_msg = await ctx.reply(PROCESS_TEXT, parse_mode=ParseMode.HTML)
     stop_event = asyncio.Event()
-    anim_task = asyncio.create_task(animate_processing(progress_msg, "Processing yt-dlp data...", stop_event))
+    anim_task = asyncio.create_task(animate_processing(progress_msg, PROCESS_TEXT, stop_event))
     try:
         info = await yt_extract(url)
     except Exception as err:
@@ -290,7 +295,9 @@ async def ytdl_pick_step(_, cq: CallbackQuery, strings):
             return await cq.answer("No bitrate option for this resolution", show_alert=True)
         rows = []
         for idx, opt in enumerate(options):
-            label = opt["label"]
+            fmt_id = opt.get("format_id") or "-"
+            fps = opt.get("fps") or 0
+            label = f"{opt['label']} • {fps}fps • {fmt_id}"
             if opt.get("size"):
                 label += f" • {humanbytes(opt['size'])}"
             rows.append([InlineKeyboardButton(label, callback_data=f"yt_dl|{cache_key}|v|{res}|{idx}")])
@@ -352,7 +359,7 @@ async def ytdl_download_callback(self: Client, cq: CallbackQuery, strings):
 
     output_dir = "downloads"
     os.makedirs(output_dir, exist_ok=True)
-    file_path = os.path.join(output_dir, "%(title).200B [%(id)s].%(ext)s")
+    file_path = os.path.join(output_dir, "%(title).180B %(height)sp%(fps)sfps %(format_id)s.%(ext)s")
 
     def progress_hook(status):
         state = ACTIVE_DOWNLOADS.get(job_id)
@@ -391,7 +398,7 @@ async def ytdl_download_callback(self: Client, cq: CallbackQuery, strings):
         total = state["total"] or 1
         percentage = (state["downloaded"] / total) * 100 if state["total"] else 0
         text = (
-            f"⬇️ Downloading <b>{label}</b>\n"
+            f"{PROCESS_TEXT}\n⬇️ Downloading <b>{label}</b>\n"
             f"{format_progress_bar(percentage)} {percentage:.2f}%\n"
             f"{humanbytes(state['downloaded'])} / {humanbytes(state['total'])}\n"
             f"Speed: {humanbytes(state['speed'])}/s\n"
@@ -437,7 +444,7 @@ async def ytdl_download_callback(self: Client, cq: CallbackQuery, strings):
         last_upload_edit = now
         percentage = current * 100 / total if total else 0
         text = (
-            f"⬆️ Uploading <b>{os.path.basename(downloaded_file)}</b>\n"
+            f"{PROCESS_TEXT}\n⬆️ Uploading <b>{os.path.basename(downloaded_file)}</b>\n"
             f"{format_progress_bar(percentage)} {percentage:.2f}%\n"
             f"{humanbytes(current)} / {humanbytes(total)}\n"
             f"Elapsed: {time_formatter(int(time.time() - start)) or '0 seconds'}"
@@ -548,7 +555,7 @@ async def ytdl_gen_from_search(_, cq: CallbackQuery, strings):
     url = entry.get("url") or entry.get("webpage_url") or f"https://www.youtube.com/watch?v={entry.get('id')}"
 
     stop_event = asyncio.Event()
-    anim_task = asyncio.create_task(animate_processing(cq.message, "Fetching yt-dlp metadata...", stop_event))
+    anim_task = asyncio.create_task(animate_processing(cq.message, PROCESS_TEXT, stop_event))
     try:
         info = await yt_extract(url)
     finally:
