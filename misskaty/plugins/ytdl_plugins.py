@@ -5,15 +5,21 @@
 import asyncio
 import os
 import time
-from math import floor
 from pathlib import Path
-from logging import getLogger
 from uuid import uuid4
 
 from pyrogram import Client, filters
 from pyrogram.enums import ParseMode
 from pyrogram.errors import MessageNotModified, QueryIdInvalid, WebpageMediaEmpty
-from pyrogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto, Message
+from pyrogram.types import (
+    CallbackQuery,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    InputMediaAudio,
+    InputMediaPhoto,
+    InputMediaVideo,
+    Message,
+)
 from yt_dlp import DownloadError, YoutubeDL
 
 from misskaty import app
@@ -23,7 +29,6 @@ from misskaty.helper import fetch, isValidURL, use_chat_lang
 from misskaty.helper.pyro_progress import humanbytes, time_formatter
 from misskaty.vars import COMMAND_HANDLER
 
-LOGGER = getLogger("MissKaty")
 YT_REGEX = r"^(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/(watch\?v=|embed/|v/|.+\?v=)?(?P<id>[A-Za-z0-9\-=_]{11})"
 YT_DB = {}
 YTDL_CACHE = {}
@@ -31,7 +36,7 @@ ACTIVE_DOWNLOADS = {}
 
 
 class DownloadCancelled(Exception):
-    """Raised when user cancels active yt-dlp task."""
+    pass
 
 
 def rand_key() -> str:
@@ -41,8 +46,6 @@ def rand_key() -> str:
 def format_progress_bar(percentage: float) -> str:
     filled = max(0, min(20, int(percentage // 5)))
     return f"[{'●' * filled}{'○' * (20 - filled)}]"
-
-
 
 
 def get_cookie_file() -> str | None:
@@ -62,6 +65,7 @@ def build_ydl_opts(extra: dict | None = None) -> dict:
         opts.update(extra)
     return opts
 
+
 def resolve_downloaded_file(output_dir: str, job_id: str, expected_ext: str | None = None) -> str | None:
     candidates = sorted(Path(output_dir).glob(f"{job_id}.*"), key=lambda x: x.stat().st_mtime, reverse=True)
     if expected_ext:
@@ -71,51 +75,46 @@ def resolve_downloaded_file(output_dir: str, job_id: str, expected_ext: str | No
     return str(candidates[0]) if candidates else None
 
 
-def parse_video_options(info: dict) -> list[dict]:
-    options = []
+def parse_quality_tree(info: dict) -> dict:
     formats = info.get("formats") or []
-    seen = set()
-    progressive = []
+    resolutions = {}
 
-    for fmt in formats:
-        if not fmt.get("height"):
-            continue
-        if fmt.get("vcodec") in (None, "none"):
-            continue
-        tbr = int(fmt.get("tbr") or fmt.get("vbr") or 0)
-        key = (fmt.get("height"), floor(tbr / 50) * 50)
-        if key in seen:
-            continue
-        seen.add(key)
-        format_id = str(fmt.get("format_id"))
-        selector = format_id
-        if fmt.get("acodec") in (None, "none"):
-            selector = f"{format_id}+bestaudio/best"
-        progressive.append(
-            {
-                "label": f"🎬 {fmt['height']}p • {tbr}kbps" if tbr else f"🎬 {fmt['height']}p",
-                "kind": "video",
-                "format": selector,
-                "ext": "mp4",
-                "bitrate": tbr,
-                "height": int(fmt["height"]),
-            }
-        )
+    for target_height in (1080, 720, 480, 360, 240):
+        candidates = []
+        for fmt in formats:
+            height = int(fmt.get("height") or 0)
+            if height != target_height:
+                continue
+            if fmt.get("vcodec") in (None, "none"):
+                continue
+            tbr = int(fmt.get("tbr") or fmt.get("vbr") or 0)
+            format_id = str(fmt.get("format_id"))
+            selector = format_id
+            if fmt.get("acodec") in (None, "none"):
+                selector = f"{format_id}+bestaudio/best"
+            candidates.append(
+                {
+                    "label": f"{tbr}kbps" if tbr else "Auto bitrate",
+                    "format": selector,
+                    "bitrate": tbr,
+                    "kind": "video",
+                    "ext": "mp4",
+                }
+            )
+        if candidates:
+            unique = {}
+            for c in candidates:
+                key = c["bitrate"] // 50 if c["bitrate"] else -1
+                if key not in unique or c["bitrate"] > unique[key]["bitrate"]:
+                    unique[key] = c
+            resolutions[str(target_height)] = sorted(unique.values(), key=lambda x: x["bitrate"], reverse=True)[:5]
 
-    progressive.sort(key=lambda x: (x.get("height", 0), x.get("bitrate", 0)), reverse=True)
-    options.extend([{k: v for k, v in opt.items() if k != "height"} for opt in progressive[:8]])
-
-    for bitrate in (320, 192, 128):
-        options.append(
-            {
-                "label": f"🎧 Audio MP3 {bitrate}kbps",
-                "kind": "audio",
-                "format": "bestaudio/best",
-                "ext": "mp3",
-                "bitrate": str(bitrate),
-            }
-        )
-    return options
+    audio = [
+        {"label": "320kbps", "format": "bestaudio/best", "kind": "audio", "ext": "mp3", "bitrate": "320"},
+        {"label": "192kbps", "format": "bestaudio/best", "kind": "audio", "ext": "mp3", "bitrate": "192"},
+        {"label": "128kbps", "format": "bestaudio/best", "kind": "audio", "ext": "mp3", "bitrate": "128"},
+    ]
+    return {"resolutions": resolutions, "audio": audio}
 
 
 async def yt_extract(url: str, flat: bool = False) -> dict:
@@ -144,6 +143,14 @@ async def download_thumb_file(url: str | None, job_id: str, output_dir: str) -> 
         return None
 
 
+def quality_markup(cache_key: str, tree: dict) -> InlineKeyboardMarkup:
+    rows = []
+    for res in tree["resolutions"].keys():
+        rows.append([InlineKeyboardButton(f"🎬 {res}p", callback_data=f"yt_res|{cache_key}|{res}")])
+    rows.append([InlineKeyboardButton("🎧 Audio MP3", callback_data=f"yt_audio|{cache_key}")])
+    return InlineKeyboardMarkup(rows)
+
+
 @app.on_cmd("ytsearch", no_channel=True)
 @use_chat_lang()
 async def ytsearch(_, ctx: Message, strings):
@@ -170,8 +177,7 @@ async def ytsearch(_, ctx: Message, strings):
             [InlineKeyboardButton(strings("dl_btn"), callback_data=f"yt_gen|{search_key}|0")],
         ]
     )
-    img = await get_ytthumb(i.get("id"))
-    await ctx.reply_photo(img, caption=out, reply_markup=btn, parse_mode=ParseMode.HTML)
+    await ctx.reply_photo(await get_ytthumb(i.get("id")), caption=out, reply_markup=btn, parse_mode=ParseMode.HTML)
 
 
 @app.on_message(
@@ -195,28 +201,66 @@ async def ytdownv2(_, ctx: Message, strings):
     except Exception as err:
         return await ctx.reply(f"{strings('err_parse')}\n\n<code>{err}</code>", parse_mode=ParseMode.HTML)
 
-    title = info.get("title") or "Untitled"
-    thumb = info.get("thumbnail") or "assets/thumb.jpg"
-    options = parse_video_options(info)
     cache_key = rand_key()
+    tree = parse_quality_tree(info)
     YTDL_CACHE[cache_key] = {
         "url": url,
-        "title": title,
-        "thumb": thumb,
-        "options": options,
+        "title": info.get("title") or "Untitled",
+        "thumb": info.get("thumbnail") or "assets/thumb.jpg",
         "duration": int(info.get("duration") or 0),
+        "quality_tree": tree,
         "user_id": ctx.from_user.id,
     }
 
-    rows = []
-    for idx, opt in enumerate(options):
-        rows.append([InlineKeyboardButton(opt["label"], callback_data=f"yt_dl|{cache_key}|{idx}")])
-    caption = f"<b>{title}</b>\n\nChoose output quality:"  # noqa: E501
-    markup = InlineKeyboardMarkup(rows)
+    caption = f"<b>{YTDL_CACHE[cache_key]['title']}</b>\n\n1) Select resolution\n2) Select bitrate"
+    markup = quality_markup(cache_key, tree)
     try:
-        await ctx.reply_photo(thumb, caption=caption, reply_markup=markup, parse_mode=ParseMode.HTML)
+        await ctx.reply_photo(YTDL_CACHE[cache_key]["thumb"], caption=caption, reply_markup=markup, parse_mode=ParseMode.HTML)
     except WebpageMediaEmpty:
         await ctx.reply_photo("assets/thumb.jpg", caption=caption, reply_markup=markup, parse_mode=ParseMode.HTML)
+
+
+@app.on_callback_query(filters.regex(r"^yt_(res|audio)\|"))
+@use_chat_lang()
+async def ytdl_pick_step(_, cq: CallbackQuery, strings):
+    callback = cq.data.split("|")
+    action, cache_key = callback[0], callback[1]
+    data = YTDL_CACHE.get(cache_key)
+    if not data:
+        return await cq.answer("Task expired", show_alert=True)
+    if cq.from_user.id != data["user_id"]:
+        return await cq.answer(strings("unauth"), True)
+
+    if action == "yt_res":
+        res = callback[2]
+        options = data["quality_tree"]["resolutions"].get(res, [])
+        if not options:
+            return await cq.answer("No bitrate option for this resolution", show_alert=True)
+        rows = [
+            [InlineKeyboardButton(f"{opt['label']}", callback_data=f"yt_dl|{cache_key}|v|{res}|{idx}")]
+            for idx, opt in enumerate(options)
+        ]
+        rows.append([InlineKeyboardButton("⬅️ Back", callback_data=f"yt_back|{cache_key}")])
+        return await cq.edit_message_reply_markup(reply_markup=InlineKeyboardMarkup(rows))
+
+    rows = [
+        [InlineKeyboardButton(f"🎧 {opt['label']}", callback_data=f"yt_dl|{cache_key}|a|{opt['bitrate']}")]
+        for opt in data["quality_tree"]["audio"]
+    ]
+    rows.append([InlineKeyboardButton("⬅️ Back", callback_data=f"yt_back|{cache_key}")])
+    await cq.edit_message_reply_markup(reply_markup=InlineKeyboardMarkup(rows))
+
+
+@app.on_callback_query(filters.regex(r"^yt_back\|"))
+@use_chat_lang()
+async def ytdl_back_choice(_, cq: CallbackQuery, strings):
+    cache_key = cq.data.split("|")[1]
+    data = YTDL_CACHE.get(cache_key)
+    if not data:
+        return await cq.answer("Task expired", show_alert=True)
+    if cq.from_user.id != data["user_id"]:
+        return await cq.answer(strings("unauth"), True)
+    await cq.edit_message_reply_markup(reply_markup=quality_markup(cache_key, data["quality_tree"]))
 
 
 @app.on_callback_query(filters.regex(r"^yt_dl\|"))
@@ -225,31 +269,28 @@ async def ytdownv2(_, ctx: Message, strings):
 async def ytdl_download_callback(self: Client, cq: CallbackQuery, strings):
     callback = cq.data.split("|")
     cache_key = callback[1]
-    index = int(callback[2])
     data = YTDL_CACHE.get(cache_key)
     if not data:
         return await cq.answer("Task expired", show_alert=True)
     if cq.from_user.id != data["user_id"]:
         return await cq.answer(strings("unauth"), True)
 
-    option = data["options"][index]
+    if callback[2] == "v":
+        res = callback[3]
+        idx = int(callback[4])
+        option = data["quality_tree"]["resolutions"][res][idx]
+        label = f"{res}p • {option['label']}"
+    else:
+        bitrate = callback[3]
+        option = {"kind": "audio", "ext": "mp3", "format": "bestaudio/best", "bitrate": bitrate}
+        label = f"MP3 {bitrate}kbps"
+
     job_id = rand_key()
-    ACTIVE_DOWNLOADS[job_id] = {
-        "cancelled": False,
-        "downloaded": 0,
-        "total": 0,
-        "speed": 0,
-        "eta": 0,
-        "stage": "download",
-    }
+    ACTIVE_DOWNLOADS[job_id] = {"cancelled": False, "downloaded": 0, "total": 0, "speed": 0, "eta": 0}
     cancel_markup = InlineKeyboardMarkup([[InlineKeyboardButton("❌ Cancel", callback_data=f"yt_cancel|{job_id}")]])
 
     try:
-        await cq.edit_message_caption(
-            f"Preparing <b>{option['label']}</b>...",
-            parse_mode=ParseMode.HTML,
-            reply_markup=cancel_markup,
-        )
+        await cq.edit_message_caption(f"Preparing <b>{label}</b>...", parse_mode=ParseMode.HTML, reply_markup=cancel_markup)
     except MessageNotModified:
         pass
 
@@ -268,8 +309,6 @@ async def ytdl_download_callback(self: Client, cq: CallbackQuery, strings):
             state["total"] = status.get("total_bytes") or status.get("total_bytes_estimate") or 0
             state["speed"] = status.get("speed") or 0
             state["eta"] = status.get("eta") or 0
-        elif status.get("status") == "finished":
-            state["stage"] = "upload"
 
     def do_download():
         ydl_opts = build_ydl_opts({
@@ -280,11 +319,7 @@ async def ytdl_download_callback(self: Client, cq: CallbackQuery, strings):
             "merge_output_format": "mp4",
         })
         if option["kind"] == "audio":
-            ydl_opts["postprocessors"] = [{
-                "key": "FFmpegExtractAudio",
-                "preferredcodec": "mp3",
-                "preferredquality": option.get("bitrate", "192"),
-            }]
+            ydl_opts["postprocessors"] = [{"key": "FFmpegExtractAudio", "preferredcodec": "mp3", "preferredquality": option.get("bitrate", "192")}]
         with YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(data["url"], download=True)
             return ydl.prepare_filename(info)
@@ -297,7 +332,7 @@ async def ytdl_download_callback(self: Client, cq: CallbackQuery, strings):
         total = state["total"] or 1
         percentage = (state["downloaded"] / total) * 100 if state["total"] else 0
         text = (
-            f"⬇️ Downloading <b>{option['label']}</b>\n"
+            f"⬇️ Downloading <b>{label}</b>\n"
             f"{format_progress_bar(percentage)} {percentage:.2f}%\n"
             f"{humanbytes(state['downloaded'])} / {humanbytes(state['total'])}\n"
             f"Speed: {humanbytes(state['speed'])}/s\n"
@@ -329,23 +364,19 @@ async def ytdl_download_callback(self: Client, cq: CallbackQuery, strings):
         ACTIVE_DOWNLOADS.pop(job_id, None)
         return await cq.edit_message_caption("❌ Downloaded file not found.")
 
-    ACTIVE_DOWNLOADS[job_id]["stage"] = "upload"
     start = time.time()
     last_upload_edit = 0.0
     thumb_file = await download_thumb_file(data.get("thumb"), job_id, output_dir)
 
     async def upload_progress(current, total):
         nonlocal last_upload_edit
-        state = ACTIVE_DOWNLOADS.get(job_id)
-        if not state:
-            return
-        if state["cancelled"]:
+        if ACTIVE_DOWNLOADS.get(job_id, {}).get("cancelled"):
             raise DownloadCancelled("Cancelled by user")
-        percentage = current * 100 / total if total else 0
         now = time.time()
         if (now - last_upload_edit) < 7 and current != total:
             return
         last_upload_edit = now
+        percentage = current * 100 / total if total else 0
         text = (
             f"⬆️ Uploading <b>{os.path.basename(downloaded_file)}</b>\n"
             f"{format_progress_bar(percentage)} {percentage:.2f}%\n"
@@ -359,26 +390,28 @@ async def ytdl_download_callback(self: Client, cq: CallbackQuery, strings):
 
     try:
         if option["kind"] == "audio":
-            await self.send_audio(
-                cq.message.chat.id,
-                downloaded_file,
+            media = InputMediaAudio(
+                media=downloaded_file,
                 caption=data["title"],
                 duration=data.get("duration") or None,
                 title=data["title"],
                 thumb=thumb_file,
-                progress=upload_progress,
             )
         else:
-            await self.send_video(
-                cq.message.chat.id,
-                downloaded_file,
+            media = InputMediaVideo(
+                media=downloaded_file,
                 caption=data["title"],
                 duration=data.get("duration") or None,
                 thumb=thumb_file,
                 supports_streaming=True,
-                progress=upload_progress,
             )
-        await cq.edit_message_caption("✅ Done.")
+        await self.edit_message_media(
+            cq.message.chat.id,
+            cq.message.id,
+            media=media,
+            reply_markup=None,
+            progress=upload_progress,
+        )
     except DownloadCancelled:
         await cq.edit_message_caption("❌ Upload cancelled.")
     finally:
@@ -392,8 +425,7 @@ async def ytdl_download_callback(self: Client, cq: CallbackQuery, strings):
 @app.on_callback_query(filters.regex(r"^yt_cancel\|"))
 @use_chat_lang()
 async def ytdl_cancel_callback(_, cq: CallbackQuery, strings):
-    callback = cq.data.split("|")
-    job_id = callback[1]
+    job_id = cq.data.split("|")[1]
     task = ACTIVE_DOWNLOADS.get(job_id)
     if not task:
         return await cq.answer("Task already finished", show_alert=True)
@@ -452,23 +484,19 @@ async def ytdl_gen_from_search(_, cq: CallbackQuery, strings):
         return await cq.answer(strings("unauth"), True)
 
     entry = data["results"][page]
-    url = entry.get("url") or entry.get("webpage_url")
-    if not url:
-        url = f"https://www.youtube.com/watch?v={entry.get('id')}"
+    url = entry.get("url") or entry.get("webpage_url") or f"https://www.youtube.com/watch?v={entry.get('id')}"
     info = await yt_extract(url)
-
-    options = parse_video_options(info)
     cache_key = rand_key()
+    tree = parse_quality_tree(info)
     YTDL_CACHE[cache_key] = {
         "url": url,
         "title": info.get("title") or entry.get("title") or "Untitled",
         "thumb": info.get("thumbnail") or "assets/thumb.jpg",
-        "options": options,
         "duration": int(info.get("duration") or entry.get("duration") or 0),
+        "quality_tree": tree,
         "user_id": cq.from_user.id,
     }
-    rows = [[InlineKeyboardButton(opt["label"], callback_data=f"yt_dl|{cache_key}|{idx}")] for idx, opt in enumerate(options)]
-    await cq.edit_message_reply_markup(reply_markup=InlineKeyboardMarkup(rows))
+    await cq.edit_message_reply_markup(reply_markup=quality_markup(cache_key, tree))
 
 
 async def get_ytthumb(videoid: str | None):
