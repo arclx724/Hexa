@@ -71,7 +71,7 @@ async def genss(self: Client, ctx: Message, strings):
 
             estimated_total_time = downloader.get_eta(human=True)
             try:
-                current_message = "Trying to download...\n"
+                current_message = "<emoji id=5319190934510904031>⏳</emoji> Trying to download...\n"
                 current_message += f"URL: <code>{url}</code>\n"
                 current_message += f"File Name: <code>{unquote(file_name)}</code>\n"
                 current_message += f"Speed: {speed}\n"
