@@ -36,7 +36,7 @@ from pyrogram.errors import (
     PeerIdInvalid,
     UsernameNotOccupied,
 )
-from pyrogram.types import ChatMember, ChatPermissions, ChatPrivileges, Message
+from pyrogram.types import ChatMember, ChatPrivileges, Message
 
 from database.warn_db import add_warn, get_warn, remove_warns
 from misskaty import app
@@ -54,6 +54,7 @@ from misskaty.helper.functions import (
     time_converter,
 )
 from misskaty.helper.localization import use_chat_lang
+from misskaty.helper.chat_permissions import empty_chat_permissions
 from misskaty.vars import COMMAND_HANDLER, SUDO, OWNER_ID
 
 LOGGER = getLogger("MissKaty")
@@ -558,7 +559,7 @@ async def mute(client, message, strings):
             if len(time_value[:-1]) < 3:
                 await message.chat.restrict_member(
                     user_id,
-                    permissions=ChatPermissions(all_perms=False),
+                    permissions=empty_chat_permissions(),
                     until_date=temp_mute,
                 )
                 await message.reply_text(msg, reply_markup=keyboard)
@@ -571,7 +572,7 @@ async def mute(client, message, strings):
         msg += strings("banned_reason").format(reas=reason)
     try:
         await message.chat.restrict_member(
-            user_id, permissions=ChatPermissions(all_perms=False)
+            user_id, permissions=empty_chat_permissions()
         )
         await message.reply_text(msg, reply_markup=keyboard)
     except Exception as e:

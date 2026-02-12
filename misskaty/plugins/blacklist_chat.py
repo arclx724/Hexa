@@ -27,7 +27,6 @@ from datetime import datetime, timedelta
 
 from pyrogram import filters
 from pyrogram.errors import ChatAdminRequired
-from pyrogram.types import ChatPermissions
 
 from database.blacklist_db import (
     delete_blacklist_filter,
@@ -37,6 +36,7 @@ from database.blacklist_db import (
 from misskaty import app
 from misskaty.core.decorator.errors import capture_err
 from misskaty.core.decorator.permissions import adminsOnly, list_admins
+from misskaty.helper.chat_permissions import empty_chat_permissions
 from misskaty.vars import SUDO, OWNER_ID
 
 __MODULE__ = "Blacklist"
@@ -110,7 +110,7 @@ async def blacklist_filters_re(self, message):
                 await message.delete_msg()
                 await message.chat.restrict_member(
                     user.id,
-                    ChatPermissions(all_perms=False),
+                    empty_chat_permissions(),
                     until_date=datetime.now() + timedelta(hours=1),
                 )
             except ChatAdminRequired:

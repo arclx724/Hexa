@@ -27,7 +27,12 @@ from logging import getLogger
 
 from pyrogram import filters
 from pyrogram.errors import ChatAdminRequired, ChatNotModified, FloodWait
-from pyrogram.types import ChatPermissions
+from misskaty.helper.chat_permissions import (
+    build_chat_permissions,
+    empty_chat_permissions,
+    export_permissions,
+    full_chat_permissions,
+)
 
 from misskaty import app
 from misskaty.core.decorator.errors import capture_err
@@ -60,16 +65,16 @@ incorrect_parameters = "Incorrect Parameters, Check Locks Section In Help."
 data = {
     "messages": "can_send_messages",
     "sticker": "can_send_stickers",
-    "gif": "can_send_gifs",
-    "media": "can_send_media_messages",
-    "games": "can_send_games",
-    "inline": "can_send_inline",
+    "gif": "can_send_other_messages",
+    "media": "can_send_documents",
+    "games": "can_send_other_messages",
+    "inline": "can_send_other_messages",
     "photo": "can_send_photos",
     "video": "can_send_videos",
-    "docs": "can_send_docs",
-    "voice": "can_send_voices",
+    "docs": "can_send_documents",
+    "voice": "can_send_voice_notes",
     "audio": "can_send_audios",
-    "plain": "can_send_plain",
+    "plain": "can_send_messages",
     "url": "can_add_web_page_previews",
     "polls": "can_send_polls",
     "group_info": "can_change_info",
@@ -79,50 +84,16 @@ data = {
 
 
 async def current_chat_permissions(chat_id):
-    perms = []
     try:
         perm = (await app.get_chat(chat_id)).permissions
     except FloodWait as e:
         await asyncio.sleep(e.value)
         perm = (await app.get_chat(chat_id)).permissions
-    if perm.can_send_messages:
-        perms.append("can_send_messages")
-    if perm.can_send_media_messages:
-        perms.append("can_send_media_messages")
-    if perm.can_send_audios:
-        perms.append("can_send_audios")
-    if perm.can_send_docs:
-        perms.append("can_send_docs")
-    if perm.can_send_games:
-        perms.append("can_send_games")
-    if perm.can_send_gifs:
-        perms.append("can_send_gifs")
-    if perm.can_send_inline:
-        perms.append("can_send_inline")
-    if perm.can_send_photos:
-        perms.append("can_send_photos")
-    if perm.can_send_plain:
-        perms.append("can_send_plain")
-    if perm.can_send_roundvideos:
-        perms.append("can_send_roundvideos")
-    if perm.can_send_stickers:
-        perms.append("can_send_stickers")
-    if perm.can_send_videos:
-        perms.append("can_send_videos")
-    if perm.can_send_voices:
-        perms.append("can_send_voices")
-    if perm.can_add_web_page_previews:
-        perms.append("can_add_web_page_previews")
-    if perm.can_send_polls:
-        perms.append("can_send_polls")
-    if perm.can_change_info:
-        perms.append("can_change_info")
-    if perm.can_invite_users:
-        perms.append("can_invite_users")
-    if perm.can_pin_messages:
-        perms.append("can_pin_messages")
 
-    return perms
+    return [
+        name for name, value in export_permissions(perm).items() if value is True
+    ]
+
 
 
 async def tg_lock(message, permissions: list, perm: str, lock: bool):
@@ -138,7 +109,7 @@ async def tg_lock(message, permissions: list, perm: str, lock: bool):
     permissions = {perm: True for perm in list(set(permissions))}
 
     try:
-        await app.set_chat_permissions(message.chat.id, ChatPermissions(**permissions))
+        await app.set_chat_permissions(message.chat.id, build_chat_permissions(permissions))
     except ChatNotModified:
         return await message.reply_text(
             "To unlock this, you have to unlock 'messages' first."
@@ -166,7 +137,7 @@ async def locks_func(_, message):
         await tg_lock(message, permissions, data[parameter], state == "lock")
     elif parameter == "all" and state == "lock":
         try:
-            await app.set_chat_permissions(chat_id, ChatPermissions(all_perms=False))
+            await app.set_chat_permissions(chat_id, empty_chat_permissions())
             await message.reply_text(f"Locked Everything in {message.chat.title}")
         except ChatAdminRequired:
             await message.reply(
@@ -175,12 +146,7 @@ async def locks_func(_, message):
 
     elif parameter == "all" and state == "unlock":
         try:
-            await app.set_chat_permissions(
-                chat_id,
-                ChatPermissions(
-                    all_perms=True,
-                ),
-            )
+            await app.set_chat_permissions(chat_id, full_chat_permissions())
             await message.reply(f"Unlocked Everything in {message.chat.title}")
         except ChatAdminRequired:
             await message.reply(
