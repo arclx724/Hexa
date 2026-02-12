@@ -23,6 +23,11 @@ from pyrogram.types import Message
 
 LOGGER = getLogger("MissKaty")
 
+_ORIG_REPLY_TEXT = Message.reply_text
+_ORIG_REPLY = getattr(Message, "reply", None)
+_ORIG_EDIT_TEXT = Message.edit_text
+_ORIG_EDIT = getattr(Message, "edit", None)
+
 
 @property
 def parse_cmd(msg):
@@ -72,11 +77,11 @@ async def reply_text(
     """
     try:
         if as_raw:
-            msg = await self.reply_text(
-                text=f"<code>{html.escape(text.html)}</code>", *args, **kwargs
+            msg = await _ORIG_REPLY_TEXT(
+                self, text=f"<code>{html.escape(text.html)}</code>", *args, **kwargs
             )
         else:
-            msg = await self.reply_text(text=text, *args, **kwargs)
+            msg = await _ORIG_REPLY_TEXT(self, text=text, *args, **kwargs)
         if del_in == 0:
             return msg
         await asleep(del_in)
@@ -123,7 +128,7 @@ async def edit_text(
         RPCError: In case of a Telegram RPC error.
     """
     try:
-        msg = await self.edit_text(text, *args, **kwargs)
+        msg = await _ORIG_EDIT_TEXT(self, text, *args, **kwargs)
         if del_in == 0:
             return msg
         await asleep(del_in)
@@ -303,6 +308,19 @@ async def delete(self, revoke: bool = True) -> bool:
     except Exception as e:
         LOGGER.warning(str(e))
 
+
+async def reply(self: Message, text: str, del_in: int = 0, *args, **kwargs):
+    return await reply_text(self, text=text, del_in=del_in, *args, **kwargs)
+
+
+async def edit(self: Message, text: str, del_in: int = 0, *args, **kwargs):
+    return await edit_text(self, text=text, del_in=del_in, *args, **kwargs)
+
+
+Message.reply = reply
+Message.reply_text = reply
+Message.edit = edit
+Message.edit_text = edit
 
 Message.reply_msg = reply_text
 Message.edit_msg = edit_text
