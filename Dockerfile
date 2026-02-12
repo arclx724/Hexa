@@ -15,6 +15,7 @@ ENV HOSTNAME=yasir-server
 COPY . .
 # Instal pip package if you use free depedencies
 RUN pip3 install --no-cache-dir -r requirements.txt
+RUN curl -fsSL https://deno.land/install.sh | sh ; /root/.deno/bin/deno --version
 # Set CMD Bot
 CMD ["bash", "start.sh"]
 
