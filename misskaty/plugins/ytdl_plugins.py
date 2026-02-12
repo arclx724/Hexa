@@ -5,6 +5,7 @@
 import asyncio
 import os
 import time
+from pathlib import Path
 from logging import getLogger
 from uuid import uuid4
 
@@ -41,6 +42,24 @@ def format_progress_bar(percentage: float) -> str:
     return f"[{'●' * filled}{'○' * (20 - filled)}]"
 
 
+
+
+def get_cookie_file() -> str | None:
+    cookie_file = Path("cookies.txt")
+    return str(cookie_file) if cookie_file.is_file() else None
+
+
+def build_ydl_opts(extra: dict | None = None) -> dict:
+    opts = {
+        "quiet": True,
+        "no_warnings": True,
+    }
+    if cookie_file := get_cookie_file():
+        opts["cookiefile"] = cookie_file
+    if extra:
+        opts.update(extra)
+    return opts
+
 def parse_video_options(info: dict) -> list[dict]:
     options = []
     seen = set()
@@ -73,11 +92,7 @@ def parse_video_options(info: dict) -> list[dict]:
 
 async def yt_extract(url: str, flat: bool = False) -> dict:
     def _extract():
-        opts = {
-            "quiet": True,
-            "no_warnings": True,
-            "skip_download": True,
-        }
+        opts = build_ydl_opts({"skip_download": True})
         if flat:
             opts["extract_flat"] = "in_playlist"
         with YoutubeDL(opts) as ydl:
@@ -213,14 +228,13 @@ async def ytdl_download_callback(self: Client, cq: CallbackQuery, strings):
             state["stage"] = "upload"
 
     def do_download():
-        ydl_opts = {
+        ydl_opts = build_ydl_opts({
             "outtmpl": file_path,
-            "quiet": True,
             "noprogress": True,
             "format": option["format"],
             "progress_hooks": [progress_hook],
             "merge_output_format": "mp4",
-        }
+        })
         if option["kind"] == "audio":
             ydl_opts["postprocessors"] = [{"key": "FFmpegExtractAudio", "preferredcodec": "mp3", "preferredquality": "192"}]
         with YoutubeDL(ydl_opts) as ydl:
