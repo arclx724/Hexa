@@ -5,9 +5,9 @@
 * Copyright @YasirPedia All rights reserved
 """
 
-from pymongo import AsyncMongoClient
+from motor.motor_asyncio import AsyncIOMotorClient
 
 from misskaty.vars import DATABASE_NAME, DATABASE_URI
 
-mongo = AsyncMongoClient(DATABASE_URI)
+mongo = AsyncIOMotorClient(DATABASE_URI)
 dbname = mongo[DATABASE_NAME]

@@ -99,6 +99,10 @@ async def wait_for_click(self: Message, from_user_id: int = None, timeout: Optio
             self._client.remove_handler(handler, group)
 
 
-Client.listen = listen
-Chat.ask = ask
-Message.wait_for_click = wait_for_click
+def setup_listener_patch():
+    Client.listen = listen
+    Chat.ask = ask
+    Message.wait_for_click = wait_for_click
+
+
+__all__ = ["setup_listener_patch", "listen", "ask", "wait_for_click"]
