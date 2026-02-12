@@ -117,6 +117,24 @@ def parse_quality_tree(info: dict) -> dict:
     return {"resolutions": resolutions, "audio": audio}
 
 
+
+
+async def animate_processing(message: Message, title: str, stop_event: asyncio.Event):
+    frames = ["😺", "😸", "😹", "😻"]
+    idx = 0
+    while not stop_event.is_set():
+        text = f"{frames[idx % len(frames)]} {title}"
+        try:
+            if message.media:
+                await message.edit_caption(text)
+            else:
+                await message.edit_text(text)
+        except Exception:
+            pass
+        idx += 1
+        await asyncio.sleep(1.2)
+
+
 async def yt_extract(url: str, flat: bool = False) -> dict:
     def _extract():
         opts = build_ydl_opts({"skip_download": True})
@@ -196,10 +214,18 @@ async def ytdownv2(_, ctx: Message, strings):
     if not isValidURL(url):
         return await ctx.reply(strings("invalid_link"))
 
+    progress_msg = await ctx.reply("😺 Processing yt-dlp data...")
+    stop_event = asyncio.Event()
+    anim_task = asyncio.create_task(animate_processing(progress_msg, "Processing yt-dlp data...", stop_event))
     try:
         info = await yt_extract(url)
     except Exception as err:
-        return await ctx.reply(f"{strings('err_parse')}\n\n<code>{err}</code>", parse_mode=ParseMode.HTML)
+        stop_event.set()
+        await anim_task
+        return await progress_msg.edit_text(f"{strings('err_parse')}\n\n<code>{err}</code>", parse_mode=ParseMode.HTML)
+    finally:
+        stop_event.set()
+        await anim_task
 
     cache_key = rand_key()
     tree = parse_quality_tree(info)
@@ -215,9 +241,15 @@ async def ytdownv2(_, ctx: Message, strings):
     caption = f"<b>{YTDL_CACHE[cache_key]['title']}</b>\n\n1) Select resolution\n2) Select bitrate"
     markup = quality_markup(cache_key, tree)
     try:
-        await ctx.reply_photo(YTDL_CACHE[cache_key]["thumb"], caption=caption, reply_markup=markup, parse_mode=ParseMode.HTML)
+        await progress_msg.edit_media(
+            InputMediaPhoto(YTDL_CACHE[cache_key]["thumb"], caption=caption, parse_mode=ParseMode.HTML),
+            reply_markup=markup,
+        )
     except WebpageMediaEmpty:
-        await ctx.reply_photo("assets/thumb.jpg", caption=caption, reply_markup=markup, parse_mode=ParseMode.HTML)
+        await progress_msg.edit_media(
+            InputMediaPhoto("assets/thumb.jpg", caption=caption, parse_mode=ParseMode.HTML),
+            reply_markup=markup,
+        )
 
 
 @app.on_callback_query(filters.regex(r"^yt_(res|audio)\|"))
@@ -405,15 +437,17 @@ async def ytdl_download_callback(self: Client, cq: CallbackQuery, strings):
                 thumb=thumb_file,
                 supports_streaming=True,
             )
+        await upload_progress(0, 1)
         await self.edit_message_media(
             cq.message.chat.id,
             cq.message.id,
             media=media,
             reply_markup=None,
-            progress=upload_progress,
         )
     except DownloadCancelled:
         await cq.edit_message_caption("❌ Upload cancelled.")
+    except Exception as err:
+        await cq.edit_message_caption(f"❌ Upload failed: <code>{err}</code>", parse_mode=ParseMode.HTML)
     finally:
         ACTIVE_DOWNLOADS.pop(job_id, None)
         if os.path.exists(downloaded_file):
@@ -485,7 +519,15 @@ async def ytdl_gen_from_search(_, cq: CallbackQuery, strings):
 
     entry = data["results"][page]
     url = entry.get("url") or entry.get("webpage_url") or f"https://www.youtube.com/watch?v={entry.get('id')}"
-    info = await yt_extract(url)
+
+    stop_event = asyncio.Event()
+    anim_task = asyncio.create_task(animate_processing(cq.message, "Fetching yt-dlp metadata...", stop_event))
+    try:
+        info = await yt_extract(url)
+    finally:
+        stop_event.set()
+        await anim_task
+
     cache_key = rand_key()
     tree = parse_quality_tree(info)
     YTDL_CACHE[cache_key] = {
