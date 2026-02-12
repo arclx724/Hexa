@@ -151,7 +151,7 @@ async def tg_lock(message, permissions: list, perm: str, lock: bool):
 @adminsOnly("can_restrict_members")
 async def locks_func(_, message):
     if len(message.command) != 2:
-        return await message.reply_msg(incorrect_parameters)
+        return await message.reply(incorrect_parameters)
 
     chat_id = message.chat.id
     parameter = message.text.strip().split(None, 1)[1].lower()
@@ -169,7 +169,7 @@ async def locks_func(_, message):
             await app.set_chat_permissions(chat_id, ChatPermissions(all_perms=False))
             await message.reply_text(f"Locked Everything in {message.chat.title}")
         except ChatAdminRequired:
-            await message.reply_msg(
+            await message.reply(
                 "Give me proper admin permission to use this command."
             )
 
@@ -183,7 +183,7 @@ async def locks_func(_, message):
             )
             await message.reply(f"Unlocked Everything in {message.chat.title}")
         except ChatAdminRequired:
-            await message.reply_msg(
+            await message.reply(
                 "Give me full admin permission to use this command."
             )
 
@@ -218,7 +218,7 @@ async def url_detector(_, message):
             try:
                 await message.delete_msg()
             except Exception:
-                await message.reply_msg(
+                await message.reply(
                     "This message contains a URL, "
                     + "but i don't have enough permissions to delete it"
                 )

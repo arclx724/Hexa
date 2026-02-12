@@ -27,6 +27,7 @@ import asyncio
 import uuid
 
 from pyrogram import filters
+from pyrogram import types as pyro_types
 from pyrogram.enums import ChatMemberStatus, ChatType, ParseMode
 from pyrogram.errors import FloodWait, PeerIdInvalid
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
@@ -54,11 +55,11 @@ async def new_fed(self, message):
     chat = message.chat
     user = message.from_user
     if message.chat.type != ChatType.PRIVATE:
-        return await message.reply_msg(
+        return await message.reply(
             "Federations can only be created by privately messaging me."
         )
     if len(message.command) < 2:
-        return await message.reply_msg("Please write the name of the federation!")
+        return await message.reply("Please write the name of the federation!")
     fednam = message.text.split(None, 1)[1]
     if fednam != "":
         fed_id = str(uuid.uuid4())
@@ -79,11 +80,11 @@ async def new_fed(self, message):
             upsert=True,
         )
         if not x:
-            return await message.reply_msg(
+            return await message.reply(
                 f"Can't federate! Please contact {SUPPORT_CHAT} if the problem persist."
             )
 
-        await message.reply_msg(
+        await message.reply(
             f"**You have succeeded in creating a new federation!**\nName: `{fed_name}`\nID: `{fed_id}`\n\nUse the command below to join the federation:\n`/joinfed {fed_id}`",
             parse_mode=ParseMode.MARKDOWN,
         )
@@ -598,7 +599,7 @@ async def fban_user(client, message):
     try:
         user = await app.get_users(user_id)
     except PeerIdInvalid:
-        return await message.reply_msg(
+        return await message.reply(
             "Sorry, i never meet this user. So i cannot fban."
         )
     if not user_id:
@@ -658,11 +659,11 @@ __**New Federation Ban**__
         m2 = await app.send_message(
             info["log_group_id"],
             text=ban_text,
-            disable_web_page_preview=True,
+            link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
         )
         await m.edit(
             f"Fed Banned {user.mention} !\nAction Log: {m2.link}",
-            disable_web_page_preview=True,
+            link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
         )
     except Exception:
         await message.reply_text(
@@ -750,11 +751,11 @@ __**New Federation UnBan**__
         m2 = await app.send_message(
             info["log_group_id"],
             text=ban_text,
-            disable_web_page_preview=True,
+            link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
         )
         await m.edit(
             f"Fed UnBanned {user.mention} !\nAction Log: {m2.link}",
-            disable_web_page_preview=True,
+            link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
         )
     except Exception:
         await message.reply_text(

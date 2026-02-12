@@ -43,13 +43,13 @@ def rand_key():
 @use_chat_lang()
 async def ytsearch(_, ctx: Message, strings):
     if len(ctx.command) == 1:
-        return await ctx.reply_msg(strings("no_query"))
+        return await ctx.reply(strings("no_query"))
     query = ctx.text.split(maxsplit=1)[1]
     search_key = rand_key()
     YT_DB[search_key] = query
     search = await main.VideosSearch(query).next()
     if search["result"] == []:
-        return await ctx.reply_msg(strings("no_res").format(kweri=query))
+        return await ctx.reply(strings("no_res").format(kweri=query))
     i = search["result"][0]
     out = f"<b><a href={i['link']}>{i['title']}</a></b>\n"
     out = strings("yts_msg").format(
@@ -78,8 +78,7 @@ async def ytsearch(_, ctx: Message, strings):
     caption = out
     markup = btn
     await ctx.reply_photo(
-        img, caption=caption, reply_markup=markup, parse_mode=ParseMode.HTML, quote=True
-    )
+        img, caption=caption, reply_markup=markup, parse_mode=ParseMode.HTML)
 
 
 @app.on_message(
@@ -93,19 +92,19 @@ async def ytsearch(_, ctx: Message, strings):
 @use_chat_lang()
 async def ytdownv2(self, ctx: Message, strings):
     if not ctx.from_user:
-        return await ctx.reply_msg(strings("no_channel"))
+        return await ctx.reply(strings("no_channel"))
     url = (
         ctx.command[1]
         if ctx.command and len(ctx.command) > 1
         else ctx.text or ctx.caption
     )
     if not isValidURL(url):
-        return await ctx.reply_msg(strings("invalid_link"))
+        return await ctx.reply(strings("invalid_link"))
     async with iYTDL(log_group_id=0, cache_path="cache", silent=True) as ytdl:
         try:
             x = await ytdl.parse(url, extract=True)
             if x is None:
-                return await ctx.reply_msg(
+                return await ctx.reply(
                     strings("err_parse"), parse_mode=ParseMode.HTML
                 )
             caption = x.caption
@@ -117,7 +116,6 @@ async def ytdownv2(self, ctx: Message, strings):
                     caption=caption,
                     reply_markup=markup,
                     parse_mode=ParseMode.HTML,
-                    quote=True,
                 )
             except WebpageMediaEmpty:
                 await ctx.reply_photo(
@@ -125,11 +123,10 @@ async def ytdownv2(self, ctx: Message, strings):
                     caption=caption,
                     reply_markup=markup,
                     parse_mode=ParseMode.HTML,
-                    quote=True,
                 )
         except Exception as err:
             try:
-                await ctx.reply_msg(str(err), parse_mode=ParseMode.HTML)
+                await ctx.reply(str(err), parse_mode=ParseMode.HTML)
             except MessageEmpty:
                 await ctx.reply("Invalid link.")
 

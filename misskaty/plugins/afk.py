@@ -14,6 +14,7 @@ import re
 import time
 
 from pyrogram import Client, enums, filters
+from pyrogram import types as pyro_types
 from pyrogram.types import Message
 
 from database.afk_db import add_afk, cleanmode_off, cleanmode_on, is_afk, remove_afk
@@ -35,7 +36,7 @@ Just type something in group to remove AFK Status."""
 @use_chat_lang()
 async def active_afk(_, ctx: Message, strings):
     if ctx.sender_chat:
-        return await ctx.reply_msg(strings("no_channel"), del_in=6)
+        return await ctx.reply(strings("no_channel"), del_in=6)
     user_id = ctx.from_user.id
     verifier, reasondb = await is_afk(user_id)
     if verifier:
@@ -86,7 +87,7 @@ async def active_afk(_, ctx: Message, strings):
                     strings("on_afk_msg_no_r").format(
                         usr=ctx.from_user.mention, id=ctx.from_user.id, tm=seenago
                     ),
-                    disable_web_page_preview=True,
+                    link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
                 )
             elif afktype == "text_reason":
                 send = await ctx.reply_text(
@@ -96,14 +97,14 @@ async def active_afk(_, ctx: Message, strings):
                         tm=seenago,
                         reas=reasonafk,
                     ),
-                    disable_web_page_preview=True,
+                    link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
                 )
         except Exception:
             send = await ctx.reply_text(
                 strings("is_online").format(
                     usr=ctx.from_user.first_name, id=ctx.from_user.id
                 ),
-                disable_web_page_preview=True,
+                link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
             )
         await put_cleanmode(ctx.chat.id, send.id)
         return
@@ -198,7 +199,7 @@ async def active_afk(_, ctx: Message, strings):
         }
 
     await add_afk(user_id, details)
-    send = await ctx.reply_msg(
+    send = await ctx.reply(
         strings("now_afk").format(usr=ctx.from_user.mention, id=ctx.from_user.id)
     )
     await put_cleanmode(ctx.chat.id, send.id)
@@ -211,7 +212,7 @@ async def afk_state(_, ctx: Message, strings):
     if not ctx.from_user:
         return
     if len(ctx.command) == 1:
-        return await ctx.reply_msg(
+        return await ctx.reply(
             strings("afkdel_help").format(cmd=ctx.command[0]), del_in=6
         )
     chat_id = ctx.chat.id
@@ -219,12 +220,12 @@ async def afk_state(_, ctx: Message, strings):
     state = state.lower()
     if state == "enable":
         await cleanmode_on(chat_id)
-        await ctx.reply_msg(strings("afkdel_enable"))
+        await ctx.reply(strings("afkdel_enable"))
     elif state == "disable":
         await cleanmode_off(chat_id)
-        await ctx.reply_msg(strings("afkdel_disable"))
+        await ctx.reply(strings("afkdel_disable"))
     else:
-        await ctx.reply_msg(strings("afkdel_help").format(cmd=ctx.command[0]), del_in=6)
+        await ctx.reply(strings("afkdel_help").format(cmd=ctx.command[0]), del_in=6)
 
 
 # Detect user that AFK based on Yukki Repo
@@ -521,7 +522,7 @@ async def afk_watcher_func(self: Client, ctx: Message, strings):
             j += 1
     if msg != "":
         try:
-            send = await ctx.reply_text(msg, disable_web_page_preview=True)
+            send = await ctx.reply_text(msg, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True))
         except:
             pass
     try:

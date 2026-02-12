@@ -1,12 +1,11 @@
-from async_pymongo import AsyncClient
-
+from database import Database
 from misskaty.vars import DATABASE_NAME, DATABASE_URI
 
 
 class UsersData:
-    def __init__(self, uri, database_name):
-        self._client = AsyncClient(uri)
-        self.db = self._client[database_name]
+    def __init__(self, database: Database):
+        self._database = database
+        self.db = self._database.db
         self.col = self.db["userlist"]
         self.grp = self.db["groups"]
 
@@ -106,4 +105,4 @@ class UsersData:
         return (await self.db.command("dbstats"))["dataSize"]
 
 
-db = UsersData(DATABASE_URI, DATABASE_NAME)
+db = UsersData(Database(DATABASE_URI, DATABASE_NAME))

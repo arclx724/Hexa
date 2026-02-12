@@ -1,4 +1,5 @@
 """
+from pyrogram import types as pyro_types
 * @author        yasir <yasiramunandar@gmail.com>
 * @date          2022-12-01 09:12:27
 * @projectName   MissKatyPyro
@@ -40,7 +41,7 @@ async def jsonify(_, message: Message):
             document="json.txt",
             caption=f"<code>{str(e)}</code>",
             disable_notification=True,
-            reply_to_message_id=reply_to_id,
+            reply_parameters=pyro_types.ReplyParameters(message_id=reply_to_id),
             thumb="assets/thumb.jpg",
         )
         os.remove("json.txt")

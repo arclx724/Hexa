@@ -14,6 +14,7 @@ from bs4 import BeautifulSoup
 from pykeyboard import InlineButton, InlineKeyboard
 from pyrogram import __version__ as pyrover
 from pyrogram import enums, filters
+from pyrogram import types as pyro_types
 from pyrogram.errors import MessageIdInvalid, MessageNotModified
 from pyrogram.types import (
     InlineKeyboardButton,
@@ -172,7 +173,7 @@ async def inline_menu(self, inline_query: InlineQuery):
                 description="Check Bot's Stats",
                 thumb_url="https://yt3.ggpht.com/ytc/AMLnZu-zbtIsllERaGYY8Aecww3uWUASPMjLUUEt7ecu=s900-c-k-c0x00ffffff-no-rj",
                 input_message_content=InputTextMessageContent(
-                    msg, disable_web_page_preview=True
+                    msg, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True)
                 ),
                 reply_markup=btn,
             ),
@@ -186,7 +187,7 @@ async def inline_menu(self, inline_query: InlineQuery):
                     description="New Calculator",
                     input_message_content=InputTextMessageContent(
                         message_text=f"Made by @{self.me.username}",
-                        disable_web_page_preview=True,
+                        link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
                     ),
                     reply_markup=calc_btn(inline_query.from_user.id),
                 )
@@ -199,7 +200,7 @@ async def inline_menu(self, inline_query: InlineQuery):
                     title="Answer",
                     description=f"Result: {result}",
                     input_message_content=InputTextMessageContent(
-                        message_text=f"{data} = {result}", disable_web_page_preview=True
+                        message_text=f"{data} = {result}", link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True)
                     ),
                 )
             ]
@@ -259,7 +260,7 @@ async def inline_menu(self, inline_query: InlineQuery):
                         input_message_content=InputTextMessageContent(
                             message_text=msg,
                             parse_mode=enums.ParseMode.HTML,
-                            disable_web_page_preview=True,
+                            link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
                         ),
                         url=link,
                         description=description,
@@ -299,7 +300,7 @@ async def inline_menu(self, inline_query: InlineQuery):
                         input_message_content=InputTextMessageContent(
                             message_text=msg,
                             parse_mode=enums.ParseMode.HTML,
-                            disable_web_page_preview=True,
+                            link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
                         ),
                         url=link,
                         description=description,
@@ -346,7 +347,7 @@ async def inline_menu(self, inline_query: InlineQuery):
                     input_message_content=InputTextMessageContent(
                         message_text=message_text,
                         parse_mode=enums.ParseMode.HTML,
-                        disable_web_page_preview=False,
+                        link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=False),
                     ),
                     url=link,
                     description=snippet,
@@ -491,7 +492,7 @@ async def inline_menu(self, inline_query: InlineQuery):
                     input_message_content=InputTextMessageContent(
                         message_text=message_text,
                         parse_mode=enums.ParseMode.HTML,
-                        disable_web_page_preview=False,
+                        link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=False),
                     ),
                     url=link,
                     description=deskripsi,
@@ -533,7 +534,7 @@ async def inline_menu(self, inline_query: InlineQuery):
                     input_message_content=InputTextMessageContent(
                         message_text=message_text,
                         parse_mode=enums.ParseMode.HTML,
-                        disable_web_page_preview=False,
+                        link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=False),
                     ),
                     url=link,
                     description=deskripsi,
@@ -589,7 +590,7 @@ async def inline_menu(self, inline_query: InlineQuery):
                     input_message_content=InputTextMessageContent(
                         message_text=message_text,
                         parse_mode=enums.ParseMode.HTML,
-                        disable_web_page_preview=False,
+                        link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=False),
                     ),
                     url=link,
                     description=deskripsi,
@@ -686,7 +687,7 @@ async def inline_menu(self, inline_query: InlineQuery):
                         input_message_content=InputTextMessageContent(
                             message_text=message_text,
                             parse_mode=enums.ParseMode.HTML,
-                            disable_web_page_preview=disable_web_preview,
+                            link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=disable_web_preview),
                         ),
                     )
                 )
@@ -753,7 +754,7 @@ async def imdb_inl(_, query):
                 await query.edit_message_text(
                     "⏳ <i>Permintaan kamu sedang diproses.. </i>",
                     parse_mode=enums.ParseMode.HTML,
-                    disable_web_page_preview=True,
+                    link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
                 )
             url = f"https://m.imdb.com/title/{movie}/"
             resp = await fetch.get(url)
@@ -1089,7 +1090,7 @@ async def imdb_inl(_, query):
                     res_str,
                     parse_mode=enums.ParseMode.HTML,
                     reply_markup=markup,
-                    disable_web_page_preview=disable_web_preview,
+                    link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=disable_web_preview),
                 )
         except (MessageNotModified, MessageIdInvalid):
             pass
@@ -1101,7 +1102,7 @@ async def imdb_inl(_, query):
                 await query.edit_message_text(
                     f"<b>ERROR:</b>\n<code>{exc}</code>",
                     parse_mode=enums.ParseMode.HTML,
-                    disable_web_page_preview=True,
+                    link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
                 )
     else:
         await query.answer("⚠️ Akses Ditolak!", True)

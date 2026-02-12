@@ -5,6 +5,7 @@ import html
 
 import regex
 from pyrogram import Client, filters
+from pyrogram import types as pyro_types
 from pyrogram.errors import MessageEmpty
 from pyrogram.types import Message
 
@@ -38,19 +39,19 @@ async def sed(self: Client, ctx: Message):
             pattern, replace_with, text, count=count, flags=rflags, timeout=1
         )
     except TimeoutError:
-        return await ctx.reply_msg("Oops, your regex pattern has run for too long.")
+        return await ctx.reply("Oops, your regex pattern has run for too long.")
     except regex.error as e:
-        return await ctx.reply_msg(str(e))
+        return await ctx.reply(str(e))
     else:
         try:
             await self.send_msg(
                 ctx.chat.id,
                 f"<pre>{html.escape(res)}</pre>",
-                reply_to_message_id=ctx.reply_to_message.id,
+                reply_parameters=pyro_types.ReplyParameters(message_id=ctx.reply_to_message.id),
             )
         except MessageEmpty:
-            return await ctx.reply_msg(
+            return await ctx.reply(
                 "Please reply message to use this feature.", del_in=5
             )
         except Exception as e:
-            return await ctx.reply_msg(f"ERROR: {str(e)}")
+            return await ctx.reply(f"ERROR: {str(e)}")

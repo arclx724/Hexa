@@ -29,6 +29,7 @@ from logging import getLogger
 from time import time
 
 from pyrogram import Client, enums, filters
+from pyrogram import types as pyro_types
 from pyrogram.errors import (
     ChatAdminRequired,
     FloodWait,
@@ -119,7 +120,7 @@ async def purge(_, ctx: Message, strings):
         await ctx.delete_msg()
 
         if not repliedmsg:
-            return await ctx.reply_msg(strings("purge_no_reply"))
+            return await ctx.reply(strings("purge_no_reply"))
 
         cmd = ctx.command
         if len(cmd) > 1 and cmd[1].isdigit():
@@ -157,9 +158,9 @@ async def purge(_, ctx: Message, strings):
                 revoke=True,
             )
             del_total += len(message_ids)
-        await ctx.reply_msg(strings("purge_success").format(del_total=del_total))
+        await ctx.reply(strings("purge_success").format(del_total=del_total))
     except Exception as err:
-        await ctx.reply_msg(f"ERROR: {err}")
+        await ctx.reply(f"ERROR: {err}")
 
 
 # Kick members
@@ -169,17 +170,17 @@ async def purge(_, ctx: Message, strings):
 async def kickFunc(client: Client, ctx: Message, strings) -> "Message":
     user_id, reason = await extract_user_and_reason(ctx)
     if not user_id:
-        return await ctx.reply_msg(strings("user_not_found"))
+        return await ctx.reply(strings("user_not_found"))
     if user_id == client.me.id:
-        return await ctx.reply_msg(strings("kick_self_err"))
+        return await ctx.reply(strings("kick_self_err"))
     if user_id in SUDO or user_id == OWNER_ID:
-        return await ctx.reply_msg(strings("kick_sudo_err"))
+        return await ctx.reply(strings("kick_sudo_err"))
     if user_id in (await list_admins(ctx.chat.id)):
-        return await ctx.reply_msg(strings("kick_admin_err"))
+        return await ctx.reply(strings("kick_admin_err"))
     try:
         user = await app.get_users(user_id)
     except PeerIdInvalid:
-        return await ctx.reply_msg(strings("user_not_found"))
+        return await ctx.reply(strings("user_not_found"))
     msg = strings("kick_msg").format(
         mention=user.mention,
         id=user.id,
@@ -190,13 +191,13 @@ async def kickFunc(client: Client, ctx: Message, strings) -> "Message":
         await ctx.reply_to_message.delete_msg()
     try:
         await ctx.chat.ban_member(user_id)
-        await ctx.reply_msg(msg)
+        await ctx.reply(msg)
         await asyncio.sleep(1)
         await ctx.chat.unban_member(user_id)
     except ChatAdminRequired:
-        await ctx.reply_msg(strings("no_ban_permission"))
+        await ctx.reply(strings("no_ban_permission"))
     except Exception as e:
-        await ctx.reply_msg(str(e))
+        await ctx.reply(str(e))
 
 
 # Ban/DBan/TBan User
@@ -207,7 +208,7 @@ async def banFunc(client, message, strings):
     try:
         user_id, reason = await extract_user_and_reason(message, sender_chat=True)
     except UsernameNotOccupied:
-        return await message.reply_msg("Sorry, i didn't know that user.")
+        return await message.reply("Sorry, i didn't know that user.")
 
     if not user_id:
         return await message.reply_text(strings("user_not_found"))
@@ -258,11 +259,11 @@ async def banFunc(client, message, strings):
     keyboard = ikb({"🚨 Unban 🚨": f"unban_{user_id}"})
     try:
         await message.chat.ban_member(user_id)
-        await message.reply_msg(msg, reply_markup=keyboard)
+        await message.reply(msg, reply_markup=keyboard)
     except ChatAdminRequired:
         await message.reply("Please give me permission to banned members..!!!")
     except Exception as e:
-        await message.reply_msg(str(e))
+        await message.reply(str(e))
 
 
 # Unban members
@@ -284,17 +285,17 @@ async def unban_func(_, message, strings):
     elif len(message.command) == 1 and reply:
         user = message.reply_to_message.from_user.id
     else:
-        return await message.reply_msg(strings("give_unban_user"))
+        return await message.reply(strings("give_unban_user"))
     try:
         await message.chat.unban_member(user)
         umention = (await app.get_users(user)).mention
-        await message.reply_msg(strings("unban_success").format(umention=umention))
+        await message.reply(strings("unban_success").format(umention=umention))
     except PeerIdInvalid:
-        await message.reply_msg(strings("unknown_id", context="general"))
+        await message.reply(strings("unknown_id", context="general"))
     except ChatAdminRequired:
         await message.reply("Please give me permission to unban members..!!!")
     except Exception as e:
-        await message.reply_msg(str(e))
+        await message.reply(str(e))
 
 
 # Ban users listed in a message
@@ -417,11 +418,11 @@ async def promoteFunc(client, message, strings):
         return await message.reply_text(strings("user_not_found"))
     bot = (await client.get_chat_member(message.chat.id, client.me.id)).privileges
     if user_id == client.me.id:
-        return await message.reply_msg(strings("promote_self_err"))
+        return await message.reply(strings("promote_self_err"))
     if not bot:
-        return await message.reply_msg("I'm not an admin in this chat.")
+        return await message.reply("I'm not an admin in this chat.")
     if not bot.can_promote_members:
-        return await message.reply_msg(strings("no_promote_perm"))
+        return await message.reply(strings("no_promote_perm"))
     try:
         if message.command[0][0] == "f":
             await message.chat.promote_member(
@@ -454,9 +455,9 @@ async def promoteFunc(client, message, strings):
                 can_manage_video_chats=bot.can_manage_video_chats,
             ),
         )
-        await message.reply_msg(strings("normal_promote").format(umention=umention))
+        await message.reply(strings("normal_promote").format(umention=umention))
     except Exception as err:
-        await message.reply_msg(err)
+        await message.reply(err)
 
 
 # Demote Member
@@ -490,7 +491,7 @@ async def demote(client, message, strings):
     except ChatAdminRequired:
         await message.reply("Please give permission to demote members..")
     except Exception as e:
-        await message.reply_msg(str(e))
+        await message.reply(str(e))
 
 
 # Pin Messages
@@ -506,20 +507,20 @@ async def pin(_, message, strings):
             await r.unpin()
             return await message.reply_text(
                 strings("unpin_success").format(link=r.link),
-                disable_web_page_preview=True,
+                link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
             )
         await r.pin(disable_notification=True)
         await message.reply(
             strings("pin_success").format(link=r.link),
-            disable_web_page_preview=True,
+            link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
         )
     except ChatAdminRequired:
         await message.reply(
             strings("pin_no_perm"),
-            disable_web_page_preview=True,
+            link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
         )
     except Exception as e:
-        await message.reply_msg(str(e))
+        await message.reply(str(e))
 
 
 # Mute members
@@ -574,7 +575,7 @@ async def mute(client, message, strings):
         )
         await message.reply_text(msg, reply_markup=keyboard)
     except Exception as e:
-        await message.reply_msg(str(e))
+        await message.reply(str(e))
 
 
 # Unmute members
@@ -588,9 +589,9 @@ async def unmute(_, message, strings):
     try:
         await message.chat.unban_member(user_id)
         umention = (await app.get_users(user_id)).mention
-        await message.reply_msg(strings("unmute_msg").format(umention=umention))
+        await message.reply(strings("unmute_msg").format(umention=umention))
     except Exception as e:
-        await message.reply_msg(str(e))
+        await message.reply(str(e))
 
 
 @app.on_cmd(["warn", "dwarn"], self_admin=True, group_only=True)
@@ -600,7 +601,7 @@ async def warn_user(client, message, strings):
     try:
         user_id, reason = await extract_user_and_reason(message)
     except UsernameNotOccupied:
-        return await message.reply_msg("Sorry, i didn't know that user.")
+        return await message.reply("Sorry, i didn't know that user.")
     chat_id = message.chat.id
     if not user_id:
         return await message.reply_text(strings("user_not_found"))
@@ -622,10 +623,10 @@ async def warn_user(client, message, strings):
     if warns >= 2:
         try:
             await message.chat.ban_member(user_id)
-            await message.reply_msg(strings("exceed_warn_msg").format(mention=mention))
+            await message.reply(strings("exceed_warn_msg").format(mention=mention))
             await remove_warns(chat_id, await int_to_alpha(user_id))
         except ChatAdminRequired:
-            await message.reply_msg(strings("no_ban_permission"))
+            await message.reply(strings("no_ban_permission"))
     else:
         warn = {"warns": warns + 1}
         msg = strings("warn_msg").format(
@@ -634,7 +635,7 @@ async def warn_user(client, message, strings):
             reas=reason or "No Reason Provided.",
             twarn=warns + 1,
         )
-        await message.reply_msg(msg, reply_markup=keyboard)
+        await message.reply(msg, reply_markup=keyboard)
         await add_warn(chat_id, await int_to_alpha(user_id), warn)
 
 
@@ -766,24 +767,24 @@ async def check_warns(_, message, strings):
 @use_chat_lang()
 async def report_user(_, ctx: Message, strings) -> "Message":
     if len(ctx.text.split()) <= 1 and not ctx.reply_to_message:
-        return await ctx.reply_msg(strings("report_no_reply"))
+        return await ctx.reply(strings("report_no_reply"))
     reply = ctx.reply_to_message if ctx.reply_to_message else ctx
     reply_id = reply.from_user.id if reply.from_user else reply.sender_chat.id
     user_id = ctx.from_user.id if ctx.from_user else ctx.sender_chat.id
     if reply_id == user_id:
-        return await ctx.reply_msg(strings("report_self_err"))
+        return await ctx.reply(strings("report_self_err"))
 
     list_of_admins = await list_admins(ctx.chat.id)
     linked_chat = (await app.get_chat(ctx.chat.id)).linked_chat
     if linked_chat is None:
         if reply_id in list_of_admins or reply_id == ctx.chat.id:
-            return await ctx.reply_msg(strings("reported_is_admin"))
+            return await ctx.reply(strings("reported_is_admin"))
     elif (
         reply_id in list_of_admins
         or reply_id == ctx.chat.id
         or reply_id == linked_chat.id
     ):
-        return await ctx.reply_msg(strings("reported_is_admin"))
+        return await ctx.reply(strings("reported_is_admin"))
     user_mention = (
         reply.from_user.mention if reply.from_user else reply.sender_chat.title
     )
@@ -799,7 +800,7 @@ async def report_user(_, ctx: Message, strings) -> "Message":
             # return bots or deleted admins
             continue
         text += f"<a href='tg://user?id={admin.user.id}'>\u2063</a>"
-    await reply.reply_msg(text)
+    await reply.reply(text)
 
 
 @app.on_cmd("set_chat_title", self_admin=True, group_only=True)
@@ -815,7 +816,7 @@ async def set_chat_title(_, ctx: Message):
             f"Successfully Changed Group Title From {old_title} To {new_title}"
         )
     except Exception as e:
-        await ctx.reply_msg(str(e))
+        await ctx.reply(str(e))
 
 
 @app.on_cmd("set_user_title", self_admin=True, group_only=True)
@@ -838,7 +839,7 @@ async def set_user_title(_, ctx: Message):
             f"Successfully Changed {from_user.mention}'s Admin Title To {title}"
         )
     except Exception as e:
-        await ctx.reply_msg(str(e))
+        await ctx.reply(str(e))
 
 
 @app.on_cmd("set_chat_photo", self_admin=True, group_only=True)
@@ -890,5 +891,5 @@ async def mentionall(app: Client, msg: Message):
             )
     else:
         await app.send_message(
-            msg.chat.id, "Admins only can do that !", reply_to_message_id=msg.id
+            msg.chat.id, "Admins only can do that !", reply_parameters=pyro_types.ReplyParameters(message_id=msg.id)
         )

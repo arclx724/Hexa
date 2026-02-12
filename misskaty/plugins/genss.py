@@ -14,6 +14,7 @@ from logging import getLogger
 from urllib.parse import unquote
 
 from pyrogram import Client, enums
+from pyrogram import types as pyro_types
 from pyrogram.errors import FloodWait
 from pyrogram.file_id import FileId
 from pyrogram.types import Message
@@ -40,7 +41,7 @@ __HELP__ = """"
 async def genss(self: Client, ctx: Message, strings):
     replied = ctx.reply_to_message
     if len(ctx.command) == 2 and is_url(ctx.command[1]):
-        pesan = await ctx.reply_msg(strings("wait_dl"), quote=True)
+        pesan = await ctx.reply(strings("wait_dl"))
         start_t = datetime.now()
         the_url_parts = " ".join(ctx.command[1:])
         url = the_url_parts.strip()
@@ -79,7 +80,7 @@ async def genss(self: Client, ctx: Message, strings):
                 current_message += f"ETA: {estimated_total_time}"
                 if round(diff % 10.00) == 0 and current_message != display_message:
                     await pesan.edit(
-                        disable_web_page_preview=True, text=current_message
+                        link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), text=current_message
                     )
                     display_message = current_message
                     await sleep(10)
@@ -93,26 +94,26 @@ async def genss(self: Client, ctx: Message, strings):
             )
             try:
                 images = await take_ss(download_file_path)
-                await pesan.edit_msg(strings("up_progress"))
+                await pesan.edit(strings("up_progress"))
                 await self.send_chat_action(
                     chat_id=ctx.chat.id, action=enums.ChatAction.UPLOAD_PHOTO
                 )
                 try:
                     await gather(
                         *[
-                            ctx.reply_document(images, reply_to_message_id=ctx.id),
-                            ctx.reply_photo(images, reply_to_message_id=ctx.id),
+                            ctx.reply_document(images, reply_parameters=pyro_types.ReplyParameters(message_id=ctx.id)),
+                            ctx.reply_photo(images, reply_parameters=pyro_types.ReplyParameters(message_id=ctx.id)),
                         ]
                     )
                 except FloodWait as e:
                     await sleep(e.value)
                     await gather(
                         *[
-                            ctx.reply_document(images, reply_to_message_id=ctx.id),
-                            ctx.reply_photo(images, reply_to_message_id=ctx.id),
+                            ctx.reply_document(images, reply_parameters=pyro_types.ReplyParameters(message_id=ctx.id)),
+                            ctx.reply_photo(images, reply_parameters=pyro_types.ReplyParameters(message_id=ctx.id)),
                         ]
                     )
-                await ctx.reply_msg(
+                await ctx.reply(
                     strings("up_msg").format(
                         namma=ctx.from_user.mention
                         if ctx.from_user
@@ -120,7 +121,7 @@ async def genss(self: Client, ctx: Message, strings):
                         id=ctx.from_user.id if ctx.from_user else ctx.sender_chat.title,
                         bot_uname=self.me.username,
                     ),
-                    reply_to_message_id=ctx.id,
+                    reply_parameters=pyro_types.ReplyParameters(message_id=ctx.id),
                 )
                 await pesan.delete()
                 try:
@@ -129,7 +130,7 @@ async def genss(self: Client, ctx: Message, strings):
                 except:
                     pass
             except Exception as exc:
-                await ctx.reply_msg(strings("err_ssgen").format(exc=exc))
+                await ctx.reply(strings("err_ssgen").format(exc=exc))
                 try:
                     os.remove(images)
                     os.remove(download_file_path)
@@ -139,10 +140,10 @@ async def genss(self: Client, ctx: Message, strings):
         vid = [replied.video, replied.document]
         media = next((v for v in vid if v is not None), None)
         if media is None:
-            return await ctx.reply_msg(strings("no_reply"), quote=True)
-        process = await ctx.reply_msg(strings("wait_dl"), quote=True)
+            return await ctx.reply(strings("no_reply"))
+        process = await ctx.reply(strings("wait_dl"))
         if media.file_size > 2097152000:
-            return await process.edit_msg(strings("limit_dl"))
+            return await process.edit(strings("limit_dl"))
         c_time = time.time()
         dc_id = FileId.decode(media.file_id).dc_id
         try:
@@ -152,16 +153,16 @@ async def genss(self: Client, ctx: Message, strings):
                 progress_args=(strings("dl_progress"), process, c_time, dc_id),
             )
         except FileNotFoundError:
-            return await process.edit_msg("ERROR: FileNotFound.")
+            return await process.edit("ERROR: FileNotFound.")
         the_real_download_location = os.path.join("downloads/", os.path.basename(dl))
         if the_real_download_location is not None:
             try:
-                await process.edit_msg(
+                await process.edit(
                     strings("success_dl_msg").format(path=the_real_download_location)
                 )
                 await sleep(2)
                 images = await take_ss(the_real_download_location)
-                await process.edit_msg(strings("up_progress"))
+                await process.edit(strings("up_progress"))
                 await self.send_chat_action(
                     chat_id=ctx.chat.id, action=enums.ChatAction.UPLOAD_PHOTO
                 )
@@ -169,19 +170,19 @@ async def genss(self: Client, ctx: Message, strings):
                 try:
                     await gather(
                         *[
-                            ctx.reply_document(images, reply_to_message_id=ctx.id),
-                            ctx.reply_photo(images, reply_to_message_id=ctx.id),
+                            ctx.reply_document(images, reply_parameters=pyro_types.ReplyParameters(message_id=ctx.id)),
+                            ctx.reply_photo(images, reply_parameters=pyro_types.ReplyParameters(message_id=ctx.id)),
                         ]
                     )
                 except FloodWait as e:
                     await sleep(e.value)
                     await gather(
                         *[
-                            ctx.reply_document(images, reply_to_message_id=ctx.id),
-                            ctx.reply_photo(images, reply_to_message_id=ctx.id),
+                            ctx.reply_document(images, reply_parameters=pyro_types.ReplyParameters(message_id=ctx.id)),
+                            ctx.reply_photo(images, reply_parameters=pyro_types.ReplyParameters(message_id=ctx.id)),
                         ]
                     )
-                await ctx.reply_msg(
+                await ctx.reply(
                     strings("up_msg").format(
                         namma=ctx.from_user.mention
                         if ctx.from_user
@@ -189,7 +190,7 @@ async def genss(self: Client, ctx: Message, strings):
                         id=ctx.from_user.id if ctx.from_user else ctx.sender_chat.id,
                         bot_uname=self.me.username,
                     ),
-                    reply_to_message_id=ctx.id,
+                    reply_parameters=pyro_types.ReplyParameters(message_id=ctx.id),
                 )
                 await process.delete()
                 try:
@@ -198,11 +199,11 @@ async def genss(self: Client, ctx: Message, strings):
                 except:
                     pass
             except Exception as exc:
-                await ctx.reply_msg(strings("err_ssgen").format(exc=exc))
+                await ctx.reply(strings("err_ssgen").format(exc=exc))
                 try:
                     os.remove(images)
                     os.remove(the_real_download_location)
                 except:
                     pass
     else:
-        await ctx.reply_msg(strings("no_reply"), del_in=6)
+        await ctx.reply(strings("no_reply"), del_in=6)

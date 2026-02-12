@@ -200,8 +200,8 @@ async def nightmode_handler(self, msg, strings):
             scheduler.remove_job(job_id=f"disable_nightmode_{chat_id}")
             if not bool(scheduler.get_jobs()) and bool(scheduler.state):
                 scheduler.shutdown()
-            return await msg.reply_msg(strings("nmd_disabled"))
-        return await msg.reply_msg(strings("nmd_not_enabled"))
+            return await msg.reply(strings("nmd_disabled"))
+        return await msg.reply(strings("nmd_not_enabled"))
 
     starttime = re.findall(r"-s=(\d+:\d+)", msg.text)
     start = starttime[0] if starttime else "00:00"
@@ -212,13 +212,13 @@ async def nightmode_handler(self, msg, strings):
             datetime.strptime((now.strftime("%m:%d:%Y - ") + start), "%m:%d:%Y - %H:%M")
         )
     except ValueError:
-        return await msg.reply_msg(strings("invalid_time_format"), del_in=6)
+        return await msg.reply(strings("invalid_time_format"), del_in=6)
     lockdur = re.findall(r"-e=(\w+)", msg.text)
     lockdur = lockdur[0] if lockdur else "6h"
     lock_dur = extract_time(lockdur.lower())
 
     if not lock_dur:
-        return await msg.reply_msg(strings("invalid_lockdur"), del_in=6)
+        return await msg.reply(strings("invalid_lockdur"), del_in=6)
 
     if start_timestamp < now:
         start_timestamp = start_timestamp + timedelta(days=1)
@@ -267,8 +267,8 @@ async def nightmode_handler(self, msg, strings):
             misfire_grace_time=None,
         )
     except ConflictingIdError:
-        return await msg.reply_msg(strings("schedule_already_on"))
-    await msg.reply_msg(
+        return await msg.reply(strings("schedule_already_on"))
+    await msg.reply(
         strings("nmd_enable_success").format(
             st=start_timestamp.strftime("%H:%M:%S"), lockdur=lockdur
         )

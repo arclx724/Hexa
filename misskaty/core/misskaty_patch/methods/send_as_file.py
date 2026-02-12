@@ -2,6 +2,7 @@ import io
 from typing import Optional, Union
 
 from pyrogram import Client
+from pyrogram import types as pyro_types
 
 
 async def send_as_file(
@@ -10,7 +11,7 @@ async def send_as_file(
     text: str,
     filename: str = "output.txt",
     caption: str = "",
-    reply_to_message_id: Optional[int] = None,
+    reply_parameters: Optional[pyro_types.ReplyParameters] = None,
 ) -> "Message":
     """\nYou can send large outputs as file
     Example:
@@ -28,8 +29,8 @@ async def send_as_file(
             file_name for output file.
         caption (``str``, *optional*):
             caption for output file.
-        reply_to_message_id (``int``, *optional*):
-            If the message is a reply, ID of the original message.
+        reply_parameters (:obj:`ReplyParameters`, *optional*):
+            Reply metadata for the target message.
     Returns:
         On success, the sent Message is returned.
     """
@@ -41,7 +42,7 @@ async def send_as_file(
         document=doc,
         caption=caption[:1024],
         disable_notification=True,
-        reply_to_message_id=reply_to_message_id,
+        reply_parameters=reply_parameters,
     )
 
 

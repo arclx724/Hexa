@@ -250,7 +250,7 @@ async def msg_quotly_cmd(self: Client, ctx: Message):
         check_arg = isArgInt(ctx.command[1])
         if check_arg[0]:
             if check_arg[1] < 2 or check_arg[1] > 10:
-                return await ctx.reply_msg("Invalid range", del_in=6)
+                return await ctx.reply("Invalid range", del_in=6)
             try:
                 messages = [
                     i
@@ -272,18 +272,18 @@ async def msg_quotly_cmd(self: Client, ctx: Message):
                 bio_sticker.name = "misskatyquote_sticker.webp"
                 return await ctx.reply_sticker(bio_sticker)
             except Exception:
-                return await ctx.reply_msg("🤷🏻‍♂️")
+                return await ctx.reply("🤷🏻‍♂️")
     try:
         messages_one = await self.get_messages(
             chat_id=ctx.chat.id, message_ids=ctx.reply_to_message.id, replies=-1
         )
         messages = [messages_one]
     except Exception:
-        return await ctx.reply_msg("🤷🏻‍♂️")
+        return await ctx.reply("🤷🏻‍♂️")
     try:
         make_quotly = await pyrogram_to_quotly(messages, is_reply=is_reply)
         bio_sticker = BytesIO(make_quotly)
         bio_sticker.name = "misskatyquote_sticker.webp"
         return await ctx.reply_sticker(bio_sticker)
     except Exception as e:
-        return await ctx.reply_msg(f"ERROR: {e}")
+        return await ctx.reply(f"ERROR: {e}")

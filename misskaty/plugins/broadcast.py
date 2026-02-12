@@ -2,21 +2,19 @@ import asyncio
 import datetime
 import time
 
-from async_pymongo import AsyncClient
 from pyrogram import filters
 from pyrogram.types import Message
 
-from misskaty import DATABASE_URI, app
+from misskaty import app
 from misskaty.vars import OWNER_ID
 from utils import broadcast_messages
 
 
 @app.on_message(filters.command("broadcast") & filters.user(OWNER_ID) & filters.reply)
 async def broadcast(_, ctx: Message):
-    mongo = AsyncClient(DATABASE_URI)
-    userdb = mongo["MissKatyBot"]["peers"]
+    userdb = app.db["peers"]
     b_msg = ctx.reply_to_message
-    sts = await ctx.reply_msg("Broadcasting your messages...")
+    sts = await ctx.reply("Broadcasting your messages...")
     start_time = time.time()
     total_users = await userdb.count_documents({})
     done = 0
@@ -41,10 +39,10 @@ async def broadcast(_, ctx: Message):
         done += 1
         await asyncio.sleep(2)
         if not done % 20:
-            await sts.edit_msg(
+            await sts.edit(
                 f"Broadcast in progress:\n\nTotal Users {total_users}\nCompleted: {done} / {total_users}\nSuccess: {success}\nBlocked: {blocked}\nDeleted: {deleted}"
             )
     time_taken = datetime.timedelta(seconds=int(time.time() - start_time))
-    await sts.edit_msg(
+    await sts.edit(
         f"Broadcast Completed:\nCompleted in {time_taken} seconds.\n\nTotal Users {total_users}\nCompleted: {done} / {total_users}\nSuccess: {success}\nBlocked: {blocked}\nDeleted: {deleted}"
     )

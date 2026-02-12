@@ -65,7 +65,7 @@ async def handle_error(
                     caption="An Internal Error Occurred while Processing your Command, the Logs have been sent to the Owners of this Bot. Sorry for Inconvenience",
                 )
             except:
-                await m.reply_msg(
+                await m.reply(
                     "An Internal Error Occurred while Processing your Command, the Logs have been sent to the Owners of this Bot. Sorry for Inconvenience"
                 )
             await m._client.send_document(
@@ -87,7 +87,7 @@ async def handle_error(
                     caption="An Internal Error Occurred while Processing your Command, the Logs have been sent to the Owners of this Bot. Sorry for Inconvenience",
                 )
             except:
-                await m.message.reply_msg(
+                await m.message.reply(
                     "An Internal Error Occurred while Processing your Command, the Logs have been sent to the Owners of this Bot. Sorry for Inconvenience"
                 )
             await m.message._client.send_document(

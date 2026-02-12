@@ -1,3 +1,4 @@
+from pyrogram import types as pyro_types
 import html
 import io
 from asyncio import get_event_loop
@@ -22,6 +23,11 @@ from pyrogram.types import Message
 
 LOGGER = getLogger("MissKaty")
 
+_ORIG_REPLY_TEXT = Message.reply_text
+_ORIG_REPLY = getattr(Message, "reply", None)
+_ORIG_EDIT_TEXT = Message.edit_text
+_ORIG_EDIT = getattr(Message, "edit", None)
+
 
 @property
 def parse_cmd(msg):
@@ -32,19 +38,12 @@ async def reply_text(
     self: Message, text: str, as_raw: bool = False, del_in: int = 0, *args, **kwargs
 ) -> Union["Message", bool]:
     """\nExample:
-            message.reply_msg("hello")
+            message.reply("hello")
     Parameters:
         text (``str``):
             Text of the message to be sent.
         del_in (``int``):
             Time in Seconds for delete that message.
-        quote (``bool``, *optional*):
-            If ``True``, the message will be sent as
-            a reply to this message.
-            If *reply_to_message_id* is passed,
-            this parameter will be ignored.
-            Defaults to ``True`` in group chats
-            and ``False`` in private chats.
         parse_mode (:obj:`enums.ParseMode`, *optional*):
             By default, texts are parsed using both
             Markdown and HTML styles.
@@ -78,11 +77,11 @@ async def reply_text(
     """
     try:
         if as_raw:
-            msg = await self.reply_text(
-                text=f"<code>{html.escape(text.html)}</code>", *args, **kwargs
+            msg = await _ORIG_REPLY_TEXT(
+                self, text=f"<code>{html.escape(text.html)}</code>", *args, **kwargs
             )
         else:
-            msg = await self.reply_text(text=text, *args, **kwargs)
+            msg = await _ORIG_REPLY_TEXT(self, text=text, *args, **kwargs)
         if del_in == 0:
             return msg
         await asleep(del_in)
@@ -104,7 +103,7 @@ async def edit_text(
     self, text: str, del_in: int = 0, *args, **kwargs
 ) -> Union["Message", bool]:
     """\nExample:
-            message.edit_msg("hello")
+            message.edit("hello")
     Parameters:
         text (``str``):
             New text of the message.
@@ -129,7 +128,7 @@ async def edit_text(
         RPCError: In case of a Telegram RPC error.
     """
     try:
-        msg = await self.edit_text(text, *args, **kwargs)
+        msg = await _ORIG_EDIT_TEXT(self, text, *args, **kwargs)
         if del_in == 0:
             return msg
         await asleep(del_in)
@@ -214,13 +213,6 @@ async def reply_or_send_as_file(
             Text of the message to be sent.
         del_in (``int``):
             Time in Seconds for delete that message.
-        quote (``bool``, *optional*):
-            If ``True``, the message will be sent
-            as a reply to this message.
-            If *reply_to_message_id* is passed,
-            this parameter will be ignored.
-            Defaults to ``True`` in group chats
-            and ``False`` in private chats.
         parse_mode (:obj:`enums.ParseMode`, *optional*):
             By default, texts are parsed using
             both Markdown and HTML styles.
@@ -289,7 +281,7 @@ async def reply_as_file(
         document=doc,
         caption=caption[:1024],
         disable_notification=True,
-        reply_to_message_id=reply_to_id,
+        reply_parameters=pyro_types.ReplyParameters(message_id=reply_to_id),
     )
 
 
@@ -317,8 +309,19 @@ async def delete(self, revoke: bool = True) -> bool:
         LOGGER.warning(str(e))
 
 
-Message.reply_msg = reply_text
-Message.edit_msg = edit_text
+async def reply(self: Message, text: str, del_in: int = 0, *args, **kwargs):
+    return await reply_text(self, text=text, del_in=del_in, *args, **kwargs)
+
+
+async def edit(self: Message, text: str, del_in: int = 0, *args, **kwargs):
+    return await edit_text(self, text=text, del_in=del_in, *args, **kwargs)
+
+
+Message.reply = reply
+Message.reply_text = reply
+Message.edit = edit
+Message.edit_text = edit
+
 Message.edit_or_send_as_file = edit_or_send_as_file
 Message.reply_or_send_as_file = reply_or_send_as_file
 Message.reply_as_file = reply_as_file

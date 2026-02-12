@@ -10,6 +10,7 @@ import cloudscraper
 from bs4 import BeautifulSoup
 from pykeyboard import InlineButton, InlineKeyboard
 from pyrogram import filters
+from pyrogram import types as pyro_types
 from pyrogram.types import CallbackQuery, Message
 
 from misskaty import app
@@ -36,7 +37,7 @@ async def getTitleSub(msg, kueri, CurrentPage, user):
         lists = soup.find("div", {"class": "search-result"})
         entry = lists.find_all("div", {"class": "title"})
         # if "Tidak Ditemukan" in entry[0].text:
-        #     await msg.edit_msg(f"Sorry, could not find any result for: {kueri}")
+        #     await msg.edit(f"Sorry, could not find any result for: {kueri}")
         #     return None, 0, None
         for sub in entry:
             title = sub.find("a").text
@@ -62,7 +63,7 @@ async def getTitleSub(msg, kueri, CurrentPage, user):
         subResult = "".join(i for i in subResult if i not in "[]")
         return subResult, PageLen, extractbtn1, extractbtn2
     except (IndexError, KeyError):
-        await msg.edit_msg("Sorry could not find any matching results!", del_in=5)
+        await msg.edit("Sorry could not find any matching results!", del_in=5)
         return None, 0, None
 
 
@@ -107,7 +108,7 @@ async def getListSub(msg, link, CurrentPage, user):
         subResult = "".join(i for i in subResult if i not in "[]")
         return subResult, PageLen, extractbtn1, extractbtn2
     except (IndexError, KeyError):
-        await msg.edit_msg("Sorry could not find any matching results!")
+        await msg.edit("Sorry could not find any matching results!")
         return None, 0, None
 
 
@@ -115,12 +116,11 @@ async def getListSub(msg, link, CurrentPage, user):
 @app.on_message(filters.command(["subscene"], COMMAND_HANDLER))
 async def subscene_cmd(_, ctx: Message):
     if not ctx.input:
-        return await ctx.reply_msg(
+        return await ctx.reply(
             f"ℹ️ Please add query after CMD!\nEx: <code>/{ctx.command[0]} Jurassic World</code>"
         )
-    pesan = await ctx.reply_msg(
-        "⏳ Please wait, getting data from subscene..", quote=True
-    )
+    pesan = await ctx.reply(
+        "⏳ Please wait, getting data from subscene..")
     CurrentPage = 1
     subres, PageLen, btn1, btn2 = await getTitleSub(
         pesan, ctx.input, CurrentPage, ctx.from_user.id
@@ -138,7 +138,7 @@ async def subscene_cmd(_, ctx: Message):
     if btn2:
         keyboard.row(*btn2)
     keyboard.row(InlineButton("❌ Close", f"close#{ctx.from_user.id}"))
-    await pesan.edit_msg(subres, disable_web_page_preview=True, reply_markup=keyboard)
+    await pesan.edit(subres, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard)
 
 
 # Callback list title
@@ -175,8 +175,8 @@ async def subpage_callback(_, callback_query: CallbackQuery):
     if btn2:
         keyboard.row(*btn2)
     keyboard.row(InlineButton("❌ Close", f"close#{callback_query.from_user.id}"))
-    await callback_query.message.edit_msg(
-        subres, disable_web_page_preview=True, reply_markup=keyboard
+    await callback_query.message.edit(
+        subres, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
     )
 
 
@@ -213,8 +213,8 @@ async def subdlpage_callback(_, callback_query: CallbackQuery):
     if btn2:
         keyboard.row(*btn2)
     keyboard.row(InlineButton("❌ Close", f"close#{callback_query.from_user.id}"))
-    await callback_query.message.edit_msg(
-        subres, disable_web_page_preview=True, reply_markup=keyboard
+    await callback_query.message.edit(
+        subres, link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True), reply_markup=keyboard
     )
 
 

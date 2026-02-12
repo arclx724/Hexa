@@ -32,6 +32,7 @@ from psutil import net_io_counters, virtual_memory
 from pyrogram import Client
 from pyrogram import __version__ as pyrover
 from pyrogram import enums, filters
+from pyrogram import types as pyro_types
 from pyrogram.errors import (
     ChatSendPhotosForbidden,
     ChatSendPlainForbidden,
@@ -98,7 +99,7 @@ async def edit_or_reply(self, msg, **kwargs):
 @app.on_message(filters.command(["privacy"], COMMAND_HANDLER))
 @use_chat_lang()
 async def privacy_policy(self: Client, ctx: Message, strings):
-    await ctx.reply_msg(strings("privacy_policy").format(botname=self.me.first_name), message_effect_id=5104841245755180586 if ctx.chat.type.value == "private" else None)
+    await ctx.reply(strings("privacy_policy").format(botname=self.me.first_name), message_effect_id=5104841245755180586 if ctx.chat.type.value == "private" else None)
 
 
 @app.on_message(filters.command(["stars"], COMMAND_HANDLER))
@@ -131,30 +132,30 @@ async def successful_payment_handler(_: Client, message: Message):
 @app.on_message(filters.command(["refund_star"], COMMAND_HANDLER))
 async def refund_star_payment(client: Client, message: Message):
     if len(message.command) == 1:
-        return await message.reply_msg(
+        return await message.reply(
             "Please input telegram_payment_charge_id after command."
         )
     trx_id = message.command[1]
     try:
         await client.refund_star_payment(message.from_user.id, trx_id)
-        await message.reply_msg(
+        await message.reply(
             f"Great {message.from_user.mention}, your stars has been refunded to your balance."
         )
     except Exception as e:
-        await message.reply_msg(e)
+        await message.reply(e)
 
 
 @app.on_message(filters.command(["logs"], COMMAND_HANDLER) & (filters.user(SUDO) | filters.user(OWNER_ID)))
 @use_chat_lang()
 async def log_file(_, ctx: Message, strings):
     """Send log file"""
-    msg = await ctx.reply_msg("<b>Reading bot logs ...</b>", quote=True)
+    msg = await ctx.reply("<b>Reading bot logs ...</b>")
     if len(ctx.command) == 1:
         try:
             with open("MissKatyLogs.txt", "r") as file:
                 content = file.read()
             pastelog = await privatebinapi.send_async("https://bin.yasirweb.eu.org", text=content, expiration="1week", formatting="syntaxhighlighting")
-            await msg.edit_msg(
+            await msg.edit(
                 f"<a href='{pastelog['full_url']}'>Here the Logs</a>\nlog size: {get_readable_file_size(os.path.getsize('MissKatyLogs.txt'))}"
             )
         except Exception:
@@ -177,14 +178,14 @@ async def log_file(_, ctx: Message, strings):
         val = ctx.text.split()
         tail = await shell_exec(f"tail -n {val[1]} -v MissKatyLogs.txt")
         try:
-            await msg.edit_msg(f"<pre language='bash'>{html.escape(tail[0])}</pre>")
+            await msg.edit(f"<pre language='bash'>{html.escape(tail[0])}</pre>")
         except MessageTooLong:
             with io.BytesIO(str.encode(tail[0])) as s:
                 s.name = "MissKatyLog-Tail.txt"
                 await ctx.reply_document(s)
             await msg.delete()
     else:
-        await msg.edit_msg("Unsupported parameter")
+        await msg.edit("Unsupported parameter")
 
 @app.on_message(filters.command(["payment"], COMMAND_HANDLER))
 async def payment(client: Client, message: Message):
@@ -220,9 +221,9 @@ async def payment(client: Client, message: Message):
     capt = f"𝗠𝗲𝗻𝘂𝗻𝗴𝗴𝘂 𝗽𝗲𝗺𝗯𝗮𝘆𝗮𝗿𝗮𝗻\nKode: {res['data']['unique_code']}\nNote: {res['data']['note']}\nHarga: {res['data']['amount']}\nFee: {res['data']['fee']}\nExpired: {res['data']['expired']}\n\n"
     payment_guide = f"<b>{res['payment_guide'][0]['title']}:</b>\n" + "\n".join(f"{i+1}. {step}" for i, step in enumerate(res["payment_guide"][0]['content']))
     if message.chat.type.value != "private":
-        msg = await message.reply_photo(qr_photo, caption=capt+payment_guide, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text="Payment Web", url=res["data"]["checkout_url_v2"])]]), quote=True)
+        msg = await message.reply_photo(qr_photo, caption=capt+payment_guide, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text="Payment Web", url=res["data"]["checkout_url_v2"])]]))
     else:
-        msg = await message.reply_photo(qr_photo, caption=capt+payment_guide, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text="Payment Web", web_app=WebAppInfo(url=res["data"]["checkout_url_v2"]))]]), quote=True)
+        msg = await message.reply_photo(qr_photo, caption=capt+payment_guide, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(text="Payment Web", web_app=WebAppInfo(url=res["data"]["checkout_url_v2"]))]]))
     await autopay_update(msg.id, res["data"]["note"], id_, res['data']['amount'], res['data']['status'], res['data']['unique_code'], res['data']['created_at'])
 
 @app.on_message(filters.command(["donate"], COMMAND_HANDLER))
@@ -232,7 +233,7 @@ async def donate(self: Client, ctx: Message):
             ctx.chat.id,
             "https://img.yasirweb.eu.org/file/ee74ce527fb8264b54691.jpg",
             caption="Hi, If you find this bot useful, you can make a donation to the account below. Because this bot server uses VPS and is not free. Thank You..\n\n<b>Indonesian Payment:</b>\n<b>QRIS:</b> https://img.yasirweb.eu.org/file/ee74ce527fb8264b54691.jpg (Yasir Store)\n<b>Bank Jago:</b> 109641845083 (Yasir Aris M)\n\nFor international people can use PayPal to support me or via GitHub Sponsor:\nhttps://paypal.me/yasirarism\nhttps://github.com/sponsors/yasirarism\n\n<b>Source:</b> @BeriKopi",
-            reply_to_message_id=ctx.id,
+            reply_parameters=pyro_types.ReplyParameters(message_id=ctx.id),
             message_effect_id=5159385139981059251
             if ctx.chat.type.value == "private"
             else None,
@@ -251,7 +252,7 @@ async def donate(self: Client, ctx: Message):
 async def balas(_, ctx: Message) -> "str":
     pesan = ctx.input
     await ctx.delete_msg()
-    await ctx.reply_msg(pesan, reply_to_message_id=ctx.reply_to_message.id)
+    await ctx.reply(pesan, reply_parameters=pyro_types.ReplyParameters(message_id=ctx.reply_to_message.id))
 
 
 @app.on_message(filters.command(["stats"], COMMAND_HANDLER))
@@ -288,13 +289,12 @@ async def server_stats(_, ctx: Message) -> "Message":
     caption = f"<b>{BOT_NAME} {misskaty_version} is Up and Running successfully.</b>\n\n<code>{neofetch}</code>\n\n**OS Uptime:** <code>{osuptime}</code>\n<b>Bot Uptime:</b> <code>{currentTime}</code>\n**Bot Usage:** <code>{botusage}</code>\n\n**Total Space:** <code>{disk_total}</code>\n**Free Space:** <code>{disk_free}</code>\n\n**Download:** <code>{download}</code>\n**Upload:** <code>{upload}</code>\n\n<b>PyroFork Version</b>: <code>{pyrover}</code>\n<b>Python Version</b>: <code>{sys.version_info[0]}.{sys.version_info[1]}.{sys.version_info[2]} {sys.version_info[3].title()}</code>"
 
     if "oracle" in platform.uname().release:
-        return await ctx.reply_msg(caption, quote=True)
+        return await ctx.reply(caption)
 
     start = datetime.now()
     msg = await ctx.reply_photo(
         photo="https://te.legra.ph/file/30a82c22854971d0232c7.jpg",
         caption=caption,
-        quote=True,
     )
     end = datetime.now()
 
@@ -401,11 +401,11 @@ __**New Global Ban**__
         m2 = await app.send_message(
             LOG_CHANNEL,
             text=ban_text,
-            disable_web_page_preview=True,
+            link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
         )
         await m.edit(
             f"Banned {user_mention} Globally!\nAction Log: {m2.link}",
-            disable_web_page_preview=True,
+            link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
         )
     except Exception:
         await ctx.reply_text(
@@ -448,9 +448,9 @@ async def shell_cmd(self: Client, ctx: Message, strings):
     if len(ctx.command) == 1:
         return await edit_or_reply(self, ctx, text=strings("no_cmd"))
     msg = (
-        await ctx.edit_msg(strings("run_exec"))
+        await ctx.edit(strings("run_exec"))
         if not self.me.is_bot
-        else await ctx.reply_msg(strings("run_exec"), quote=True)
+        else await ctx.reply(strings("run_exec"))
     )
     shell = (await shell_exec(ctx.input))[0]
     if len(shell) > 3000:
@@ -470,7 +470,6 @@ async def shell_cmd(self: Client, ctx: Message, strings):
                         ]
                     ]
                 ),
-                quote=True,
             )
             await msg.delete_msg()
     elif len(shell) != 0:
@@ -489,12 +488,11 @@ async def shell_cmd(self: Client, ctx: Message, strings):
                     ]
                 ]
             ),
-            quote=True,
         )
         if self.me.is_bot:
             await msg.delete_msg()
     else:
-        await ctx.reply_msg(strings("no_reply"), del_in=5)
+        await ctx.reply(strings("no_reply"), del_in=5)
 
 
 @app.on_message(
@@ -517,9 +515,9 @@ async def cmd_eval(self: Client, ctx: Message, strings) -> Optional[str]:
     if (ctx.command and len(ctx.command) == 1) or ctx.text == "app.run()":
         return await edit_or_reply(self, ctx, text=strings("no_eval"))
     status_message = (
-        await ctx.edit_msg(strings("run_eval"))
+        await ctx.edit(strings("run_eval"))
         if not self.me.is_bot
-        else await ctx.reply_msg(strings("run_eval"), quote=True)
+        else await ctx.reply(strings("run_eval"))
     )
     code = (
         ctx.text.split(maxsplit=1)[1]
@@ -533,7 +531,7 @@ async def cmd_eval(self: Client, ctx: Message, strings) -> Optional[str]:
     async def _eval() -> Tuple[str, Optional[str]]:
         # Message sending helper for convenience
         async def send(*args: Any, **kwargs: Any) -> Message:
-            return await ctx.reply_msg(*args, **kwargs)
+            return await ctx.reply(*args, **kwargs)
 
         # Print wrapper to capture output
         # We don't override sys.stdout to avoid interfering with other output
@@ -623,7 +621,6 @@ async def cmd_eval(self: Client, ctx: Message, strings) -> Optional[str]:
                         ]
                     ]
                 ),
-                quote=True,
             )
             await status_message.delete_msg()
     else:
@@ -642,7 +639,6 @@ async def cmd_eval(self: Client, ctx: Message, strings) -> Optional[str]:
                     ]
                 ]
             ),
-            quote=True,
         )
         if self.me.is_bot:
             await status_message.delete_msg()
@@ -652,7 +648,7 @@ async def cmd_eval(self: Client, ctx: Message, strings) -> Optional[str]:
 @app.on_message(filters.command(["restart"], COMMAND_HANDLER) & (filters.user(SUDO) | filters.user(OWNER_ID)))
 @use_chat_lang()
 async def update_restart(_, ctx: Message, strings):
-    msg = await ctx.reply_msg(strings("up_and_rest"))
+    msg = await ctx.reply(strings("up_and_rest"))
     await shell_exec("python3 update.py")
     with open("restart.pickle", "wb") as status:
         pickle.dump([ctx.chat.id, msg.id], status)
@@ -703,5 +699,4 @@ if AUTO_RESTART:
     scheduler = AsyncIOScheduler(timezone="Asia/Jakarta")
     scheduler.add_job(auto_restart, trigger="interval", days=3)
     scheduler.start()
-
 

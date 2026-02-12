@@ -22,7 +22,7 @@ async def getDataPypi(msg, kueri, CurrentPage, user):
     if not PYPI_DICT.get(msg.id):
         pypijson = (await fetch.get(f"https://yasirapi.eu.org/pypi?q={kueri}")).json()
         if not pypijson.get("result"):
-            await msg.edit_msg("Sorry could not find any matching results!", del_in=6)
+            await msg.edit("Sorry could not find any matching results!", del_in=6)
             return None, 0, None
         PYPI_DICT.add(msg.id, [split_arr(pypijson["result"], 6), kueri], timeout=1600)
     try:
@@ -38,7 +38,7 @@ async def getDataPypi(msg, kueri, CurrentPage, user):
         pypiResult = "".join(i for i in pypiResult if i not in "[]")
         return pypiResult, PageLen, extractbtn
     except (IndexError, KeyError):
-        await msg.edit_msg("Sorry could not find any matching results!", del_in=6)
+        await msg.edit("Sorry could not find any matching results!", del_in=6)
         return None, 0, None
 
 
@@ -46,13 +46,13 @@ async def getDataPypi(msg, kueri, CurrentPage, user):
 async def pypi_s(_, ctx: Message):
     kueri = " ".join(ctx.command[1:])
     if not kueri:
-        return await ctx.reply_msg(
+        return await ctx.reply(
             "Please add query after command. Ex: <code>/pypi pyrogram</code>", del_in=6
         )
-    pesan = await ctx.reply_msg("⏳ Please wait, getting data from pypi..", quote=True)
+    pesan = await ctx.reply("⏳ Please wait, getting data from pypi..")
     html = await fetch.get(f"https://pypi.org/pypi/{kueri}/json")
     if html.status_code != 200:
-        return await pesan.edit_msg("Failed connect fo pypi server")
+        return await pesan.edit("Failed connect fo pypi server")
     res = html.json()
     requirement = (
         "".join(f"{i}, " for i in res["info"].get("requires_dist"))
@@ -81,10 +81,10 @@ async def pypi_s(_, ctx: Message):
     keyboard = InlineKeyboard()
     keyboard.row(InlineButton("❌ Close", f"close#{ctx.from_user.id}"))
     try:
-        await pesan.edit_msg(msg, reply_markup=keyboard)
+        await pesan.edit(msg, reply_markup=keyboard)
     except MessageTooLong:
         url = await post_to_telegraph(False, f"{res['info'].get('name')} {res['info'].get('version', None)}-detail", msg)
-        await pesan.edit_msg(f"Result is too long:\n{url}", reply_markup=keyboard)
+        await pesan.edit(f"Result is too long:\n{url}", reply_markup=keyboard)
 
 
 @app.on_callback_query(filters.create(lambda _, __, query: "page_pypi#" in query.data))
@@ -118,7 +118,7 @@ async def pypipage_callback(_, callback_query: CallbackQuery):
     keyboard.row(InlineButton("👇 Extract Data ", "Hmmm"))
     keyboard.row(*btn)
     keyboard.row(InlineButton("❌ Close", f"close#{callback_query.from_user.id}"))
-    await callback_query.message.edit_msg(pypires, reply_markup=keyboard)
+    await callback_query.message.edit(pypires, reply_markup=keyboard)
 
 
 @app.on_callback_query(filters.create(lambda _, __, query: "pypidata#" in query.data))
@@ -171,9 +171,9 @@ async def pypi_getdata(_, callback_query: CallbackQuery):
         )
         msg += f"<b>Keywords:</b> {res['info'].get('keywords', 'Unknown')}\n"
         try:
-            await callback_query.message.edit_msg(msg, reply_markup=keyboard)
+            await callback_query.message.edit(msg, reply_markup=keyboard)
         except MessageTooLong:
             url = await post_to_telegraph(False, f"{pkgname}-detail", msg)
-            await callback_query.message.edit_msg(f"Result is too long:\n{url}")
+            await callback_query.message.edit(f"Result is too long:\n{url}")
     except Exception as err:
-        await callback_query.message.edit_msg(f"ERROR: {err}", reply_markup=keyboard)
+        await callback_query.message.edit(f"ERROR: {err}", reply_markup=keyboard)
