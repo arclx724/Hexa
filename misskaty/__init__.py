@@ -91,6 +91,24 @@ jobstores = {
 }
 scheduler = AsyncIOScheduler(jobstores=jobstores, timezone=TZ)
 
+async def verify_database_connection():
+    try:
+        ping_result = await app.database.ping()
+        app.log.info(
+            "Database connected successfully | uri=%s | db=%s | ping=%s",
+            app.database._mask_uri(app.database.uri),
+            app.database.database_name,
+            ping_result,
+        )
+    except Exception as e:
+        app.log.error(
+            "Database connection failed | uri=%s | db=%s | error=%s",
+            app.database._mask_uri(app.database.uri),
+            app.database.database_name,
+            e,
+        )
+        raise
+
 async def init_storage_models():
     await init_beanie(database=app.db, document_models=all_models)
 
@@ -99,6 +117,7 @@ async def run_wsgi():
     server = uvicorn.Server(config)
     await server.serve()
 
+get_event_loop().run_until_complete(verify_database_connection())
 get_event_loop().run_until_complete(init_storage_models())
 app.start()
 BOT_ID = app.me.id

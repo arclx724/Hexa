@@ -36,6 +36,19 @@ class Database:
         except OSError:
             return False
 
+    @staticmethod
+    def _mask_uri(uri: str) -> str:
+        parsed = urlparse(uri)
+        if "@" not in parsed.netloc:
+            return uri
+        auth, host = parsed.netloc.rsplit("@", 1)
+        if ":" in auth:
+            user, _ = auth.split(":", 1)
+            auth = f"{user}:***"
+        else:
+            auth = "***"
+        return urlunparse(parsed._replace(netloc=f"{auth}@{host}"))
+
     @classmethod
     def _normalize_uri(cls, uri: str) -> str:
         parsed = urlparse(uri)
@@ -44,13 +57,13 @@ class Database:
 
         query = dict(parse_qsl(parsed.query, keep_blank_values=True))
 
-        # Help local single-node MongoDB and localhost DNS edge cases.
+        # Local single-node optimization.
         if parsed.scheme == "mongodb" and parsed.hostname in {"localhost", "127.0.0.1"}:
             query.setdefault("directConnection", "true")
             return urlunparse(parsed._replace(query=urlencode(query)))
 
-        # Optional fallback when local development accidentally uses non-resolvable docker hostnames.
-        use_fallback = os.environ.get("DATABASE_LOCAL_FALLBACK", "true").lower() in {
+        # Optional fallback (disabled by default) for unresolved local aliases.
+        use_fallback = os.environ.get("DATABASE_LOCAL_FALLBACK", "false").lower() in {
             "1",
             "true",
             "yes",
@@ -70,10 +83,13 @@ class Database:
 
             query.setdefault("directConnection", "true")
             fallback_netloc = f"{auth + '@' if auth else ''}{hostpart}"
-            fallback_uri = urlunparse(parsed._replace(netloc=fallback_netloc, query=urlencode(query)))
+            fallback_uri = urlunparse(
+                parsed._replace(netloc=fallback_netloc, query=urlencode(query))
+            )
             LOGGER.warning(
-                f"DATABASE_URI host '{parsed.hostname}' tidak bisa di-resolve. "
-                f"Fallback ke local URI: {fallback_uri}"
+                "DATABASE_URI host '%s' tidak bisa di-resolve. Fallback ke local URI: %s",
+                parsed.hostname,
+                cls._mask_uri(fallback_uri),
             )
             return fallback_uri
 

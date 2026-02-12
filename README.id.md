@@ -78,7 +78,7 @@ Jika Anda ingin membantu saya memperbaiki beberapa kesalahan di bot saya, Anda d
 * `API_HASH`: Dapatkan value ini dari [telegram.org](https://my.telegram.org/apps)
 * `DATABASE_URI`: [mongoDB](https://www.mongodb.com) URI. Dapatkan value ini dari [mongoDB](https://www.mongodb.com).
   * Untuk MongoDB lokal, gunakan contoh `mongodb://127.0.0.1:27017` (atau `mongodb://localhost:27017`).
-  * Jika host URI tidak bisa di-resolve di mesin lokal (contoh `mongo`), set `DATABASE_LOCAL_FALLBACK=true` agar otomatis fallback ke `127.0.0.1`.
+  * Jika host URI tidak bisa di-resolve di mesin lokal (contoh `mongo`), set `DATABASE_LOCAL_FALLBACK=true` (opsional) agar otomatis fallback ke `127.0.0.1`.
 * `LOG_CHANNEL` : Channel untuk mencatat aktivitas bot. Pastikan bot adalah admin di channel.
 
 ### Variabel Opsional
