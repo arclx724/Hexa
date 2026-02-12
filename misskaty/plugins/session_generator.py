@@ -82,20 +82,38 @@ async def callbackgenstring(bot, callback_query):
         try:
             if query == "pyrogram":
                 await callback_query.answer()
-                await generate_session(bot, callback_query.message)
+                await generate_session(
+                    bot,
+                    callback_query.message,
+                    requester_id=callback_query.from_user.id,
+                )
             elif query == "pyrogram_bot":
                 await callback_query.answer(
                     "» The session generator will be of Pyrogram v2.", show_alert=True
                 )
-                await generate_session(bot, callback_query.message, is_bot=True)
+                await generate_session(
+                    bot,
+                    callback_query.message,
+                    is_bot=True,
+                    requester_id=callback_query.from_user.id,
+                )
             elif query == "telethon_bot":
                 await callback_query.answer()
                 await generate_session(
-                    bot, callback_query.message, telethon=True, is_bot=True
+                    bot,
+                    callback_query.message,
+                    telethon=True,
+                    is_bot=True,
+                    requester_id=callback_query.from_user.id,
                 )
             elif query == "telethon":
                 await callback_query.answer()
-                await generate_session(bot, callback_query.message, telethon=True)
+                await generate_session(
+                    bot,
+                    callback_query.message,
+                    telethon=True,
+                    requester_id=callback_query.from_user.id,
+                )
         except Exception as e:
             LOGGER.error(traceback.format_exc())
             ERROR_MESSAGE = (
@@ -114,14 +132,24 @@ async def genstringg(_, msg):
     await msg.reply(ask_ques, reply_markup=InlineKeyboardMarkup(buttons_ques))
 
 
-async def generate_session(bot, msg, telethon=False, is_bot: bool = False):
+async def generate_session(
+    bot,
+    msg,
+    telethon=False,
+    is_bot: bool = False,
+    requester_id=None,
+):
     ty = "Telethon" if telethon else "Pyrogram"
     if is_bot:
         ty += " Bot"
+    if requester_id is None and msg.from_user:
+        requester_id = msg.from_user.id
+
     await msg.reply(f"» Trying to start **{ty}** session generator...")
     api_id_msg = await msg.ask(
         "Please send your **API_ID** to proceed.\n\nClick on /skip for using bot's api.",
         filters=filters.text,
+        from_user_id=requester_id,
     )
     if await is_batal(api_id_msg):
         return
@@ -138,7 +166,9 @@ async def generate_session(bot, msg, telethon=False, is_bot: bool = False):
                 reply_markup=InlineKeyboardMarkup(gen_button),
             )
         api_hash_msg = await msg.ask(
-            "» Now please send your **API_HASH** to continue.", filters=filters.text
+            "» Now please send your **API_HASH** to continue.",
+            filters=filters.text,
+            from_user_id=requester_id,
         )
         if await is_batal(api_hash_msg):
             return
@@ -149,7 +179,9 @@ async def generate_session(bot, msg, telethon=False, is_bot: bool = False):
         if is_bot
         else "» Please send your **PHONE_NUMBER** with country code for which you want generate session. \nᴇxᴀᴍᴩʟᴇ : `+6286356837789`'"
     )
-    phone_number_msg = await msg.ask(t, filters=filters.text)
+    phone_number_msg = await msg.ask(
+        t, filters=filters.text, from_user_id=requester_id
+    )
     if await is_batal(phone_number_msg):
         return
     phone_number = phone_number_msg.text
@@ -195,6 +227,7 @@ async def generate_session(bot, msg, telethon=False, is_bot: bool = False):
                 "» Please send the **OTP** That you've received from Telegram on your account.\nIf OTP is `12345`, **please send it as** `1 2 3 4 5`.",
                 filters=filters.text,
                 timeout=600,
+                from_user_id=requester_id,
             )
             if await is_batal(phone_code_msg):
                 return
@@ -227,6 +260,7 @@ async def generate_session(bot, msg, telethon=False, is_bot: bool = False):
                     "» Please enter your **Two Step Verification** password to continue.",
                     filters=filters.text,
                     timeout=300,
+                    from_user_id=requester_id,
                 )
             except ListenerTimeout:
                 return await msg.reply(

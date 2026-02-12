@@ -211,7 +211,10 @@ async def webdomain_edit_value(_, query, strings):
     )
     try:
         response = await query.message.ask(
-            "Masukkan domain baru:", filters=filters.text, timeout=60
+            "Masukkan domain baru:",
+            filters=filters.text,
+            timeout=60,
+            from_user_id=query.from_user.id,
         )
     except Exception:
         return await query.message.edit("⚠️ Waktu habis.")
