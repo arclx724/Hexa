@@ -182,6 +182,30 @@ async def download_thumb_file(url: str | None, job_id: str, output_dir: str) -> 
         return None
 
 
+async def generate_thumb_with_ffmpeg(video_file: str, job_id: str, output_dir: str) -> str | None:
+    thumb_path = os.path.join(output_dir, f"{job_id}_thumb.jpg")
+    cmd = [
+        "ffmpeg",
+        "-y",
+        "-ss",
+        "00:00:01",
+        "-i",
+        video_file,
+        "-vframes",
+        "1",
+        thumb_path,
+    ]
+    process = await asyncio.create_subprocess_exec(
+        *cmd,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
+    )
+    await process.communicate()
+    if process.returncode == 0 and os.path.exists(thumb_path):
+        return thumb_path
+    return None
+
+
 def quality_markup(cache_key: str, tree: dict) -> InlineKeyboardMarkup:
     rows = []
     for idx, (res, items) in enumerate(tree["resolutions"].items()):
@@ -440,6 +464,8 @@ async def ytdl_download_callback(self: Client, cq: CallbackQuery, strings):
         return await cq.edit_message_caption("❌ Downloaded file not found.")
 
     thumb_file = await download_thumb_file(data.get("thumb"), job_id, output_dir)
+    if not thumb_file and option["kind"] == "video":
+        thumb_file = await generate_thumb_with_ffmpeg(downloaded_file, job_id, output_dir)
 
     try:
         await cq.edit_message_caption("<emoji id=5319190934510904031>⏳</emoji> Uploading...", parse_mode=ParseMode.HTML, reply_markup=cancel_markup)

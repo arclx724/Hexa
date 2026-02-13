@@ -112,14 +112,14 @@ async def start(self, ctx: Message, strings):
             await ctx.reply(
                 text,
                 link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
-                message_effect_id=5104841245755180586,
+                effect_id=5104841245755180586,
             )
             if module == "federation":
                 return await ctx.reply(
                     text=text,
                     reply_markup=FED_MARKUP,
                     link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
-                    message_effect_id=5104841245755180586,
+                    effect_id=5104841245755180586,
                 )
             await ctx.reply(
                 text,
@@ -127,12 +127,12 @@ async def start(self, ctx: Message, strings):
                     [[InlineKeyboardButton("back", callback_data="help_back")]]
                 ),
                 link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
-                message_effect_id=5104841245755180586,
+                effect_id=5104841245755180586,
             )
         elif name == "help":
             text, keyb = await help_parser(ctx.from_user.first_name, strings)
             await ctx.reply(
-                text, reply_markup=keyb, message_effect_id=5104841245755180586
+                text, reply_markup=keyb, effect_id=5104841245755180586
             )
     else:
         await self.send_photo(
@@ -152,7 +152,7 @@ async def commands_callbacc(_, cb: CallbackQuery, strings):
         cb.message.chat.id,
         text=text,
         reply_markup=keyb,
-        message_effect_id=5104841245755180586,
+        effect_id=5104841245755180586,
     )
     await cb.message.delete_msg()
 
@@ -199,7 +199,7 @@ async def help_command(_, ctx: Message, strings):
             await ctx.reply(
                 text,
                 link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
-                message_effect_id=5104841245755180586,
+                effect_id=5104841245755180586,
             )
         else:
             text, help_keyboard = await help_parser(ctx.from_user.first_name, strings)
@@ -207,7 +207,7 @@ async def help_command(_, ctx: Message, strings):
                 text,
                 reply_markup=help_keyboard,
                 link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
-                message_effect_id=5104841245755180586,
+                effect_id=5104841245755180586,
             )
     else:
         text, help_keyboard = await help_parser(ctx.from_user.first_name, strings)
@@ -215,7 +215,7 @@ async def help_command(_, ctx: Message, strings):
             text,
             reply_markup=help_keyboard,
             link_preview_options=pyro_types.LinkPreviewOptions(is_disabled=True),
-            message_effect_id=5104841245755180586,
+            effect_id=5104841245755180586,
         )
 
 
