@@ -582,7 +582,7 @@ async def fban_user(client, message):
         )
     fed_id = await get_fed_id(chat.id)
     if not fed_id:
-        return await message.reply_text("**This chat is not a part of any federation.")
+        return await message.reply_text("**This chat is not a part of any federation.**")
     info = await get_fed_info(fed_id)
     fed_admins = info["fadmins"]
     fed_owner = info["owner_id"]
@@ -681,7 +681,7 @@ async def funban_user(client, message):
         return
     fed_id = await get_fed_id(chat.id)
     if not fed_id:
-        return await message.reply_text("**This chat is not a part of any federation.")
+        return await message.reply_text("**This chat is not a part of any federation.**")
     info = await get_fed_info(fed_id)
     fed_admins = info["fadmins"]
     fed_owner = info["owner_id"]
@@ -811,12 +811,12 @@ async def fbroadcast_message(client, message):
         return
     fed_id = await get_fed_id(chat.id)
     if not fed_id:
-        return await message.reply_text("**This chat is not a part of any federation.")
+        return await message.reply_text("**This chat is not a part of any federation.**")
     info = await get_fed_info(fed_id)
     fed_owner = info["owner_id"]
     fed_admins = info["fadmins"]
     all_admins = [fed_owner] + fed_admins + [int(BOT_ID)]
-    if from_user.id not in all_admins and from_user.id not in SUDO and from_user != OWNER_ID:
+    if from_user.id not in all_admins and from_user.id not in SUDO and from_user.id != OWNER_ID:
         return await message.reply_text(
             "You need to be a Fed Admin to use this command"
         )
