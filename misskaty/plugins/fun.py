@@ -7,6 +7,7 @@ import regex
 from PIL import Image, ImageDraw, ImageFont
 from pyrogram import filters
 from pyrogram import types as pyro_types
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from pyrogram.errors import MessageIdInvalid, PeerIdInvalid, ReactionInvalid, ListenerTimeout
 
 from misskaty import app, user
@@ -26,8 +27,8 @@ __HELP__ = """
 /tebaklontong - Play "Tebak Lontong" in any room chat
 /tebakkata - Play "Tebak Kata" in any room chat
 /tebaktebakan - Play "Tebak Tebakan" in any room chat
-/batu [batu/gunting/kertas] - Main suit lawan bot
-/tebakangka - Tebak angka 1-20 dengan petunjuk
+/batu - Main batu gunting kertas pakai tombol
+/tebakangka - Tebak angka 1-20 pakai callback button
 """
 
 async def draw_meme_text(image_path, text):
@@ -331,8 +332,73 @@ async def handle_game_command(client, message):
     await play_game(client, message, message.command[0])
 
 
+interactive_games = {}
+
+
+def generate_game_id():
+    return f"{random.randint(100000, 999999)}{random.randint(100, 999)}"
+
+
+def build_tebak_angka_keyboard(game_id):
+    rows = []
+    buttons = []
+    for nomor in range(1, 21):
+        buttons.append(InlineKeyboardButton(str(nomor), callback_data=f"ga:{game_id}:{nomor}"))
+        if len(buttons) == 5:
+            rows.append(buttons)
+            buttons = []
+    rows.append([InlineKeyboardButton("🛑 Berhenti", callback_data=f"ga:{game_id}:stop")])
+    return InlineKeyboardMarkup(rows)
+
+
 @app.on_message(filters.command(["batu", "suit", "rps"], COMMAND_HANDLER))
 async def batu_gunting_kertas(_, message):
+    if not message.from_user:
+        return await message.reply_text("Game ini hanya bisa dimulai oleh akun user.")
+
+    game_id = generate_game_id()
+    interactive_games[game_id] = {
+        "type": "rps",
+        "user_id": message.from_user.id,
+        "user_name": message.from_user.mention,
+        "active": True,
+    }
+
+    keyboard = InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton("🪨 Batu", callback_data=f"rps:{game_id}:batu"),
+                InlineKeyboardButton("✂️ Gunting", callback_data=f"rps:{game_id}:gunting"),
+                InlineKeyboardButton("📄 Kertas", callback_data=f"rps:{game_id}:kertas"),
+            ],
+            [InlineKeyboardButton("❌ Batalkan", callback_data=f"rps:{game_id}:stop")],
+        ]
+    )
+
+    await message.reply_text(
+        "🎮 <b>Batu Gunting Kertas</b>\n"
+        f"Pemain: {message.from_user.mention}\n"
+        "Klik salah satu tombol di bawah untuk memilih.",
+        reply_markup=keyboard,
+    )
+
+
+@app.on_callback_query(filters.regex(r"^rps:"))
+async def batu_gunting_kertas_callback(_, query):
+    _, game_id, pilihan_user = query.data.split(":", 2)
+    game = interactive_games.get(game_id)
+
+    if not game or not game.get("active") or game.get("type") != "rps":
+        return await query.answer("Game ini sudah tidak aktif.", show_alert=True)
+
+    if query.from_user.id != game["user_id"]:
+        return await query.answer("Hanya pemain yang memulai game yang bisa klik tombol ini.", show_alert=True)
+
+    if pilihan_user == "stop":
+        game["active"] = False
+        await query.message.edit_text("Game Batu Gunting Kertas dibatalkan.")
+        return await query.answer("Game dibatalkan.")
+
     pilihan_valid = {
         "batu": "🪨 Batu",
         "gunting": "✂️ Gunting",
@@ -344,79 +410,97 @@ async def batu_gunting_kertas(_, message):
         "kertas": "batu",
     }
 
-    if len(message.command) < 2:
-        return await message.reply_text(
-            "Yuk main Batu Gunting Kertas!\n\n"
-            "Contoh: <code>/batu batu</code>\n"
-            "Pilihan: <b>batu</b>, <b>gunting</b>, atau <b>kertas</b>."
-        )
-
-    pilihan_user = message.command[1].lower()
-    if pilihan_user not in pilihan_valid:
-        return await message.reply_text(
-            "Pilihan tidak valid. Gunakan: <b>batu</b>, <b>gunting</b>, atau <b>kertas</b>."
-        )
-
     pilihan_bot = random.choice(list(pilihan_valid.keys()))
     if pilihan_user == pilihan_bot:
-        hasil = "🤝 Seri! Kita sama-sama jago."
+        hasil = "🤝 Seri!"
     elif aturan_menang[pilihan_user] == pilihan_bot:
-        hasil = "🎉 Kamu menang! Mantap!"
+        hasil = "🎉 Kamu menang!"
     else:
-        hasil = "😼 Aku menang! Coba lagi ya."
+        hasil = "😼 Bot menang!"
 
-    await message.reply_text(
+    game["active"] = False
+    await query.message.edit_text(
+        "🎮 <b>Hasil Batu Gunting Kertas</b>\n"
+        f"Pemain: {game['user_name']}\n"
         f"Pilihan kamu: {pilihan_valid[pilihan_user]}\n"
         f"Pilihan bot: {pilihan_valid[pilihan_bot]}\n\n{hasil}"
     )
+    await query.answer("Pilihan diterima!")
 
 
 @app.on_message(filters.command(["tebakangka", "guessnumber"], COMMAND_HANDLER))
-async def tebak_angka(client, message):
-    angka_rahasia = random.randint(1, 20)
-    percobaan_maks = 5
+async def tebak_angka(_, message):
+    if not message.from_user:
+        return await message.reply_text("Game ini hanya bisa dimulai oleh akun user.")
+
+    game_id = generate_game_id()
+    interactive_games[game_id] = {
+        "type": "guess",
+        "user_id": message.from_user.id,
+        "user_name": message.from_user.mention,
+        "secret": random.randint(1, 20),
+        "max_attempts": 5,
+        "attempts": 0,
+        "active": True,
+    }
 
     await message.reply_text(
         "🎯 <b>Game Tebak Angka</b>\n"
+        f"Pemain: {message.from_user.mention}\n"
         "Aku sudah memilih angka dari <b>1 sampai 20</b>.\n"
-        f"Kamu punya <b>{percobaan_maks} percobaan</b>.\n"
-        "Kirim angka kamu sekarang!"
+        "Klik angka pada tombol di bawah.\n"
+        "Maksimal <b>5 percobaan</b>.",
+        reply_markup=build_tebak_angka_keyboard(game_id),
     )
 
-    for percobaan in range(1, percobaan_maks + 1):
-        try:
-            jawaban = await client.listen(
-                chat_id=message.chat.id,
-                filters=filters.text,
-                timeout=35,
-            )
-        except ListenerTimeout:
-            return await message.reply_text(
-                f"⌛ Waktu habis! Angka yang benar adalah <b>{angka_rahasia}</b>."
-            )
 
-        if not jawaban.text.isdigit():
-            await jawaban.reply_text("Masukkan angka ya, bukan teks lain 😄")
-            continue
+@app.on_callback_query(filters.regex(r"^ga:"))
+async def tebak_angka_callback(_, query):
+    _, game_id, pilihan = query.data.split(":", 2)
+    game = interactive_games.get(game_id)
 
-        tebakan_user = int(jawaban.text)
-        if not 1 <= tebakan_user <= 20:
-            await jawaban.reply_text("Angka harus di antara 1 sampai 20.")
-            continue
+    if not game or not game.get("active") or game.get("type") != "guess":
+        return await query.answer("Game ini sudah tidak aktif.", show_alert=True)
 
-        if tebakan_user == angka_rahasia:
-            return await jawaban.reply_text(
-                f"🏆 Benar! Angkanya adalah <b>{angka_rahasia}</b>.\n"
-                f"Kamu menebak dalam <b>{percobaan}</b> percobaan."
-            )
+    if query.from_user.id != game["user_id"]:
+        return await query.answer("Hanya pemain yang memulai game yang bisa klik tombol ini.", show_alert=True)
 
-        sisa = percobaan_maks - percobaan
-        petunjuk = "terlalu kecil" if tebakan_user < angka_rahasia else "terlalu besar"
-        if sisa > 0:
-            await jawaban.reply_text(
-                f"❌ Tebakanmu {petunjuk}. Sisa percobaan: <b>{sisa}</b>."
-            )
+    if pilihan == "stop":
+        game["active"] = False
+        await query.message.edit_text(
+            f"🛑 Game Tebak Angka dibatalkan.\nJawaban rahasia: <b>{game['secret']}</b>."
+        )
+        return await query.answer("Game dihentikan.")
 
-    await message.reply_text(
-        f"Game selesai! Kamu belum beruntung. Angka yang benar adalah <b>{angka_rahasia}</b>."
+    tebakan = int(pilihan)
+    game["attempts"] += 1
+
+    if tebakan == game["secret"]:
+        game["active"] = False
+        await query.message.edit_text(
+            "🏆 <b>Selamat!</b>\n"
+            f"{game['user_name']} berhasil menebak angka <b>{game['secret']}</b> "
+            f"dalam <b>{game['attempts']}</b> percobaan."
+        )
+        return await query.answer("Jawaban benar!", show_alert=True)
+
+    sisa = game["max_attempts"] - game["attempts"]
+    petunjuk = "terlalu kecil" if tebakan < game["secret"] else "terlalu besar"
+
+    if sisa <= 0:
+        game["active"] = False
+        await query.message.edit_text(
+            "💥 <b>Game selesai!</b>\n"
+            f"Percobaan habis. Angka yang benar adalah <b>{game['secret']}</b>."
+        )
+        return await query.answer("Percobaan habis.", show_alert=True)
+
+    await query.answer(f"Tebakan {petunjuk}. Sisa {sisa} percobaan.", show_alert=True)
+    await query.message.edit_text(
+        "🎯 <b>Game Tebak Angka</b>\n"
+        f"Pemain: {game['user_name']}\n"
+        f"Percobaan dipakai: <b>{game['attempts']}</b>/<b>{game['max_attempts']}</b>\n"
+        f"Hint terakhir: <b>{tebakan}</b> itu {petunjuk}.\n"
+        "Pilih angka lagi dari tombol di bawah.",
+        reply_markup=build_tebak_angka_keyboard(game_id),
     )
