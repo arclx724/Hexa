@@ -3,7 +3,6 @@ from typing import Union
 
 from pyrogram import filters
 from pyrogram.enums import ChatType
-from pyrogram.errors import ListenerTimeout
 from pyrogram.types import (
     CallbackQuery,
     InlineKeyboardButton,
@@ -81,11 +80,7 @@ async def chlang(_, m: Union[CallbackQuery, Message], strings):
         if msg.chat.type == ChatType.PRIVATE
         else strings("language_changer_chat")
     )
-    msg = await sender(res, reply_markup=keyboard)
-    try:
-        await msg.wait_for_click(from_user_id=m.from_user.id, timeout=30)
-    except ListenerTimeout:
-        await msg.edit(strings("exp_task", context="general"))
+    await sender(res, reply_markup=keyboard)
 
 
 @app.on_callback_query(filters.regex("^set_lang "))
