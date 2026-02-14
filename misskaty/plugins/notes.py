@@ -26,6 +26,7 @@ from re import findall
 
 from pyrogram import filters
 from pyrogram import types as pyro_types
+from pyrogram.enums import ChatType
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from database.notes_db import (
@@ -37,7 +38,7 @@ from database.notes_db import (
 )
 from misskaty import app
 from misskaty.core.decorator.errors import capture_err
-from misskaty.core.decorator.permissions import adminsOnly, member_permissions
+from misskaty.core.decorator.permissions import member_permissions
 from misskaty.core.keyboard import ikb
 from misskaty.helper.functions import extract_text_and_keyb, extract_urls
 from misskaty.vars import COMMAND_HANDLER
@@ -58,11 +59,19 @@ To change caption of any files use.\n/save [NOTE_NAME] or /addnote [NOTE_NAME] [
 """
 
 
-@app.on_message(
-    filters.command(["addnote", "save"], COMMAND_HANDLER) & ~filters.private
-)
-@adminsOnly("can_change_info")
+async def can_manage_notes(message):
+    if message.chat.type == ChatType.PRIVATE:
+        return True
+    if not message.from_user:
+        return False
+    permissions = await member_permissions(message.chat.id, message.from_user.id)
+    return "can_change_info" in permissions
+
+
+@app.on_message(filters.command(["addnote", "save"], COMMAND_HANDLER))
 async def save_notee(_, message):
+    if not await can_manage_notes(message):
+        return await message.reply("You don't have required permission: can_change_info")
     try:
         if len(message.command) < 2 or not message.reply_to_message:
             await message.reply(
@@ -138,7 +147,7 @@ async def save_notee(_, message):
         )
 
 
-@app.on_message(filters.command("notes", COMMAND_HANDLER) & ~filters.private)
+@app.on_message(filters.command("notes", COMMAND_HANDLER))
 @capture_err
 async def get_notes(_, message):
     chat_id = message.chat.id
@@ -147,13 +156,14 @@ async def get_notes(_, message):
     if not _notes:
         return await message.reply("**No notes in this chat.**")
     _notes.sort()
-    msg = f"List of notes in {message.chat.title} - {message.chat.id}\n"
+    chat_name = message.chat.title or message.chat.first_name
+    msg = f"List of notes in {chat_name} - {message.chat.id}\n"
     for note in _notes:
         msg += f"**-** `{note}`\n"
     await message.reply(msg)
 
 
-@app.on_message(filters.regex(r"^#.+") & filters.text & ~filters.private)
+@app.on_message(filters.regex(r"^#.+") & filters.text)
 @capture_err
 async def get_one_note(_, message):
     from_user = message.from_user if message.from_user else message.sender_chat
@@ -170,7 +180,7 @@ async def get_one_note(_, message):
     keyb = None
     if data:
         if "{chat}" in data:
-            data = data.replace("{chat}", message.chat.title)
+            data = data.replace("{chat}", message.chat.title or message.chat.first_name)
         if "{name}" in data:
             data = data.replace(
                 "{name}", (from_user.mention if message.from_user else from_user.title)
@@ -236,11 +246,10 @@ async def get_one_note(_, message):
         )
 
 
-@app.on_message(
-    filters.command(["delnote", "clear"], COMMAND_HANDLER) & ~filters.private
-)
-@adminsOnly("can_change_info")
+@app.on_message(filters.command(["delnote", "clear"], COMMAND_HANDLER))
 async def del_note(_, message):
+    if not await can_manage_notes(message):
+        return await message.reply("You don't have required permission: can_change_info")
     if len(message.command) < 2:
         return await message.reply("**Usage**\n__/delete [NOTE_NAME]__")
     name = message.text.split(None, 1)[1].strip()
@@ -257,9 +266,10 @@ async def del_note(_, message):
         await message.reply("**No such note.**")
 
 
-@app.on_message(filters.command("deleteall", COMMAND_HANDLER) & ~filters.private)
-@adminsOnly("can_change_info")
+@app.on_message(filters.command("deleteall", COMMAND_HANDLER))
 async def delete_all(_, message):
+    if not await can_manage_notes(message):
+        return await message.reply("You don't have required permission: can_change_info")
     _notes = await get_note_names(message.chat.id)
     if not _notes:
         return await message.reply_text("**No notes in this chat.**")
@@ -281,13 +291,14 @@ async def delete_all(_, message):
 async def delete_all_cb(_, cb):
     chat_id = cb.message.chat.id
     from_user = cb.from_user
-    permissions = await member_permissions(chat_id, from_user.id)
-    permission = "can_change_info"
-    if permission not in permissions:
-        return await cb.answer(
-            f"You don't have the required permission.\n Permission: {permission}",
-            show_alert=True,
-        )
+    if cb.message.chat.type != ChatType.PRIVATE:
+        permissions = await member_permissions(chat_id, from_user.id)
+        permission = "can_change_info"
+        if permission not in permissions:
+            return await cb.answer(
+                f"You don't have the required permission.\n Permission: {permission}",
+                show_alert=True,
+            )
     input = cb.data.split("_", 1)[1]
     if input == "yes":
         stoped_all = await deleteall_notes(chat_id)

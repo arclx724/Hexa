@@ -16,7 +16,13 @@ from pyrogram.errors import (
 )
 from pyrogram.types import ChatMemberUpdated, InlineKeyboardButton, InlineKeyboardMarkup
 
-from database.greetings_db import is_welcome, toggle_welcome
+from database.greetings_db import (
+    get_welcome_text,
+    is_welcome,
+    reset_welcome_text,
+    set_welcome_text,
+    toggle_welcome,
+)
 from database.users_chats_db import db
 from misskaty import BOT_USERNAME, app
 from misskaty.core.decorator import asyncify, capture_err
@@ -136,12 +142,22 @@ async def member_has_joined(c: Client, member: ChatMemberUpdated, strings):
             welcomeimg = await welcomepic(
                 pic, user.first_name, member.chat.title, user.id, strings
             )
+            custom_welcome = await get_welcome_text(member.chat.id)
+            if custom_welcome:
+                caption = custom_welcome.format(
+                    umention=mention,
+                    uid=user.id,
+                    ttl=member.chat.title,
+                    first_name=user.first_name,
+                )
+            else:
+                caption = strings("capt_welc").format(
+                    umention=mention, uid=user.id, ttl=member.chat.title
+                )
             temp.MELCOW[f"welcome-{member.chat.id}"] = await c.send_photo(
                 member.chat.id,
                 photo=welcomeimg,
-                caption=strings("capt_welc").format(
-                    umention=mention, uid=user.id, ttl=member.chat.title
-                ),
+                caption=caption,
             )
         except Exception as e:
             LOGGER.info(e)
@@ -176,6 +192,28 @@ async def welcome_toggle_handler(client, message):
     await message.reply(
         f"Welcome messages are now {'enabled' if is_enabled else 'disabled'}."
     )
+
+
+@app.on_cmd(["setwelcome"], self_admin=True, group_only=True)
+@app.adminsOnly("can_change_info")
+async def set_welcome_handler(_, message):
+    if len(message.command) < 2:
+        return await message.reply(
+            "Gunakan: /setwelcome [teks]\n\n"
+            "Variabel: {umention}, {uid}, {ttl}, {first_name}"
+        )
+    text = message.text.split(None, 1)[1]
+    await set_welcome_text(message.chat.id, text)
+    await message.reply(
+        "Welcome text berhasil disimpan. Gambar welcome tetap aktif secara default."
+    )
+
+
+@app.on_cmd(["resetwelcome"], self_admin=True, group_only=True)
+@app.adminsOnly("can_change_info")
+async def reset_welcome_handler(_, message):
+    await reset_welcome_text(message.chat.id)
+    await message.reply("Welcome text custom dihapus. Bot kembali ke template default.")
 
 
 @app.on_message(filters.command("leave") & filters.user(OWNER_ID))

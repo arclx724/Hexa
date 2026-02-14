@@ -32,7 +32,7 @@ def gen_langs_kb():
         a = [
             InlineKeyboardButton(
                 f"{lang['language_flag']} {lang['language_name']}",
-                callback_data=f"set_lang {langs[0]}",
+                callback_data=f"setlangsel {langs[0]}",
             )
         ]
 
@@ -42,13 +42,39 @@ def gen_langs_kb():
             a.append(
                 InlineKeyboardButton(
                     f"{lang['language_flag']} {lang['language_name']}",
-                    callback_data=f"set_lang {langs[0]}",
+                    callback_data=f"setlangsel {langs[0]}",
                 )
             )
 
             langs.pop(0)
         kb.append(a)
     return kb
+
+
+async def apply_language_change(msg: Message, lang: str):
+    await set_db_lang(msg.chat.id, msg.chat.type, lang)
+
+    strings = partial(
+        get_locale_string,
+        langdict[lang].get("lang_setting", langdict[default_language]["lang_setting"]),
+        lang,
+        "lang_setting",
+    )
+
+    if msg.chat.type == ChatType.PRIVATE:
+        keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(
+                        strings("back_btn", context="general"),
+                        callback_data="start_back",
+                    )
+                ]
+            ]
+        )
+    else:
+        keyboard = None
+    await msg.edit(strings("language_changed_successfully"), reply_markup=keyboard)
 
 
 @app.on_callback_query(filters.regex("^chlang$"))
@@ -81,40 +107,21 @@ async def chlang(_, m: Union[CallbackQuery, Message], strings):
         if msg.chat.type == ChatType.PRIVATE
         else strings("language_changer_chat")
     )
-    msg = await sender(res, reply_markup=keyboard)
+    panel = await sender(res, reply_markup=keyboard)
+
     try:
-        await msg.wait_for_click(from_user_id=m.from_user.id, timeout=30)
+        click = await panel.wait_for_click(from_user_id=m.from_user.id, timeout=30)
     except ListenerTimeout:
-        await msg.edit(strings("exp_task", context="general"))
+        return await panel.edit(strings("exp_task", context="general"))
+
+    if not click.data.startswith("setlangsel "):
+        return
+
+    lang = click.data.split()[1]
+    await click.answer(strings("language_changed_successfully"))
+    await apply_language_change(panel, lang)
 
 
-@app.on_callback_query(filters.regex("^set_lang "))
-@require_admin(allow_in_private=True)
-@use_chat_lang()
-async def set_chat_lang(_, m: CallbackQuery, strings):
-    lang = m.data.split()[1]
-    await set_db_lang(m.message.chat.id, m.message.chat.type, lang)
-
-    strings = partial(
-        get_locale_string,
-        langdict[lang].get("lang_setting", langdict[default_language]["lang_setting"]),
-        lang,
-        "lang_setting",
-    )
-
-    if m.message.chat.type == ChatType.PRIVATE:
-        keyboard = InlineKeyboardMarkup(
-            inline_keyboard=[
-                [
-                    InlineKeyboardButton(
-                        strings("back_btn", context="general"),
-                        callback_data="start_back",
-                    )
-                ]
-            ]
-        )
-    else:
-        keyboard = None
-    await m.message.edit(
-        strings("language_changed_successfully"), reply_markup=keyboard
-    )
+@app.on_callback_query(filters.regex("^setlangsel "))
+async def set_chat_lang_expired(_, m: CallbackQuery):
+    await m.answer("Menu language ini sudah expired, buka lagi dengan /setlang.", show_alert=True)

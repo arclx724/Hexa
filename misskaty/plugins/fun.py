@@ -1,4 +1,5 @@
 import textwrap
+import random
 from asyncio import gather
 from os import remove as hapus
 
@@ -6,6 +7,7 @@ import regex
 from PIL import Image, ImageDraw, ImageFont
 from pyrogram import filters
 from pyrogram import types as pyro_types
+from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from pyrogram.errors import MessageIdInvalid, PeerIdInvalid, ReactionInvalid, ListenerTimeout
 
 from misskaty import app, user
@@ -25,6 +27,8 @@ __HELP__ = """
 /tebaklontong - Play "Tebak Lontong" in any room chat
 /tebakkata - Play "Tebak Kata" in any room chat
 /tebaktebakan - Play "Tebak Tebakan" in any room chat
+/batu - Main batu gunting kertas pakai tombol
+/tebakangka - Tebak angka 1-20 pakai callback button
 """
 
 async def draw_meme_text(image_path, text):
@@ -326,3 +330,151 @@ async def play_game(client, message, game_mode):
 @app.on_message(filters.command(["tebakgambar", "tebaklontong", "tebakkata", "tebaktebakan"]))
 async def handle_game_command(client, message):
     await play_game(client, message, message.command[0])
+
+
+def generate_game_id():
+    return f"{random.randint(100000, 999999)}{random.randint(100, 999)}"
+
+
+def build_tebak_angka_keyboard(game_id):
+    rows = []
+    buttons = []
+    for nomor in range(1, 21):
+        buttons.append(InlineKeyboardButton(str(nomor), callback_data=f"ga:{game_id}:{nomor}"))
+        if len(buttons) == 5:
+            rows.append(buttons)
+            buttons = []
+    rows.append([InlineKeyboardButton("🛑 Berhenti", callback_data=f"ga:{game_id}:stop")])
+    return InlineKeyboardMarkup(rows)
+
+
+@app.on_message(filters.command(["batu", "suit", "rps"], COMMAND_HANDLER))
+async def batu_gunting_kertas(_, message):
+    if not message.from_user:
+        return await message.reply_text("Game ini hanya bisa dimulai oleh akun user.")
+
+    game_id = generate_game_id()
+    keyboard = InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton("🪨 Batu", callback_data=f"rps:{game_id}:batu"),
+                InlineKeyboardButton("✂️ Gunting", callback_data=f"rps:{game_id}:gunting"),
+                InlineKeyboardButton("📄 Kertas", callback_data=f"rps:{game_id}:kertas"),
+            ],
+            [InlineKeyboardButton("❌ Batalkan", callback_data=f"rps:{game_id}:stop")],
+        ]
+    )
+
+    msg = await message.reply_text(
+        "🎮 <b>Batu Gunting Kertas</b>\n"
+        f"Pemain: {message.from_user.mention}\n"
+        "Klik salah satu tombol di bawah untuk memilih.",
+        reply_markup=keyboard,
+    )
+
+    try:
+        click = await msg.wait_for_click(
+            from_user_id=message.from_user.id,
+            timeout=45,
+        )
+    except ListenerTimeout:
+        return await msg.edit_text("⌛ Waktu habis, game Batu Gunting Kertas kedaluwarsa.")
+
+    pilihan_user = click.data.split(":", 2)[2]
+    if pilihan_user == "stop":
+        await click.answer("Game dibatalkan.")
+        return await msg.edit_text("Game Batu Gunting Kertas dibatalkan.")
+
+    pilihan_valid = {
+        "batu": "🪨 Batu",
+        "gunting": "✂️ Gunting",
+        "kertas": "📄 Kertas",
+    }
+    aturan_menang = {
+        "batu": "gunting",
+        "gunting": "kertas",
+        "kertas": "batu",
+    }
+
+    pilihan_bot = random.choice(list(pilihan_valid.keys()))
+    if pilihan_user == pilihan_bot:
+        hasil = "🤝 Seri!"
+    elif aturan_menang[pilihan_user] == pilihan_bot:
+        hasil = "🎉 Kamu menang!"
+    else:
+        hasil = "😼 Bot menang!"
+
+    await click.answer("Pilihan diterima!")
+    await msg.edit_text(
+        "🎮 <b>Hasil Batu Gunting Kertas</b>\n"
+        f"Pemain: {message.from_user.mention}\n"
+        f"Pilihan kamu: {pilihan_valid[pilihan_user]}\n"
+        f"Pilihan bot: {pilihan_valid[pilihan_bot]}\n\n{hasil}"
+    )
+
+
+@app.on_message(filters.command(["tebakangka", "guessnumber"], COMMAND_HANDLER))
+async def tebak_angka(_, message):
+    if not message.from_user:
+        return await message.reply_text("Game ini hanya bisa dimulai oleh akun user.")
+
+    game_id = generate_game_id()
+    angka_rahasia = random.randint(1, 20)
+    percobaan_maks = 5
+    percobaan = 0
+
+    msg = await message.reply_text(
+        "🎯 <b>Game Tebak Angka</b>\n"
+        f"Pemain: {message.from_user.mention}\n"
+        "Aku sudah memilih angka dari <b>1 sampai 20</b>.\n"
+        "Klik angka pada tombol di bawah.\n"
+        "Maksimal <b>5 percobaan</b>.",
+        reply_markup=build_tebak_angka_keyboard(game_id),
+    )
+
+    while percobaan < percobaan_maks:
+        try:
+            click = await msg.wait_for_click(
+                from_user_id=message.from_user.id,
+                timeout=45,
+            )
+        except ListenerTimeout:
+            return await msg.edit_text(
+                f"⌛ Waktu habis! Angka yang benar adalah <b>{angka_rahasia}</b>."
+            )
+
+        pilihan = click.data.split(":", 2)[2]
+        if pilihan == "stop":
+            await click.answer("Game dihentikan.")
+            return await msg.edit_text("🛑 Game Tebak Angka dibatalkan.")
+
+        tebakan = int(pilihan)
+        percobaan += 1
+
+        if tebakan == angka_rahasia:
+            await click.answer("Jawaban benar!", show_alert=True)
+            return await msg.edit_text(
+                "🏆 <b>Selamat!</b>\n"
+                f"{message.from_user.mention} berhasil menebak angka <b>{angka_rahasia}</b> "
+                f"dalam <b>{percobaan}</b> percobaan."
+            )
+
+        sisa = percobaan_maks - percobaan
+        petunjuk = "terlalu kecil" if tebakan < angka_rahasia else "terlalu besar"
+
+        if sisa <= 0:
+            await click.answer("Percobaan habis.", show_alert=True)
+            return await msg.edit_text(
+                "💥 <b>Game selesai!</b>\n"
+                f"Percobaan habis. Angka yang benar adalah <b>{angka_rahasia}</b>."
+            )
+
+        await click.answer(f"Tebakan {petunjuk}. Sisa {sisa} percobaan.", show_alert=True)
+        await msg.edit_text(
+            "🎯 <b>Game Tebak Angka</b>\n"
+            f"Pemain: {message.from_user.mention}\n"
+            f"Percobaan dipakai: <b>{percobaan}</b>/<b>{percobaan_maks}</b>\n"
+            f"Hint terakhir: <b>{tebakan}</b> itu {petunjuk}.\n"
+            "Pilih angka lagi dari tombol di bawah.",
+            reply_markup=build_tebak_angka_keyboard(game_id),
+        )

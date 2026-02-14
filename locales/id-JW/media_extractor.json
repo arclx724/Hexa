@@ -1,7 +1,7 @@
 {
     "sub_extr_help": "Gunakake printah /{cmd} [link] kanggo mriksa subtitle utawa audio ing file video.",
     "conv_sub_help": "Gunakake printah /{cmd} kanthi mbales berkas .ass utawa .vtt, kanggo ngowahi subtitle saka .ass utawa .vtt dadi srt.",
-    "progress_str": "⏳ Ngolah panjalukmu..",
+    "progress_str": "<emoji id=5319190934510904031>⏳</emoji> Ngolah panjalukmu..",
     "convert_str": "⏳ Ngonversi...",
     "unauth_cb": "⚠️ Akses Ditolak!",
     "cancel_btn": "❌ Rasido",
