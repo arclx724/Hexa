@@ -1,4 +1,5 @@
 import textwrap
+import random
 from asyncio import gather
 from os import remove as hapus
 
@@ -25,6 +26,8 @@ __HELP__ = """
 /tebaklontong - Play "Tebak Lontong" in any room chat
 /tebakkata - Play "Tebak Kata" in any room chat
 /tebaktebakan - Play "Tebak Tebakan" in any room chat
+/batu [batu/gunting/kertas] - Main suit lawan bot
+/tebakangka - Tebak angka 1-20 dengan petunjuk
 """
 
 async def draw_meme_text(image_path, text):
@@ -326,3 +329,94 @@ async def play_game(client, message, game_mode):
 @app.on_message(filters.command(["tebakgambar", "tebaklontong", "tebakkata", "tebaktebakan"]))
 async def handle_game_command(client, message):
     await play_game(client, message, message.command[0])
+
+
+@app.on_message(filters.command(["batu", "suit", "rps"], COMMAND_HANDLER))
+async def batu_gunting_kertas(_, message):
+    pilihan_valid = {
+        "batu": "🪨 Batu",
+        "gunting": "✂️ Gunting",
+        "kertas": "📄 Kertas",
+    }
+    aturan_menang = {
+        "batu": "gunting",
+        "gunting": "kertas",
+        "kertas": "batu",
+    }
+
+    if len(message.command) < 2:
+        return await message.reply_text(
+            "Yuk main Batu Gunting Kertas!\n\n"
+            "Contoh: <code>/batu batu</code>\n"
+            "Pilihan: <b>batu</b>, <b>gunting</b>, atau <b>kertas</b>."
+        )
+
+    pilihan_user = message.command[1].lower()
+    if pilihan_user not in pilihan_valid:
+        return await message.reply_text(
+            "Pilihan tidak valid. Gunakan: <b>batu</b>, <b>gunting</b>, atau <b>kertas</b>."
+        )
+
+    pilihan_bot = random.choice(list(pilihan_valid.keys()))
+    if pilihan_user == pilihan_bot:
+        hasil = "🤝 Seri! Kita sama-sama jago."
+    elif aturan_menang[pilihan_user] == pilihan_bot:
+        hasil = "🎉 Kamu menang! Mantap!"
+    else:
+        hasil = "😼 Aku menang! Coba lagi ya."
+
+    await message.reply_text(
+        f"Pilihan kamu: {pilihan_valid[pilihan_user]}\n"
+        f"Pilihan bot: {pilihan_valid[pilihan_bot]}\n\n{hasil}"
+    )
+
+
+@app.on_message(filters.command(["tebakangka", "guessnumber"], COMMAND_HANDLER))
+async def tebak_angka(client, message):
+    angka_rahasia = random.randint(1, 20)
+    percobaan_maks = 5
+
+    await message.reply_text(
+        "🎯 <b>Game Tebak Angka</b>\n"
+        "Aku sudah memilih angka dari <b>1 sampai 20</b>.\n"
+        f"Kamu punya <b>{percobaan_maks} percobaan</b>.\n"
+        "Kirim angka kamu sekarang!"
+    )
+
+    for percobaan in range(1, percobaan_maks + 1):
+        try:
+            jawaban = await client.listen(
+                chat_id=message.chat.id,
+                filters=filters.text,
+                timeout=35,
+            )
+        except ListenerTimeout:
+            return await message.reply_text(
+                f"⌛ Waktu habis! Angka yang benar adalah <b>{angka_rahasia}</b>."
+            )
+
+        if not jawaban.text.isdigit():
+            await jawaban.reply_text("Masukkan angka ya, bukan teks lain 😄")
+            continue
+
+        tebakan_user = int(jawaban.text)
+        if not 1 <= tebakan_user <= 20:
+            await jawaban.reply_text("Angka harus di antara 1 sampai 20.")
+            continue
+
+        if tebakan_user == angka_rahasia:
+            return await jawaban.reply_text(
+                f"🏆 Benar! Angkanya adalah <b>{angka_rahasia}</b>.\n"
+                f"Kamu menebak dalam <b>{percobaan}</b> percobaan."
+            )
+
+        sisa = percobaan_maks - percobaan
+        petunjuk = "terlalu kecil" if tebakan_user < angka_rahasia else "terlalu besar"
+        if sisa > 0:
+            await jawaban.reply_text(
+                f"❌ Tebakanmu {petunjuk}. Sisa percobaan: <b>{sisa}</b>."
+            )
+
+    await message.reply_text(
+        f"Game selesai! Kamu belum beruntung. Angka yang benar adalah <b>{angka_rahasia}</b>."
+    )
