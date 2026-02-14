@@ -1,6 +1,6 @@
 import textwrap
 import random
-from asyncio import gather
+from asyncio import create_task, gather, sleep
 from os import remove as hapus
 
 import regex
@@ -333,6 +333,41 @@ async def handle_game_command(client, message):
 
 
 interactive_games = {}
+GAME_TIMEOUT = 45
+
+
+async def expire_interactive_game(game_id):
+    await sleep(GAME_TIMEOUT)
+    game = interactive_games.get(game_id)
+    if not game or not game.get("active"):
+        return
+    game["active"] = False
+    try:
+        if game["type"] == "rps":
+            await app.edit_message_text(
+                chat_id=game["chat_id"],
+                message_id=game["message_id"],
+                text="⌛ Waktu habis, game Batu Gunting Kertas kedaluwarsa.",
+            )
+        else:
+            await app.edit_message_text(
+                chat_id=game["chat_id"],
+                message_id=game["message_id"],
+                text=f"⌛ Waktu habis! Angka yang benar adalah <b>{game['secret']}</b>.",
+            )
+    except Exception:
+        pass
+    interactive_games.pop(game_id, None)
+
+
+def close_game_session(game_id):
+    game = interactive_games.get(game_id)
+    if not game:
+        return
+    game["active"] = False
+    task = game.get("timeout_task")
+    if task and not task.done():
+        task.cancel()
 
 
 def generate_game_id():
@@ -384,6 +419,7 @@ async def batu_gunting_kertas(_, message):
         reply_markup=keyboard,
     )
     interactive_games[game_id]["message_id"] = msg.id
+    interactive_games[game_id]["timeout_task"] = create_task(expire_interactive_game(game_id))
 
 
 @app.on_callback_query(filters.regex(r"^rps:"))
@@ -401,7 +437,7 @@ async def batu_gunting_kertas_callback(_, query):
         return await query.answer("Sesi game tidak valid.", show_alert=True)
 
     if pilihan_user == "stop":
-        game["active"] = False
+        close_game_session(game_id)
         await query.answer("Game dibatalkan.")
         return await query.message.edit_text("Game Batu Gunting Kertas dibatalkan.")
 
@@ -424,7 +460,7 @@ async def batu_gunting_kertas_callback(_, query):
     else:
         hasil = "😼 Bot menang!"
 
-    game["active"] = False
+    close_game_session(game_id)
     await query.answer("Pilihan diterima!")
     await query.message.edit_text(
         "🎮 <b>Hasil Batu Gunting Kertas</b>\n"
@@ -432,6 +468,7 @@ async def batu_gunting_kertas_callback(_, query):
         f"Pilihan kamu: {pilihan_valid[pilihan_user]}\n"
         f"Pilihan bot: {pilihan_valid[pilihan_bot]}\n\n{hasil}"
     )
+    interactive_games.pop(game_id, None)
 
 
 @app.on_message(filters.command(["tebakangka", "guessnumber"], COMMAND_HANDLER))
@@ -461,6 +498,7 @@ async def tebak_angka(_, message):
         reply_markup=build_tebak_angka_keyboard(game_id),
     )
     interactive_games[game_id]["message_id"] = msg.id
+    interactive_games[game_id]["timeout_task"] = create_task(expire_interactive_game(game_id))
 
 
 @app.on_callback_query(filters.regex(r"^ga:"))
@@ -478,7 +516,7 @@ async def tebak_angka_callback(_, query):
         return await query.answer("Sesi game tidak valid.", show_alert=True)
 
     if pilihan == "stop":
-        game["active"] = False
+        close_game_session(game_id)
         await query.answer("Game dihentikan.")
         return await query.message.edit_text("🛑 Game Tebak Angka dibatalkan.")
 
@@ -486,24 +524,28 @@ async def tebak_angka_callback(_, query):
     game["attempts"] += 1
 
     if tebakan == game["secret"]:
-        game["active"] = False
+        close_game_session(game_id)
         await query.answer("Jawaban benar!", show_alert=True)
-        return await query.message.edit_text(
+        await query.message.edit_text(
             "🏆 <b>Selamat!</b>\n"
             f"{game['user_name']} berhasil menebak angka <b>{game['secret']}</b> "
             f"dalam <b>{game['attempts']}</b> percobaan."
         )
+        interactive_games.pop(game_id, None)
+        return
 
     sisa = game["max_attempts"] - game["attempts"]
     petunjuk = "terlalu kecil" if tebakan < game["secret"] else "terlalu besar"
 
     if sisa <= 0:
-        game["active"] = False
+        close_game_session(game_id)
         await query.answer("Percobaan habis.", show_alert=True)
-        return await query.message.edit_text(
+        await query.message.edit_text(
             "💥 <b>Game selesai!</b>\n"
             f"Percobaan habis. Angka yang benar adalah <b>{game['secret']}</b>."
         )
+        interactive_games.pop(game_id, None)
+        return
 
     await query.answer(f"Tebakan {petunjuk}. Sisa {sisa} percobaan.", show_alert=True)
     await query.message.edit_text(

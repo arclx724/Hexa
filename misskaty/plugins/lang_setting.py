@@ -1,4 +1,5 @@
 from functools import partial
+from asyncio import create_task, sleep
 from typing import Union
 
 from pyrogram import filters
@@ -21,6 +22,27 @@ from ..helper.localization import (
     langdict,
     use_chat_lang,
 )
+
+
+LANG_TIMEOUT = 30
+pending_lang_sessions = {}
+
+
+async def expire_lang_session(message_id, strings):
+    await sleep(LANG_TIMEOUT)
+    session = pending_lang_sessions.get(message_id)
+    if not session or not session.get("active"):
+        return
+    session["active"] = False
+    try:
+        await app.edit_message_text(
+            chat_id=session["chat_id"],
+            message_id=message_id,
+            text=strings("exp_task", context="general"),
+        )
+    except Exception:
+        pass
+    pending_lang_sessions.pop(message_id, None)
 
 
 def gen_langs_kb():
@@ -80,13 +102,31 @@ async def chlang(_, m: Union[CallbackQuery, Message], strings):
         if msg.chat.type == ChatType.PRIVATE
         else strings("language_changer_chat")
     )
-    await sender(res, reply_markup=keyboard)
+    sent_msg = await sender(res, reply_markup=keyboard)
+    pending_lang_sessions[sent_msg.id] = {
+        "chat_id": sent_msg.chat.id,
+        "user_id": m.from_user.id,
+        "active": True,
+        "timeout_task": create_task(expire_lang_session(sent_msg.id, strings)),
+    }
 
 
 @app.on_callback_query(filters.regex("^set_lang "))
 @require_admin(allow_in_private=True)
 @use_chat_lang()
 async def set_chat_lang(_, m: CallbackQuery, strings):
+    session = pending_lang_sessions.get(m.message.id)
+    if not session or not session.get("active"):
+        return await m.answer(strings("exp_task", context="general"), show_alert=True)
+    if m.from_user.id != session["user_id"]:
+        return await m.answer("Hanya user yang membuka menu ini yang bisa memilih bahasa.", show_alert=True)
+
+    session["active"] = False
+    timeout_task = session.get("timeout_task")
+    if timeout_task and not timeout_task.done():
+        timeout_task.cancel()
+    pending_lang_sessions.pop(m.message.id, None)
+
     lang = m.data.split()[1]
     await set_db_lang(m.message.chat.id, m.message.chat.type, lang)
 
