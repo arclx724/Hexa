@@ -28,6 +28,9 @@ import re
 from logging import getLogger
 from time import time
 
+from datetime import datetime
+from motor.motor_asyncio import AsyncIOMotorClient
+from misskaty.vars import MONGO_DB_URI
 from pyrogram import Client, enums, filters
 from pyrogram.errors import (
     ChatAdminRequired,
@@ -87,9 +90,104 @@ __HELP__ = """
 /set_chat_photo - Change The PFP Of A Group/Channel.
 /set_user_title - Change The Administrator Title Of An Admin.
 /mentionall - Mention all members in a groups.
+/limit on - Enable Daily Ban/Kick Limit System.
+/limit off - Disable Daily Ban/Kick Limit System.
+/setlimit [number] - Set Daily Ban/Kick Limit Per Admin.
+/mylimit - Check Your Daily Ban/Kick Usage.
+/resetlimit - Reset All Admin Daily Limits (Owner Only).
 """
 
+# ================== BAN/KICK LIMIT DATABASE ==================
 
+mongo = AsyncIOMotorClient(MONGO_DB_URI)
+limit_db = mongo["MissKaty"]["bk_limit"]
+settings_db = mongo["MissKaty"]["bk_settings"]
+
+
+async def get_settings(chat_id: int):
+    data = await settings_db.find_one({"chat_id": chat_id})
+    if not data:
+        default = {
+            "chat_id": chat_id,
+            "limit_enabled": True,
+            "daily_limit": 10,
+        }
+        await settings_db.insert_one(default)
+        return default
+    return data
+
+
+async def get_usage(chat_id: int, admin_id: int):
+    today = str(datetime.utcnow().date())
+    data = await limit_db.find_one(
+        {"chat_id": chat_id, "admin_id": admin_id}
+    )
+
+    if not data:
+        data = {
+            "chat_id": chat_id,
+            "admin_id": admin_id,
+            "count": 0,
+            "date": today,
+        }
+        await limit_db.insert_one(data)
+        return data
+
+    if data["date"] != today:
+        await limit_db.update_one(
+            {"_id": data["_id"]},
+            {"$set": {"count": 0, "date": today}},
+        )
+        data["count"] = 0
+
+    return data
+
+
+async def increment_usage(chat_id: int, admin_id: int):
+    await limit_db.update_one(
+        {"chat_id": chat_id, "admin_id": admin_id},
+        {"$inc": {"count": 1}},
+        upsert=True,
+    )
+
+
+async def remove_restrict_right(chat_id: int, admin_id: int):
+    await app.promote_chat_member(
+        chat_id,
+        admin_id,
+        privileges=ChatPrivileges(
+            can_change_info=False,
+            can_invite_users=False,
+            can_delete_messages=False,
+            can_restrict_members=False,
+            can_pin_messages=False,
+            can_promote_members=False,
+            can_manage_chat=False,
+            can_manage_video_chats=False,
+        ),
+    )
+
+
+async def check_limit(chat_id: int, admin_id: int):
+    member = await app.get_chat_member(chat_id, admin_id)
+
+    # Owner exempt
+    if member.status == enums.ChatMemberStatus.OWNER:
+        return True, None
+
+    settings = await get_settings(chat_id)
+
+    if not settings["limit_enabled"]:
+        return True, None
+
+    usage = await get_usage(chat_id, admin_id)
+
+    if usage["count"] >= settings["daily_limit"]:
+        return False, settings["daily_limit"]
+
+    return True, settings["daily_limit"]
+
+# ===============================================================
 # Admin cache reload
 @app.on_chat_member_updated(filters.group, group=5)
 async def admin_cache_func(_, cmu):
@@ -154,7 +252,94 @@ async def purge(_, ctx: Message, strings):
             await app.delete_messages(
                 chat_id=chat_id,
                 message_ids=message_ids,
-                revoke=True,
+       # Kick members
+@app.on_cmd(["kick", "dkick"], self_admin=True, group_only=True)
+@app.adminsOnly("can_restrict_members")
+@use_chat_lang()
+async def kickFunc(client: Client, ctx: Message, strings) -> "Message":
+
+    user_id, reason = await extract_user_and_reason(ctx)
+
+    if not user_id:
+        return await ctx.reply_msg(strings("user_not_found"))
+
+    if user_id == client.me.id:
+        return await ctx.reply_msg(strings("kick_self_err"))
+
+    if user_id in SUDO or user_id == OWNER_ID:
+        return await ctx.reply_msg(strings("kick_sudo_err"))
+
+    if user_id in (await list_admins(ctx.chat.id)):
+        return await ctx.reply_msg(strings("kick_admin_err"))
+
+    # ================= LIMIT CHECK =================
+
+    member = await app.get_chat_member(ctx.chat.id, ctx.from_user.id)
+
+    # Owner exempt
+    if member.status != enums.ChatMemberStatus.OWNER:
+        settings = await get_settings(ctx.chat.id)
+
+        if settings["limit_enabled"]:
+            usage = await get_usage(ctx.chat.id, ctx.from_user.id)
+
+            if usage["count"] >= settings["daily_limit"]:
+                # Remove restrict rights
+                await app.promote_chat_member(
+                    ctx.chat.id,
+                    ctx.from_user.id,
+                    privileges=ChatPrivileges(
+                        can_change_info=False,
+                        can_invite_users=False,
+                        can_delete_messages=False,
+                        can_restrict_members=False,
+                        can_pin_messages=False,
+                        can_promote_members=False,
+                        can_manage_chat=False,
+                        can_manage_video_chats=False,
+                    ),
+                )
+
+                return await ctx.reply_msg(
+                    f"Daily Ban/Kick limit ({settings['daily_limit']}) exceeded.\n"
+                    f"Your restrict rights have been removed."
+                )
+
+    # =================================================
+
+    try:
+        user = await app.get_users(user_id)
+    except PeerIdInvalid:
+        return await ctx.reply_msg(strings("user_not_found"))
+
+    msg = strings("kick_msg").format(
+        mention=user.mention,
+        id=user.id,
+        kicker=ctx.from_user.mention if ctx.from_user else "Anon Admin",
+        reasonmsg=reason or "-",
+    )
+
+    if ctx.command[0][0] == "d":
+        await ctx.reply_to_message.delete_msg()
+
+    try:
+        await ctx.chat.ban_member(user_id)
+        await asyncio.sleep(1)
+        await ctx.chat.unban_member(user_id)
+
+        # ========== INCREMENT COUNT ==========
+        if member.status != enums.ChatMemberStatus.OWNER:
+            settings = await get_settings(ctx.chat.id)
+            if settings["limit_enabled"]:
+                await increment_usage(ctx.chat.id, ctx.from_user.id)
+        # =====================================
+
+        await ctx.reply_msg(msg)
+
+    except ChatAdminRequired:
+        await ctx.reply_msg(strings("no_ban_permission"))
+    except Exception as e:
+        await ctx.reply_msg(str(e))         revoke=True,
             )
             del_total += len(message_ids)
         await ctx.reply_msg(strings("purge_success").format(del_total=del_total))
@@ -162,48 +347,26 @@ async def purge(_, ctx: Message, strings):
         await ctx.reply_msg(f"ERROR: {err}")
 
 
-# Kick members
-@app.on_cmd(["kick", "dkick"], self_admin=True, group_only=True)
+
+
+
+
+
+# Unban members
+@app.on_cmd("unban", self_admin=True, group_only=True)
 @app.adminsOnly("can_restrict_members")
 @use_chat_lang()
-async def kickFunc(client: Client, ctx: Message, strings) -> "Message":
-    user_id, reason = await extract_user_and_reason(ctx)
-    if not user_id:
-        return await ctx.reply_msg(strings("user_not_found"))
-    if user_id == client.me.id:
-        return await ctx.reply_msg(strings("kick_self_err"))
-    if user_id in SUDO or user_id == OWNER_ID:
-        return await ctx.reply_msg(strings("kick_sudo_err"))
-    if user_id in (await list_admins(ctx.chat.id)):
-        return await ctx.reply_msg(strings("kick_admin_err"))
-    try:
-        user = await app.get_users(user_id)
-    except PeerIdInvalid:
-        return await ctx.reply_msg(strings("user_not_found"))
-    msg = strings("kick_msg").format(
-        mention=user.mention,
-        id=user.id,
-        kicker=ctx.from_user.mention if ctx.from_user else "Anon Admin",
-        reasonmsg=reason or "-",
-    )
-    if ctx.command[0][0] == "d":
-        await ctx.reply_to_message.delete_msg()
-    try:
-        await ctx.chat.ban_member(user_id)
-        await ctx.reply_msg(msg)
-        await asyncio.sleep(1)
-        await ctx.chat.unban_member(user_id)
-    except ChatAdminRequired:
-        await ctx.reply_msg(strings("no_ban_permission"))
-    except Exception as e:
-        await ctx.reply_msg(str(e))
-
-
-# Ban/DBan/TBan User
+async def unban_func(_, message, strings):
+    # we don't need reasons for unban, also, we
+    # don't need to get "text_mention" entity, because
+    # normal users won't get text_mention if the user
+    # they want to unban is not in the group.
+    reply# Ban/DBan/TBan User
 @app.on_cmd(["ban", "dban", "tban"], self_admin=True, group_only=True)
 @app.adminsOnly("can_restrict_members")
 @use_chat_lang()
 async def banFunc(client, message, strings):
+
     try:
         user_id, reason = await extract_user_and_reason(message, sender_chat=True)
     except UsernameNotOccupied:
@@ -211,12 +374,50 @@ async def banFunc(client, message, strings):
 
     if not user_id:
         return await message.reply_text(strings("user_not_found"))
+
     if user_id == client.me.id:
         return await message.reply_text(strings("ban_self_err"))
+
     if user_id in SUDO or user_id == OWNER_ID:
         return await message.reply_text(strings("ban_sudo_err"))
+
     if user_id in (await list_admins(message.chat.id)):
         return await message.reply_text(strings("ban_admin_err"))
+
+    # ================= LIMIT CHECK =================
+
+    member = await app.get_chat_member(message.chat.id, message.from_user.id)
+
+    # Owner exempt
+    if member.status != enums.ChatMemberStatus.OWNER:
+        settings = await get_settings(message.chat.id)
+
+        if settings["limit_enabled"]:
+            usage = await get_usage(message.chat.id, message.from_user.id)
+
+            if usage["count"] >= settings["daily_limit"]:
+                # Remove restrict rights
+                await app.promote_chat_member(
+                    message.chat.id,
+                    message.from_user.id,
+                    privileges=ChatPrivileges(
+                        can_change_info=False,
+                        can_invite_users=False,
+                        can_delete_messages=False,
+                        can_restrict_members=False,
+                        can_pin_messages=False,
+                        can_promote_members=False,
+                        can_manage_chat=False,
+                        can_manage_video_chats=False,
+                    ),
+                )
+
+                return await message.reply_text(
+                    f"Daily Ban/Kick limit ({settings['daily_limit']}) exceeded.\n"
+                    f"Your restrict rights have been removed."
+                )
+
+    # =================================================
 
     try:
         mention = (await app.get_users(user_id)).mention
@@ -234,47 +435,61 @@ async def banFunc(client, message, strings):
         id=user_id,
         banner=message.from_user.mention if message.from_user else "Anon",
     )
+
     if message.command[0][0] == "d":
         await message.reply_to_message.delete()
+
+    # ============== TEMP BAN ==============
     if message.command[0] == "tban":
         split = reason.split(None, 1)
         time_value = split[0]
         temp_reason = split[1] if len(split) > 1 else ""
         temp_ban = await time_converter(message, time_value)
+
         msg += strings("banner_time").format(val=time_value)
+
         if temp_reason:
             msg += strings("banned_reason").format(reas=temp_reason)
+
         try:
             if len(time_value[:-1]) < 3:
                 await message.chat.ban_member(user_id, until_date=temp_ban)
+
+                # increment usage
+                if member.status != enums.ChatMemberStatus.OWNER:
+                    settings = await get_settings(message.chat.id)
+                    if settings["limit_enabled"]:
+                        await increment_usage(message.chat.id, message.from_user.id)
+
                 await message.reply_text(msg)
             else:
                 await message.reply_text(strings("no_more_99"))
         except AttributeError:
             pass
         return
+
+    # ============== PERMANENT BAN ==============
+
     if reason:
         msg += strings("banned_reason").format(reas=reason)
+
     keyboard = ikb({"🚨 Unban 🚨": f"unban_{user_id}"})
+
     try:
         await message.chat.ban_member(user_id)
+
+        # increment usage
+        if member.status != enums.ChatMemberStatus.OWNER:
+            settings = await get_settings(message.chat.id)
+            if settings["limit_enabled"]:
+                await increment_usage(message.chat.id, message.from_user.id)
+
         await message.reply_msg(msg, reply_markup=keyboard)
+
     except ChatAdminRequired:
         await message.reply("Please give me permission to banned members..!!!")
     except Exception as e:
-        await message.reply_msg(str(e))
-
-
-# Unban members
-@app.on_cmd("unban", self_admin=True, group_only=True)
-@app.adminsOnly("can_restrict_members")
-@use_chat_lang()
-async def unban_func(_, message, strings):
-    # we don't need reasons for unban, also, we
-    # don't need to get "text_mention" entity, because
-    # normal users won't get text_mention if the user
-    # they want to unban is not in the group.
-    reply = message.reply_to_message
+        await message.reply_msg(str(e)) = message.reply_to_message
 
     if reply and reply.sender_chat and reply.sender_chat != message.chat.id:
         return await message.reply_text(strings("unban_channel_err"))
