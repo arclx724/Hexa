@@ -28,10 +28,12 @@ import re
 from logging import getLogger
 from time import time
 
-from database import get_settings, get_usage, increment_usage
-from datetime import datetime
-from motor.motor_asyncio import AsyncIOMotorClient
-from misskaty.vars import MONGO_DB_URI
+from misskaty.database.limit_db import (
+    get_settings,
+    get_usage,
+    increment_usage
+)
+
 from pyrogram import Client, enums, filters
 from pyrogram.errors import (
     ChatAdminRequired,
