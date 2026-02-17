@@ -41,33 +41,9 @@ UBOT_ID, UBOT_NAME, UBOT_USERNAME = None, None, None
 
 faulthandler_enable()
 
-# 4. Final Smart Universal Patching
-def universal_patch(client_class):
-    # Patch for Commands - Accepts EVERYTHING but only sends valid ones to filters.command
-    if not hasattr(client_class, "on_cmd"):
-        def on_cmd(command, group=0, *args, **kwargs):
-            def decorator(func):
-                valid_keys = ["prefixes", "case_sensitive"]
-                cmd_kwargs = {k: v for k, v in kwargs.items() if k in valid_keys}
-                client_class.on_message(filters.command(command, **cmd_kwargs), group)(func)
-                return func
-            return decorator
-        client_class.on_cmd = on_cmd
-
-    # Patch for Callbacks
-    if not hasattr(client_class, "on_cb"):
-        def on_cb(pattern, group=0, *args, **kwargs):
-            def decorator(func):
-                client_class.on_callback_query(filters.regex(pattern), group)(func)
-                return func
-            return decorator
-        client_class.on_cb = on_cb
-
-universal_patch(Client)
-
-# 5. Initialize Clients
+# 4. Initialize Clients
 app = Client(
-    "HexaFinalV9",
+    "HexaFinalV10",
     api_id=API_ID,
     api_hash=API_HASH,
     bot_token=BOT_TOKEN,
@@ -80,6 +56,26 @@ user = Client(
     mongodb=dict(connection=AsyncClient(DATABASE_URI), remove_peers=False),
 )
 
+# 5. Smart Patching for the 'app' instance
+def patch_app(client_instance):
+    def on_cmd(command, group=0, *args, **kwargs):
+        def decorator(func):
+            valid_keys = ["prefixes", "case_sensitive"]
+            cmd_kwargs = {k: v for k, v in kwargs.items() if k in valid_keys}
+            client_instance.on_message(filters.command(command, **cmd_kwargs), group)(func)
+            return func
+        return decorator
+
+    def on_cb(pattern, group=0, *args, **kwargs):
+        def decorator(func):
+            client_instance.on_callback_query(filters.regex(pattern), group)(func)
+            return func
+        return decorator
+    
+    # Injecting methods into the instance
+    client_instance.on_cmd = on_cmd
+    client_instance.on_cb = on_cb
+
 # 6. Web Server Function
 async def run_wsgi():
     config = uvicorn.Config(api, host="0.0.0.0", port=int(PORT))
@@ -89,10 +85,15 @@ async def run_wsgi():
 # 7. Start Logic
 async def start_everything():
     global BOT_ID, BOT_NAME, BOT_USERNAME, UBOT_ID, UBOT_NAME, UBOT_USERNAME
+    
+    # Patch the app instance BEFORE it's used by plugins
+    patch_app(app)
+    
     await app.start()
     BOT_ID = app.me.id
     BOT_NAME = app.me.first_name
     BOT_USERNAME = app.me.username
+    
     if USER_SESSION:
         try:
             await user.start()
