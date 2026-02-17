@@ -41,21 +41,27 @@ UBOT_ID, UBOT_NAME, UBOT_USERNAME = None, None, None
 
 faulthandler_enable()
 
-# 4. Smart Manual Patching (Fixes 'no_channel' and other custom args)
-def manual_patch(client_class):
+# 4. Universal Smart Patching (Fixes on_cmd, on_cb and custom args)
+def universal_patch(client_class):
+    # Patch for Commands (@app.on_cmd)
     if not hasattr(client_class, "on_cmd"):
         def on_cmd(self, command, group=0, *args, **kwargs):
-            # Filtering out custom arguments that pyrogram's command filter doesn't support
             valid_args = ["prefixes", "case_sensitive"]
             cmd_args = {k: v for k, v in kwargs.items() if k in valid_args}
             return self.on_message(filters.command(command, **cmd_args), group)
         client_class.on_cmd = on_cmd
 
-manual_patch(Client)
+    # Patch for Callbacks (@app.on_cb)
+    if not hasattr(client_class, "on_cb"):
+        def on_cb(self, pattern, group=0, *args, **kwargs):
+            return self.on_callback_query(filters.regex(pattern), group)
+        client_class.on_cb = on_cb
+
+universal_patch(Client)
 
 # 5. Initialize Clients
 app = Client(
-    "HexaFinalV7",
+    "HexaFinalV8",
     api_id=API_ID,
     api_hash=API_HASH,
     bot_token=BOT_TOKEN,
