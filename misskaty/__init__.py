@@ -4,11 +4,13 @@
 # * Copyright ©YasirPedia All rights reserved
 import os
 import time
+import asyncio
+import uvloop
+import uvicorn
 from asyncio import get_event_loop
 from faulthandler import enable as faulthandler_enable
 from logging import ERROR, INFO, StreamHandler, basicConfig, getLogger, handlers
 
-import uvloop, uvicorn
 from apscheduler.jobstores.mongodb import MongoDBJobStore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from async_pymongo import AsyncClient
@@ -26,6 +28,10 @@ from misskaty.vars import (
     TZ,
     USER_SESSION,
 )
+
+# Setup event loop policy for uvloop to avoid RuntimeError
+asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+loop = asyncio.get_event_loop()
 
 basicConfig(
     level=INFO,
@@ -50,7 +56,6 @@ cleanmode = {}
 botStartTime = time.time()
 misskaty_version = "v2.16.1"
 
-uvloop.install()
 faulthandler_enable()
 from misskaty.core import misskaty_patch
 
@@ -90,13 +95,16 @@ async def run_wsgi():
     server = uvicorn.Server(config)
     await server.serve()
 
-app.start()
+# Using loop to start the app to ensure uvloop is attached correctly
+loop.run_until_complete(app.start())
+
 BOT_ID = app.me.id
 BOT_NAME = app.me.first_name
 BOT_USERNAME = app.me.username
+
 if USER_SESSION:
     try:
-        user.start()
+        loop.run_until_complete(user.start())
         UBOT_ID = user.me.id
         UBOT_NAME = user.me.first_name
         UBOT_USERNAME = user.me.username
@@ -109,3 +117,4 @@ else:
     UBOT_ID = None
     UBOT_NAME = None
     UBOT_USERNAME = None
+    
