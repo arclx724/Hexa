@@ -19,7 +19,7 @@ from apscheduler.jobstores.mongodb import MongoDBJobStore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from async_pymongo import AsyncClient
 from pymongo import MongoClient
-from pyrogram import Client
+from pyrogram import Client, filters
 from web.webserver import api
 from misskaty.vars import *
 
@@ -36,28 +36,26 @@ getLogger("pyrogram").setLevel(ERROR)
 MOD_LOAD, MOD_NOLOAD, HELPABLE, cleanmode = [], ["subscene_dl"], {}, {}
 botStartTime = time.time()
 misskaty_version = "v2.16.1"
-BOT_ID = 0
-BOT_NAME = ""
-BOT_USERNAME = ""
-UBOT_ID = None
-UBOT_NAME = None
-UBOT_USERNAME = None
+BOT_ID, BOT_NAME, BOT_USERNAME = 0, "", ""
+UBOT_ID, UBOT_NAME, UBOT_USERNAME = None, None, None
 
 faulthandler_enable()
 
-# 4. Manual Patching (To fix on_cmd error without external imports)
+# 4. Smart Manual Patching (Fixes 'no_channel' and other custom args)
 def manual_patch(client_class):
     if not hasattr(client_class, "on_cmd"):
-        def on_cmd(self, command, *args, **kwargs):
-            return self.on_message(filters.command(command, *args, **kwargs))
+        def on_cmd(self, command, group=0, *args, **kwargs):
+            # Filtering out custom arguments that pyrogram's command filter doesn't support
+            valid_args = ["prefixes", "case_sensitive"]
+            cmd_args = {k: v for k, v in kwargs.items() if k in valid_args}
+            return self.on_message(filters.command(command, **cmd_args), group)
         client_class.on_cmd = on_cmd
 
-from pyrogram import filters
 manual_patch(Client)
 
 # 5. Initialize Clients
 app = Client(
-    "HexaFinalV6",
+    "HexaFinalV7",
     api_id=API_ID,
     api_hash=API_HASH,
     bot_token=BOT_TOKEN,
@@ -79,12 +77,10 @@ async def run_wsgi():
 # 7. Start Logic
 async def start_everything():
     global BOT_ID, BOT_NAME, BOT_USERNAME, UBOT_ID, UBOT_NAME, UBOT_USERNAME
-    
     await app.start()
     BOT_ID = app.me.id
     BOT_NAME = app.me.first_name
     BOT_USERNAME = app.me.username
-    
     if USER_SESSION:
         try:
             await user.start()
