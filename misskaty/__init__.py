@@ -32,7 +32,7 @@ basicConfig(
 )
 getLogger("pyrogram").setLevel(ERROR)
 
-# Global Variables (Must be outside for __main__.py to see them)
+# --- Global Variables Fix ---
 MOD_LOAD, MOD_NOLOAD, HELPABLE, cleanmode = [], ["subscene_dl"], {}, {}
 botStartTime = time.time()
 misskaty_version = "v2.16.1"
@@ -45,9 +45,9 @@ UBOT_USERNAME = None
 
 faulthandler_enable()
 
-# Clients
+# Clients - Name changed to HexaBotV2 to force new session
 app = Client(
-    "MissKatyBot",
+    "HexaBotV2",
     api_id=API_ID,
     api_hash=API_HASH,
     bot_token=BOT_TOKEN,
