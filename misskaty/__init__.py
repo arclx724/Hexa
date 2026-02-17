@@ -7,7 +7,7 @@ from asyncio import get_event_loop
 from faulthandler import enable as faulthandler_enable
 from logging import ERROR, INFO, StreamHandler, basicConfig, getLogger, handlers
 
-# uvloop setup
+# uvloop setup - MUST be before importing Pyrogram Client
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 try:
     loop = asyncio.get_event_loop()
@@ -23,7 +23,7 @@ from pyrogram import Client
 from web.webserver import api
 from misskaty.vars import *
 
-# Logging
+# Logging Setup
 basicConfig(
     level=INFO,
     format="[%(levelname)s] - [%(asctime)s - %(name)s - %(message)s] -> [%(module)s:%(lineno)d]",
@@ -36,6 +36,9 @@ getLogger("pyrogram").setLevel(ERROR)
 MOD_LOAD, MOD_NOLOAD, HELPABLE, cleanmode = [], ["subscene_dl"], {}, {}
 botStartTime = time.time()
 misskaty_version = "v2.16.1"
+faulthandler_enable()
+
+# Missing variables for __main__.py
 BOT_ID = 0
 BOT_NAME = ""
 BOT_USERNAME = ""
@@ -43,9 +46,7 @@ UBOT_ID = None
 UBOT_NAME = None
 UBOT_USERNAME = None
 
-faulthandler_enable()
-
-# Clients - Using a fresh session name
+# Clients
 app = Client(
     "HexaFinalSession",
     api_id=API_ID,
@@ -60,12 +61,13 @@ user = Client(
     mongodb=dict(connection=AsyncClient(DATABASE_URI), remove_peers=False),
 )
 
-# Function for WebServer (This was missing)
+# --- THE MISSING FUNCTION ---
 async def run_wsgi():
     config = uvicorn.Config(api, host="0.0.0.0", port=int(PORT))
     server = uvicorn.Server(config)
     await server.serve()
 
+# Start Logic
 async def start_everything():
     global BOT_ID, BOT_NAME, BOT_USERNAME, UBOT_ID, UBOT_NAME, UBOT_USERNAME
     await app.start()
