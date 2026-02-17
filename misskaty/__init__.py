@@ -7,7 +7,7 @@ from asyncio import get_event_loop
 from faulthandler import enable as faulthandler_enable
 from logging import ERROR, INFO, StreamHandler, basicConfig, getLogger, handlers
 
-# 1. uvloop & Loop Setup
+# 1. uvloop setup
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 try:
     loop = asyncio.get_event_loop()
@@ -23,7 +23,26 @@ from pyrogram import Client, filters
 from web.webserver import api
 from misskaty.vars import *
 
-# 2. Logging Setup
+# 2. Universal Decorator Patch (Must be defined BEFORE Client initialization)
+def on_cmd(self, command, group=0, *args, **kwargs):
+    def decorator(func):
+        valid_keys = ["prefixes", "case_sensitive"]
+        cmd_kwargs = {k: v for k, v in kwargs.items() if k in valid_keys}
+        self.on_message(filters.command(command, **cmd_kwargs), group)(func)
+        return func
+    return decorator
+
+def on_cb(self, pattern, group=0, *args, **kwargs):
+    def decorator(func):
+        self.on_callback_query(filters.regex(pattern), group)(func)
+        return func
+    return decorator
+
+# Injecting directly into Pyrogram Client Class
+Client.on_cmd = on_cmd
+Client.on_cb = on_cb
+
+# 3. Logging Setup
 basicConfig(
     level=INFO,
     format="[%(levelname)s] - [%(asctime)s - %(name)s - %(message)s] -> [%(module)s:%(lineno)d]",
@@ -32,7 +51,7 @@ basicConfig(
 )
 getLogger("pyrogram").setLevel(ERROR)
 
-# 3. Global Variables (Important for __main__.py)
+# 4. Global Variables
 MOD_LOAD, MOD_NOLOAD, HELPABLE, cleanmode = [], ["subscene_dl"], {}, {}
 botStartTime = time.time()
 misskaty_version = "v2.16.1"
@@ -40,33 +59,9 @@ BOT_ID, BOT_NAME, BOT_USERNAME = 0, "", ""
 UBOT_ID, UBOT_NAME, UBOT_USERNAME = None, None, None
 faulthandler_enable()
 
-# 4. Universal Decorator Patch (Fixes SyntaxError & Invalid Arguments)
-def apply_universal_patch():
-    def on_cmd(self, command, group=0, *args, **kwargs):
-        def decorator(func):
-            # Filtering only Pyrogram-supported arguments
-            valid_keys = ["prefixes", "case_sensitive"]
-            cmd_kwargs = {k: v for k, v in kwargs.items() if k in valid_keys}
-            self.on_message(filters.command(command, **cmd_kwargs), group)(func)
-            return func
-        return decorator
-
-    def on_cb(self, pattern, group=0, *args, **kwargs):
-        def decorator(func):
-            self.on_callback_query(filters.regex(pattern), group)(func)
-            return func
-        return decorator
-
-    # Injecting into the main Client class
-    Client.on_cmd = on_cmd
-    Client.on_cb = on_cb
-
-# Execute Patch immediately
-apply_universal_patch()
-
 # 5. Initialize Clients
 app = Client(
-    "HexaFinalV11", # Fresh session name
+    "HexaUltimate",
     api_id=API_ID,
     api_hash=API_HASH,
     bot_token=BOT_TOKEN,
@@ -79,7 +74,7 @@ user = Client(
     mongodb=dict(connection=AsyncClient(DATABASE_URI), remove_peers=False),
 )
 
-# 6. Missing Functions
+# 6. Background Web Server
 async def run_wsgi():
     config = uvicorn.Config(api, host="0.0.0.0", port=int(PORT))
     server = uvicorn.Server(config)
