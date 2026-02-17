@@ -23,7 +23,7 @@ from pyrogram import Client
 from web.webserver import api
 from misskaty.vars import *
 
-# Logging Setup
+# Logging
 basicConfig(
     level=INFO,
     format="[%(levelname)s] - [%(asctime)s - %(name)s - %(message)s] -> [%(module)s:%(lineno)d]",
@@ -32,12 +32,10 @@ basicConfig(
 )
 getLogger("pyrogram").setLevel(ERROR)
 
+# Global Variables (Must be outside for __main__.py to see them)
 MOD_LOAD, MOD_NOLOAD, HELPABLE, cleanmode = [], ["subscene_dl"], {}, {}
 botStartTime = time.time()
 misskaty_version = "v2.16.1"
-faulthandler_enable()
-
-# --- STEP 1: Define Variables at Top Level ---
 BOT_ID = 0
 BOT_NAME = ""
 BOT_USERNAME = ""
@@ -45,7 +43,9 @@ UBOT_ID = None
 UBOT_NAME = None
 UBOT_USERNAME = None
 
-# Pyrogram Clients
+faulthandler_enable()
+
+# Clients
 app = Client(
     "MissKatyBot",
     api_id=API_ID,
@@ -60,27 +60,24 @@ user = Client(
     mongodb=dict(connection=AsyncClient(DATABASE_URI), remove_peers=False),
 )
 
-# --- STEP 2: Start and Assign Values ---
-async def initialize_bot():
+async def start_everything():
     global BOT_ID, BOT_NAME, BOT_USERNAME, UBOT_ID, UBOT_NAME, UBOT_USERNAME
-    
     await app.start()
     BOT_ID = app.me.id
     BOT_NAME = app.me.first_name
     BOT_USERNAME = app.me.username
-    
     if USER_SESSION:
         try:
             await user.start()
             UBOT_ID = user.me.id
             UBOT_NAME = user.me.first_name
             UBOT_USERNAME = user.me.username
-        except Exception:
+        except:
             pass
 
-loop.run_until_complete(initialize_bot())
-print(f"BOT STARTED AS @{BOT_USERNAME}")
+loop.run_until_complete(start_everything())
+print(f"DONE! STARTED AS @{BOT_USERNAME}")
 
-# Scheduler
+# Scheduler setup
 jobstores = {"default": MongoDBJobStore(client=MongoClient(DATABASE_URI), database=DATABASE_NAME, collection="nightmode")}
 scheduler = AsyncIOScheduler(jobstores=jobstores, timezone=TZ)
