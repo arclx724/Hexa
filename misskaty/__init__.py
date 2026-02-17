@@ -6,6 +6,15 @@ import uvicorn
 from asyncio import get_event_loop
 from faulthandler import enable as faulthandler_enable
 from logging import ERROR, INFO, StreamHandler, basicConfig, getLogger, handlers
+
+# uvloop setup - MUST be before importing Pyrogram Client
+asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+try:
+    loop = asyncio.get_event_loop()
+except RuntimeError:
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
 from apscheduler.jobstores.mongodb import MongoDBJobStore
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from async_pymongo import AsyncClient
@@ -22,16 +31,11 @@ basicConfig(
     handlers=[StreamHandler()],
 )
 
-# Global Variables
 MOD_LOAD, MOD_NOLOAD, HELPABLE, cleanmode = [], ["subscene_dl"], {}, {}
 botStartTime = time.time()
+faulthandler_enable()
 
-# --- THE FIX ---
-asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-loop = asyncio.new_event_loop()
-asyncio.set_event_loop(loop)
-
-# Define clients WITHOUT auto-initializing the loop
+# Pyrogram Clients
 app = Client(
     "MissKatyBot",
     api_id=API_ID,
@@ -46,18 +50,20 @@ user = Client(
     mongodb=dict(connection=AsyncClient(DATABASE_URI), remove_peers=False),
 )
 
-async def start_bot():
+# Function to start everything
+async def start_misskaty():
     await app.start()
-    print("MissKaty Started!")
+    print(f"BOT STARTED AS @{app.me.username}")
     if USER_SESSION:
         try:
             await user.start()
-            print("Userbot Started!")
+            print("USERBOT STARTED")
         except Exception as e:
-            print(f"Userbot Error: {e}")
+            print(f"USERBOT ERROR: {e}")
 
-# Start the loop
-loop.run_until_complete(start_bot())
+# Trigger the start
+loop.run_until_complete(start_misskaty())
 
 BOT_ID = app.me.id
+BOT_NAME = app.me.first_name
 BOT_USERNAME = app.me.username
