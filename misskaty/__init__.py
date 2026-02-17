@@ -32,7 +32,7 @@ basicConfig(
 )
 getLogger("pyrogram").setLevel(ERROR)
 
-# --- Global Variables Fix ---
+# Global Variables
 MOD_LOAD, MOD_NOLOAD, HELPABLE, cleanmode = [], ["subscene_dl"], {}, {}
 botStartTime = time.time()
 misskaty_version = "v2.16.1"
@@ -45,9 +45,9 @@ UBOT_USERNAME = None
 
 faulthandler_enable()
 
-# Clients - Name changed to HexaBotV2 to force new session
+# Clients - Using a fresh session name
 app = Client(
-    "HexaBotV2",
+    "HexaFinalSession",
     api_id=API_ID,
     api_hash=API_HASH,
     bot_token=BOT_TOKEN,
@@ -59,6 +59,12 @@ user = Client(
     session_string=USER_SESSION,
     mongodb=dict(connection=AsyncClient(DATABASE_URI), remove_peers=False),
 )
+
+# Function for WebServer (This was missing)
+async def run_wsgi():
+    config = uvicorn.Config(api, host="0.0.0.0", port=int(PORT))
+    server = uvicorn.Server(config)
+    await server.serve()
 
 async def start_everything():
     global BOT_ID, BOT_NAME, BOT_USERNAME, UBOT_ID, UBOT_NAME, UBOT_USERNAME
