@@ -32,7 +32,7 @@ basicConfig(
 )
 getLogger("pyrogram").setLevel(ERROR)
 
-# 3. Global Variables for __main__.py
+# 3. Global Variables
 MOD_LOAD, MOD_NOLOAD, HELPABLE, cleanmode = [], ["subscene_dl"], {}, {}
 botStartTime = time.time()
 misskaty_version = "v2.16.1"
@@ -45,12 +45,19 @@ UBOT_USERNAME = None
 
 faulthandler_enable()
 
-# 4. Correct Import for Patching (Based on your folder structure)
-from misskaty.core import misskaty_patch as patch_module
+# 4. Manual Patching (To fix on_cmd error without external imports)
+def manual_patch(client_class):
+    if not hasattr(client_class, "on_cmd"):
+        def on_cmd(self, command, *args, **kwargs):
+            return self.on_message(filters.command(command, *args, **kwargs))
+        client_class.on_cmd = on_cmd
+
+from pyrogram import filters
+manual_patch(Client)
 
 # 5. Initialize Clients
 app = Client(
-    "HexaFinalV5",
+    "HexaFinalV6",
     api_id=API_ID,
     api_hash=API_HASH,
     bot_token=BOT_TOKEN,
@@ -63,7 +70,7 @@ user = Client(
     mongodb=dict(connection=AsyncClient(DATABASE_URI), remove_peers=False),
 )
 
-# 6. Background Web Server Function
+# 6. Web Server Function
 async def run_wsgi():
     config = uvicorn.Config(api, host="0.0.0.0", port=int(PORT))
     server = uvicorn.Server(config)
@@ -73,15 +80,7 @@ async def run_wsgi():
 async def start_everything():
     global BOT_ID, BOT_NAME, BOT_USERNAME, UBOT_ID, UBOT_NAME, UBOT_USERNAME
     
-    # Try applying patch from the module
-    try:
-        patch_module.misskaty_patch(Client)
-    except AttributeError:
-        # If it's directly in __init__.py of that folder
-        patch_module(Client)
-    
     await app.start()
-    
     BOT_ID = app.me.id
     BOT_NAME = app.me.first_name
     BOT_USERNAME = app.me.username
@@ -95,10 +94,10 @@ async def start_everything():
         except Exception:
             pass
 
-# Execute loop
+# Execute
 loop.run_until_complete(start_everything())
 print(f"DONE! STARTED AS @{BOT_USERNAME}")
 
-# 8. Scheduler setup
+# 8. Scheduler
 jobstores = {"default": MongoDBJobStore(client=MongoClient(DATABASE_URI), database=DATABASE_NAME, collection="nightmode")}
 scheduler = AsyncIOScheduler(jobstores=jobstores, timezone=TZ)
