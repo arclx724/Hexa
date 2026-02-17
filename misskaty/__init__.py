@@ -7,7 +7,7 @@ from asyncio import get_event_loop
 from faulthandler import enable as faulthandler_enable
 from logging import ERROR, INFO, StreamHandler, basicConfig, getLogger, handlers
 
-# 1. uvloop setup (Nitro Boost)
+# 1. uvloop setup
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 try:
     loop = asyncio.get_event_loop()
@@ -45,12 +45,12 @@ UBOT_USERNAME = None
 
 faulthandler_enable()
 
-# 4. Import and Apply Patches (IMPORTANT for @app.on_cmd)
-from misskaty.core import misskaty_patch
+# 4. Correct Import for Patching (Fixed TypeError)
+from misskaty.core.misskaty_patch import misskaty_patch
 
 # 5. Initialize Clients
 app = Client(
-    "HexaFinalV3", # New session name to avoid conflicts
+    "HexaFinalV4",
     api_id=API_ID,
     api_hash=API_HASH,
     bot_token=BOT_TOKEN,
@@ -69,13 +69,14 @@ async def run_wsgi():
     server = uvicorn.Server(config)
     await server.serve()
 
-# 7. Start Logic with Variable Assignment
+# 7. Start Logic
 async def start_everything():
     global BOT_ID, BOT_NAME, BOT_USERNAME, UBOT_ID, UBOT_NAME, UBOT_USERNAME
     
+    # Pre-patching the Client class
+    misskaty_patch(Client)
+    
     await app.start()
-    # Apply custom decorators to app instance
-    misskaty_patch(app)
     
     BOT_ID = app.me.id
     BOT_NAME = app.me.first_name
