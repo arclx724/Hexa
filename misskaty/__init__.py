@@ -45,12 +45,12 @@ UBOT_USERNAME = None
 
 faulthandler_enable()
 
-# 4. Correct Import for Patching (Fixed TypeError)
-from misskaty.core.misskaty_patch import misskaty_patch
+# 4. Correct Import for Patching (Based on your folder structure)
+from misskaty.core import misskaty_patch as patch_module
 
 # 5. Initialize Clients
 app = Client(
-    "HexaFinalV4",
+    "HexaFinalV5",
     api_id=API_ID,
     api_hash=API_HASH,
     bot_token=BOT_TOKEN,
@@ -73,8 +73,12 @@ async def run_wsgi():
 async def start_everything():
     global BOT_ID, BOT_NAME, BOT_USERNAME, UBOT_ID, UBOT_NAME, UBOT_USERNAME
     
-    # Pre-patching the Client class
-    misskaty_patch(Client)
+    # Try applying patch from the module
+    try:
+        patch_module.misskaty_patch(Client)
+    except AttributeError:
+        # If it's directly in __init__.py of that folder
+        patch_module(Client)
     
     await app.start()
     
