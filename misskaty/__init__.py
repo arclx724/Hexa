@@ -7,7 +7,7 @@ from asyncio import get_event_loop
 from faulthandler import enable as faulthandler_enable
 from logging import ERROR, INFO, StreamHandler, basicConfig, getLogger, handlers
 
-# uvloop setup - MUST be before importing Pyrogram Client
+# uvloop setup
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 try:
     loop = asyncio.get_event_loop()
@@ -23,7 +23,7 @@ from pyrogram import Client
 from web.webserver import api
 from misskaty.vars import *
 
-# Logging Setup
+# Logging
 basicConfig(
     level=INFO,
     format="[%(levelname)s] - [%(asctime)s - %(name)s - %(message)s] -> [%(module)s:%(lineno)d]",
@@ -32,19 +32,18 @@ basicConfig(
 )
 getLogger("pyrogram").setLevel(ERROR)
 
-# Global Variables
+# --- Global Variables for __main__.py ---
 MOD_LOAD, MOD_NOLOAD, HELPABLE, cleanmode = [], ["subscene_dl"], {}, {}
 botStartTime = time.time()
 misskaty_version = "v2.16.1"
-faulthandler_enable()
-
-# Missing variables for __main__.py
 BOT_ID = 0
 BOT_NAME = ""
 BOT_USERNAME = ""
 UBOT_ID = None
 UBOT_NAME = None
 UBOT_USERNAME = None
+
+faulthandler_enable()
 
 # Clients
 app = Client(
@@ -67,7 +66,7 @@ async def run_wsgi():
     server = uvicorn.Server(config)
     await server.serve()
 
-# Start Logic
+# Start Process
 async def start_everything():
     global BOT_ID, BOT_NAME, BOT_USERNAME, UBOT_ID, UBOT_NAME, UBOT_USERNAME
     await app.start()
@@ -83,6 +82,7 @@ async def start_everything():
         except:
             pass
 
+# Executing start
 loop.run_until_complete(start_everything())
 print(f"DONE! STARTED AS @{BOT_USERNAME}")
 
