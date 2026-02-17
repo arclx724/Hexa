@@ -7,7 +7,7 @@ from asyncio import get_event_loop
 from faulthandler import enable as faulthandler_enable
 from logging import ERROR, INFO, StreamHandler, basicConfig, getLogger, handlers
 
-# 1. uvloop setup
+# 1. uvloop & Loop Setup
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 try:
     loop = asyncio.get_event_loop()
@@ -32,18 +32,41 @@ basicConfig(
 )
 getLogger("pyrogram").setLevel(ERROR)
 
-# 3. Global Variables
+# 3. Global Variables (Important for __main__.py)
 MOD_LOAD, MOD_NOLOAD, HELPABLE, cleanmode = [], ["subscene_dl"], {}, {}
 botStartTime = time.time()
 misskaty_version = "v2.16.1"
 BOT_ID, BOT_NAME, BOT_USERNAME = 0, "", ""
 UBOT_ID, UBOT_NAME, UBOT_USERNAME = None, None, None
-
 faulthandler_enable()
 
-# 4. Initialize Clients
+# 4. Universal Decorator Patch (Fixes SyntaxError & Invalid Arguments)
+def apply_universal_patch():
+    def on_cmd(self, command, group=0, *args, **kwargs):
+        def decorator(func):
+            # Filtering only Pyrogram-supported arguments
+            valid_keys = ["prefixes", "case_sensitive"]
+            cmd_kwargs = {k: v for k, v in kwargs.items() if k in valid_keys}
+            self.on_message(filters.command(command, **cmd_kwargs), group)(func)
+            return func
+        return decorator
+
+    def on_cb(self, pattern, group=0, *args, **kwargs):
+        def decorator(func):
+            self.on_callback_query(filters.regex(pattern), group)(func)
+            return func
+        return decorator
+
+    # Injecting into the main Client class
+    Client.on_cmd = on_cmd
+    Client.on_cb = on_cb
+
+# Execute Patch immediately
+apply_universal_patch()
+
+# 5. Initialize Clients
 app = Client(
-    "HexaFinalV10",
+    "HexaFinalV11", # Fresh session name
     api_id=API_ID,
     api_hash=API_HASH,
     bot_token=BOT_TOKEN,
@@ -56,27 +79,7 @@ user = Client(
     mongodb=dict(connection=AsyncClient(DATABASE_URI), remove_peers=False),
 )
 
-# 5. Smart Patching for the 'app' instance
-def patch_app(client_instance):
-    def on_cmd(command, group=0, *args, **kwargs):
-        def decorator(func):
-            valid_keys = ["prefixes", "case_sensitive"]
-            cmd_kwargs = {k: v for k, v in kwargs.items() if k in valid_keys}
-            client_instance.on_message(filters.command(command, **cmd_kwargs), group)(func)
-            return func
-        return decorator
-
-    def on_cb(pattern, group=0, *args, **kwargs):
-        def decorator(func):
-            client_instance.on_callback_query(filters.regex(pattern), group)(func)
-            return func
-        return decorator
-    
-    # Injecting methods into the instance
-    client_instance.on_cmd = on_cmd
-    client_instance.on_cb = on_cb
-
-# 6. Web Server Function
+# 6. Missing Functions
 async def run_wsgi():
     config = uvicorn.Config(api, host="0.0.0.0", port=int(PORT))
     server = uvicorn.Server(config)
@@ -85,25 +88,16 @@ async def run_wsgi():
 # 7. Start Logic
 async def start_everything():
     global BOT_ID, BOT_NAME, BOT_USERNAME, UBOT_ID, UBOT_NAME, UBOT_USERNAME
-    
-    # Patch the app instance BEFORE it's used by plugins
-    patch_app(app)
-    
     await app.start()
     BOT_ID = app.me.id
     BOT_NAME = app.me.first_name
     BOT_USERNAME = app.me.username
-    
     if USER_SESSION:
         try:
             await user.start()
-            UBOT_ID = user.me.id
-            UBOT_NAME = user.me.first_name
-            UBOT_USERNAME = user.me.username
-        except Exception:
-            pass
+            UBOT_ID, UBOT_NAME, UBOT_USERNAME = user.me.id, user.me.first_name, user.me.username
+        except: pass
 
-# Execute
 loop.run_until_complete(start_everything())
 print(f"DONE! STARTED AS @{BOT_USERNAME}")
 
