@@ -7,7 +7,7 @@ from asyncio import get_event_loop
 from faulthandler import enable as faulthandler_enable
 from logging import ERROR, INFO, StreamHandler, basicConfig, getLogger, handlers
 
-# uvloop setup
+# 1. uvloop setup (Nitro Boost)
 asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 try:
     loop = asyncio.get_event_loop()
@@ -23,7 +23,7 @@ from pyrogram import Client
 from web.webserver import api
 from misskaty.vars import *
 
-# Logging
+# 2. Logging Setup
 basicConfig(
     level=INFO,
     format="[%(levelname)s] - [%(asctime)s - %(name)s - %(message)s] -> [%(module)s:%(lineno)d]",
@@ -32,7 +32,7 @@ basicConfig(
 )
 getLogger("pyrogram").setLevel(ERROR)
 
-# --- Global Variables for __main__.py ---
+# 3. Global Variables for __main__.py
 MOD_LOAD, MOD_NOLOAD, HELPABLE, cleanmode = [], ["subscene_dl"], {}, {}
 botStartTime = time.time()
 misskaty_version = "v2.16.1"
@@ -45,9 +45,12 @@ UBOT_USERNAME = None
 
 faulthandler_enable()
 
-# Clients
+# 4. Import and Apply Patches (IMPORTANT for @app.on_cmd)
+from misskaty.core import misskaty_patch
+
+# 5. Initialize Clients
 app = Client(
-    "HexaFinalSession",
+    "HexaFinalV3", # New session name to avoid conflicts
     api_id=API_ID,
     api_hash=API_HASH,
     bot_token=BOT_TOKEN,
@@ -60,32 +63,37 @@ user = Client(
     mongodb=dict(connection=AsyncClient(DATABASE_URI), remove_peers=False),
 )
 
-# --- THE MISSING FUNCTION ---
+# 6. Background Web Server Function
 async def run_wsgi():
     config = uvicorn.Config(api, host="0.0.0.0", port=int(PORT))
     server = uvicorn.Server(config)
     await server.serve()
 
-# Start Process
+# 7. Start Logic with Variable Assignment
 async def start_everything():
     global BOT_ID, BOT_NAME, BOT_USERNAME, UBOT_ID, UBOT_NAME, UBOT_USERNAME
+    
     await app.start()
+    # Apply custom decorators to app instance
+    misskaty_patch(app)
+    
     BOT_ID = app.me.id
     BOT_NAME = app.me.first_name
     BOT_USERNAME = app.me.username
+    
     if USER_SESSION:
         try:
             await user.start()
             UBOT_ID = user.me.id
             UBOT_NAME = user.me.first_name
             UBOT_USERNAME = user.me.username
-        except:
+        except Exception:
             pass
 
-# Executing start
+# Execute loop
 loop.run_until_complete(start_everything())
 print(f"DONE! STARTED AS @{BOT_USERNAME}")
 
-# Scheduler setup
+# 8. Scheduler setup
 jobstores = {"default": MongoDBJobStore(client=MongoClient(DATABASE_URI), database=DATABASE_NAME, collection="nightmode")}
 scheduler = AsyncIOScheduler(jobstores=jobstores, timezone=TZ)
