@@ -41,27 +41,33 @@ UBOT_ID, UBOT_NAME, UBOT_USERNAME = None, None, None
 
 faulthandler_enable()
 
-# 4. Universal Smart Patching (Fixes on_cmd, on_cb and custom args)
+# 4. Final Smart Universal Patching
 def universal_patch(client_class):
-    # Patch for Commands (@app.on_cmd)
+    # Patch for Commands - Accepts EVERYTHING but only sends valid ones to filters.command
     if not hasattr(client_class, "on_cmd"):
-        def on_cmd(self, command, group=0, *args, **kwargs):
-            valid_args = ["prefixes", "case_sensitive"]
-            cmd_args = {k: v for k, v in kwargs.items() if k in valid_args}
-            return self.on_message(filters.command(command, **cmd_args), group)
+        def on_cmd(command, group=0, *args, **kwargs):
+            def decorator(func):
+                valid_keys = ["prefixes", "case_sensitive"]
+                cmd_kwargs = {k: v for k, v in kwargs.items() if k in valid_keys}
+                client_class.on_message(filters.command(command, **cmd_kwargs), group)(func)
+                return func
+            return decorator
         client_class.on_cmd = on_cmd
 
-    # Patch for Callbacks (@app.on_cb)
+    # Patch for Callbacks
     if not hasattr(client_class, "on_cb"):
-        def on_cb(self, pattern, group=0, *args, **kwargs):
-            return self.on_callback_query(filters.regex(pattern), group)
+        def on_cb(pattern, group=0, *args, **kwargs):
+            def decorator(func):
+                client_class.on_callback_query(filters.regex(pattern), group)(func)
+                return func
+            return decorator
         client_class.on_cb = on_cb
 
 universal_patch(Client)
 
 # 5. Initialize Clients
 app = Client(
-    "HexaFinalV8",
+    "HexaFinalV9",
     api_id=API_ID,
     api_hash=API_HASH,
     bot_token=BOT_TOKEN,
